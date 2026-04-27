@@ -197,9 +197,11 @@ captureBtn.addEventListener('click', async () => {
                 const destroyedMarker = activeQuest.marker;
                 
                 // 1. 从雷达的总数据库 (allSpots) 中把这个点彻底抹除
-                const spotIndex = allSpots.indexOf(activeQuest.spot);
+                // 【关键修复】：利用经纬度作为唯一标识去寻找本尊，而不是比对内存对象！
+                const spotIndex = allSpots.findIndex(s => s.lat === activeQuest.spot.lat && s.lng === activeQuest.spot.lng);
                 if (spotIndex > -1) {
                     allSpots.splice(spotIndex, 1); 
+                    console.log("💥 数据库源文件抹除成功！");
                 }
 
                 // 2. 华丽地从地图上拔掉图标
@@ -369,7 +371,7 @@ btnSubmit.addEventListener('click', () => {
 
         // 【关键修复 3】：从雷达的总数据库中彻底超度这个公园！
         if (window.currentComboSpot) {
-            const spotIndex = allSpots.indexOf(window.currentComboSpot);
+            const spotIndex = allSpots.findIndex(s => s.lat === window.currentComboSpot.lat && s.lng === window.currentComboSpot.lng);
             if (spotIndex > -1) {
                 allSpots.splice(spotIndex, 1); 
             }
