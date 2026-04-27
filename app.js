@@ -136,6 +136,12 @@ async function callRealVisionAI() {
         });
 
         const data = await response.json();
+
+        // 【新增的防崩溃拦截】
+        if (data.error) {
+            alert("🚨 AI 识别出错: " + (data.error.message || "请检查后端日志"));
+            return null; // 终止执行，防止页面卡死
+        }
         
         // 【新增排错】：拦截 API 本身的报错（如 Key 错误、格式错）
         if (!response.ok) {

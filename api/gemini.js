@@ -1,13 +1,18 @@
-// api/gemini.js
+// api/gemini.js (满血防弹版)
 export default async function handler(req, res) {
-    // 1. 获取前端传来的图片数据
-    const { contents } = req.body;
-    
-    // 2. 从服务器的环境变量里读取 API_KEY (绝对不会泄露给前端)
-    const API_KEY = process.env.GEMINI_API_KEY; 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    // 1. 检查 API Key
+    const API_KEY = process.env.GEMINI_API_KEY;
+    if (!API_KEY) {
+        console.error("🚨 致命错误：环境变量 GEMINI_API_KEY 未找到！");
+        return res.status(500).json({ error: { message: "服务器未配置 API_KEY" } });
+    }
+
+    // 2. 组装请求 URL（注意：这里必须用键盘左上角的反引号 `，不能用单引号！）
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
     try {
+        const { contents } = req.body;
+        
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -15,9 +20,17 @@ export default async function handler(req, res) {
         });
 
         const data = await response.json();
-        // 3. 把 Google 返回的结果原封不动传给前端
+
+        // 3. 拦截 Google 的报错！
+        if (!response.ok) {
+            console.error("❌ Google API 报错了：", JSON.stringify(data));
+            return res.status(response.status).json(data); 
+        }
+
+        // 4. 成功返回数据
         res.status(200).json(data);
     } catch (error) {
-        res.status(500).json({ error: "服务器转发失败" });
+        console.error("❌ Vercel 服务器崩溃：", error.message);
+        res.status(500).json({ error: { message: error.message } });
     }
 }
