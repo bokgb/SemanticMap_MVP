@@ -291,6 +291,7 @@ let currentVerb = null;
 
 // --- 升级版：自由探索生成与多目标追踪 ---
 let currentActiveMarker = null; // 记录当前玩家点击的是哪个任务图标
+window.currentComboTag = null;
 
 function spawnTaskMarker(lat, lng) {
     const customIcon = L.divIcon({
@@ -325,16 +326,18 @@ function renderComboWords() {
         const btn = document.createElement('div');
         btn.className = 'combo-word-item';
         btn.style.borderColor = wordData.tagColor; 
-        btn.innerText = `${wordData.word} [${wordData.pos}]`;
+        
+        // 【关键修复 3】：从 wordData.word 升级为 wordData.word.text
+        btn.innerText = `${wordData.word.text} [${wordData.pos}]`;
         btn.addEventListener('click', () => {
             if (wordData.pos === '名词' && !currentNoun) {
                 currentNoun = wordData;
-                slotNoun.innerText = wordData.word;
+                slotNoun.innerText = wordData.word.text; // 这里也要改
                 slotNoun.classList.add('filled');
                 btn.classList.add('used');
             } else if (wordData.pos === '动词' && !currentVerb) {
                 currentVerb = wordData;
-                slotVerb.innerText = wordData.word;
+                slotVerb.innerText = wordData.word.text; // 这里也要改
                 slotVerb.classList.add('filled');
                 btn.classList.add('used');
             }
@@ -357,19 +360,27 @@ function resetSlots() {
 
 // --- 升级版：Combo 结算逻辑（只消除当前挑战的那个图标） ---
 btnSubmit.addEventListener('click', () => {
-    if (currentNoun.tag === 'Transit' || currentVerb.tag === 'Transit') {
-        alert(`Combo 成功！你构筑了逻辑：\n${currentNoun.word} を ${currentVerb.word}`);
+    // 【关键修复 4】：不再写死 Transit，而是动态对比当前公园需要的 Tag！
+    if (currentNoun.tag === window.currentComboTag || currentVerb.tag === window.currentComboTag) {
+        alert(`Combo 成功！你构筑了逻辑：\n${currentNoun.word.text} を ${currentVerb.word.text}`);
         comboLayer.classList.add('hidden');
         resetSlots();
         
-        // 消除当前正在挑战的那个警告图标，并在该经纬度画出绿圈
+        // 💥 给公园的图标也加上炫酷的爆炸特效并消除！
         if(currentActiveMarker) {
-            map.removeLayer(currentActiveMarker); 
-            L.circle(currentActiveMarker.getLatLng(), { color: '#4CAF50', fillColor: '#4CAF50', fillOpacity: 0.4, radius: 50 }).addTo(map);
+            const iconElement = currentActiveMarker._icon;
+            if (iconElement) {
+                iconElement.classList.add('marker-destroy-fx');
+                setTimeout(() => {
+                    dynamicMarkersLayer.removeLayer(currentActiveMarker);
+                }, 600);
+            } else {
+                dynamicMarkersLayer.removeLayer(currentActiveMarker);
+            }
             currentActiveMarker = null; // 清除记录
         }
     } else {
-        alert("语境不匹配！\n提示：该区域需要【交通 (Transit)】相关的词汇。");
+        alert(`语境不匹配！\n提示：该区域需要【${window.currentComboTag}】相关的词汇。`);
         comboLayer.classList.add('hidden');
         resetSlots();
     }
@@ -482,7 +493,13 @@ function spawnDynamicQuest(spot) {
             // 🟢 休闲/开阔区域 -> 【自由组合任务】(坐下来慢慢玩)
             document.getElementById('task-desc').innerText = `区域异常：此公园需要【${spot.questTag}】相关的词汇组合来净化！`;
             activeQuest = null; 
-            document.getElementById('combo-layer').classList.remove('hidden');
+            
+            // 【关键修复 1】：记录当前点，并全局保存它需要的 Tag！
+            currentActiveMarker = marker; 
+            window.currentComboTag = spot.questTag; 
+            
+            // 【关键修复 2】：调用正规的打开函数，它会帮你去渲染单词列表
+            openComboPanel(); 
             
         }
     });
