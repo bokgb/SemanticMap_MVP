@@ -190,6 +190,36 @@ captureBtn.addEventListener('click', async () => {
         // 如果身上有任务，就检查拍到的东西对不对
         if (aiResult.tag === activeQuest.requiredTag) {
             alert(`🎉 任务完成！\n成功填入：【${aiResult.word.text}】 を たべる\n便利店区域已净化！`);
+
+            // 【新增】：任务结算与销毁逻辑
+            if (activeQuest.type === 'POI') {
+                console.log("✅ 拍照任务完成，正在销毁该地标...");
+                
+                // 1. 从雷达的总数据库 (allSpots) 中把这个点彻底抹除
+                const spotIndex = allSpots.indexOf(activeQuest.spot);
+                if (spotIndex > -1) {
+                    allSpots.splice(spotIndex, 1); 
+                }
+
+                    // 2. 华丽地从地图上拔掉图标
+                if (activeQuest.marker) {
+                        const iconElement = activeQuest.marker._icon; // 获取地图图标的真实 HTML 元素
+                    
+                        if (iconElement) {
+                            // 💥 挂上爆炸特效的 Class
+                            iconElement.classList.add('marker-destroy-fx');
+                        
+                            // ⏳ 等待 600 毫秒（跟 CSS 动画的时间对齐），特效播完后再彻底删除数据
+                            setTimeout(() => {
+                                dynamicMarkersLayer.removeLayer(activeQuest.marker);
+                            }, 600);
+                        } else {
+                            // 兜底逻辑：如果没抓到 HTML 元素，就直接删掉
+                            dynamicMarkersLayer.removeLayer(activeQuest.marker);
+                        }
+                }
+            }
+
             activeQuest = null; // 任务清空
         } else {
             alert(`❌ 语境不符！\n你拍到了【${aiResult.word.text}】，但这东西不能“吃”哦。`);
@@ -427,7 +457,7 @@ async function loadOSMData() {
     }
 }
 
-// 2. 动态生成任务地标 (取代原来的 spawnStoreQuest)
+// 2. 动态生成任务地标 (情境驱动分配版)
 function spawnDynamicQuest(spot) {
     const icon = L.divIcon({
         html: `<div class="store-emoji">${spot.emoji}</div>`, 
@@ -439,10 +469,22 @@ function spawnDynamicQuest(spot) {
     const marker = L.marker([spot.lat, spot.lng], { icon: icon });
         
     marker.on('click', () => {
-        document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
-        // 动态派发任务：例如点了药妆店，就要求拍 Health
-        activeQuest = { type: 'POI', requiredTag: spot.questTag }; 
-        document.getElementById('quest-layer').classList.remove('hidden');
+        // 【核心策划逻辑：根据地点类型分配任务】
+        if (spot.type === 'convenience' || spot.type === 'pharmacy' || spot.type === 'station') {
+            
+            // 🔴 繁忙/室内区域 -> 【填空拍照任务】(快进快出)
+            document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
+            activeQuest = { type: 'POI', requiredTag: spot.questTag, spot: spot, marker: marker }; 
+            document.getElementById('quest-layer').classList.remove('hidden');
+            
+        } else if (spot.type === 'park') {
+            
+            // 🟢 休闲/开阔区域 -> 【自由组合任务】(坐下来慢慢玩)
+            document.getElementById('task-desc').innerText = `区域异常：此公园需要【${spot.questTag}】相关的词汇组合来净化！`;
+            activeQuest = null; 
+            document.getElementById('combo-layer').classList.remove('hidden');
+            
+        }
     });
     
     return marker;
