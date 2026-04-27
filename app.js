@@ -194,6 +194,7 @@ captureBtn.addEventListener('click', async () => {
             // 【新增】：任务结算与销毁逻辑
             if (activeQuest.type === 'POI') {
                 console.log("✅ 拍照任务完成，正在销毁该地标...");
+                const destroyedMarker = activeQuest.marker;
                 
                 // 1. 从雷达的总数据库 (allSpots) 中把这个点彻底抹除
                 const spotIndex = allSpots.indexOf(activeQuest.spot);
@@ -201,9 +202,9 @@ captureBtn.addEventListener('click', async () => {
                     allSpots.splice(spotIndex, 1); 
                 }
 
-                    // 2. 华丽地从地图上拔掉图标
-                if (activeQuest.marker) {
-                        const iconElement = activeQuest.marker._icon; // 获取地图图标的真实 HTML 元素
+                // 2. 华丽地从地图上拔掉图标
+                if (destroyedMarker) {
+                        const iconElement = destroyedMarker._icon; // 获取地图图标的真实 HTML 元素
                     
                         if (iconElement) {
                             // 💥 挂上爆炸特效的 Class
@@ -211,11 +212,11 @@ captureBtn.addEventListener('click', async () => {
                         
                             // ⏳ 等待 600 毫秒（跟 CSS 动画的时间对齐），特效播完后再彻底删除数据
                             setTimeout(() => {
-                                dynamicMarkersLayer.removeLayer(activeQuest.marker);
+                                dynamicMarkersLayer.removeLayer(destroyedMarker);
                             }, 600);
                         } else {
                             // 兜底逻辑：如果没抓到 HTML 元素，就直接删掉
-                            dynamicMarkersLayer.removeLayer(activeQuest.marker);
+                            dynamicMarkersLayer.removeLayer(destroyedMarker);
                         }
                 }
             }
@@ -368,14 +369,15 @@ btnSubmit.addEventListener('click', () => {
         
         // 💥 给公园的图标也加上炫酷的爆炸特效并消除！
         if(currentActiveMarker) {
-            const iconElement = currentActiveMarker._icon;
+            const destroyedMarker = currentActiveMarker;
+            const iconElement = destroyedMarker._icon;
             if (iconElement) {
                 iconElement.classList.add('marker-destroy-fx');
                 setTimeout(() => {
-                    dynamicMarkersLayer.removeLayer(currentActiveMarker);
+                    dynamicMarkersLayer.removeLayer(destroyedMarker);
                 }, 600);
             } else {
-                dynamicMarkersLayer.removeLayer(currentActiveMarker);
+                dynamicMarkersLayer.removeLayer(destroyedMarker);
             }
             currentActiveMarker = null; // 清除记录
         }
