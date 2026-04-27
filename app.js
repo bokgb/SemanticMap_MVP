@@ -194,7 +194,6 @@ captureBtn.addEventListener('click', async () => {
             // 【新增】：任务结算与销毁逻辑
             if (activeQuest.type === 'POI') {
                 console.log("✅ 拍照任务完成，正在销毁该地标...");
-                const destroyedMarker = activeQuest.marker;
                 
                 // 1. 从雷达的总数据库 (allSpots) 中把这个点彻底抹除
                 // 【关键修复】：利用经纬度作为唯一标识去寻找本尊，而不是比对内存对象！
@@ -205,21 +204,24 @@ captureBtn.addEventListener('click', async () => {
                 }
 
                 // 2. 华丽地从地图上拔掉图标
-                if (destroyedMarker) {
-                        const iconElement = destroyedMarker._icon; // 获取地图图标的真实 HTML 元素
-                    
-                        if (iconElement) {
-                            // 💥 挂上爆炸特效的 Class
-                            iconElement.classList.add('marker-destroy-fx');
-                        
-                            // ⏳ 等待 600 毫秒（跟 CSS 动画的时间对齐），特效播完后再彻底删除数据
-                            setTimeout(() => {
-                                dynamicMarkersLayer.removeLayer(destroyedMarker);
-                            }, 600);
-                        } else {
-                            // 兜底逻辑：如果没抓到 HTML 元素，就直接删掉
-                            dynamicMarkersLayer.removeLayer(destroyedMarker);
-                        }
+                // 【核心修复】：防止 GPS 刷新导致旧图标失效，直接去图层里抓“最新”的那个图标！
+                let actualMarkerOnMap = null;
+                dynamicMarkersLayer.eachLayer(layer => {
+                    if (layer.spotData && layer.spotData.lat === activeQuest.spot.lat && layer.spotData.lng === activeQuest.spot.lng) {
+                        actualMarkerOnMap = layer;
+                    }
+                });
+
+                if (actualMarkerOnMap) {
+                    const iconElement = actualMarkerOnMap._icon; 
+                    if (iconElement) {
+                        iconElement.classList.add('marker-destroy-fx');
+                        setTimeout(() => {
+                            dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
+                        }, 600);
+                    } else {
+                        dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
+                    }
                 }
             }
 
@@ -378,20 +380,26 @@ btnSubmit.addEventListener('click', () => {
         }
         
         // 💥 给公园的图标也加上炫酷的爆炸特效并消除！
-        if(currentActiveMarker) {
-            const destroyedMarker = currentActiveMarker;
-            const iconElement = destroyedMarker._icon;
+        let actualMarkerOnMap = null;
+        dynamicMarkersLayer.eachLayer(layer => {
+            if (layer.spotData && window.currentComboSpot && layer.spotData.lat === window.currentComboSpot.lat && layer.spotData.lng === window.currentComboSpot.lng) {
+                actualMarkerOnMap = layer;
+            }
+        });
+
+        if (actualMarkerOnMap) {
+            const iconElement = actualMarkerOnMap._icon;
             if (iconElement) {
                 iconElement.classList.add('marker-destroy-fx');
                 setTimeout(() => {
-                    dynamicMarkersLayer.removeLayer(destroyedMarker);
+                    dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
                 }, 600);
             } else {
-                dynamicMarkersLayer.removeLayer(destroyedMarker);
+                dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
             }
-            currentActiveMarker = null; // 清除记录
-            window.currentComboSpot = null; // 顺手清空记录
         }
+        currentActiveMarker = null; 
+        window.currentComboSpot = null;
     } else {
         alert(`语境不匹配！\n提示：该区域需要【${window.currentComboTag}】相关的词汇。`);
         comboLayer.classList.add('hidden');
@@ -491,6 +499,9 @@ function spawnDynamicQuest(spot) {
     });
     
     const marker = L.marker([spot.lat, spot.lng], { icon: icon });
+
+    // 【关键修复 1】：给地图图标贴上包含坐标数据的身份证！
+    marker.spotData = spot;
         
     marker.on('click', () => {
         // 【核心策划逻辑：根据地点类型分配任务】
