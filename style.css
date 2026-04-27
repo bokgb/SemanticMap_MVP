@@ -1,0 +1,402 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* 防止手机端页面整体滑动 */
+    font-family: sans-serif;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* 地图在底层 */
+}
+
+#ui-layer {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.85); /* 半透明 UI 面板 */
+    backdrop-filter: blur(10px); /* 毛玻璃效果 */
+    padding: 15px;
+    border-radius: 12px;
+    z-index: 1000; /* UI 层覆盖在地图上方 */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+h2, p {
+    margin: 0 0 10px 0;
+}
+/* 扫描按钮样式 */
+#scan-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: #2b2b2b;
+    color: #00ffcc; /* 极客绿 */
+    border: 2px solid #00ffcc;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 相机全屏浮层 */
+#camera-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: black;
+    z-index: 2000; /* 确保它盖住地图 */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+/* 摄像头画面铺满 */
+#camera-feed {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: -1;
+}
+
+/* 取景框 UI */
+.viewfinder-frame {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 250px; height: 250px;
+    border: 4px dashed rgba(0, 255, 204, 0.8);
+    box-sizing: border-box;
+}
+
+/* 底部操作区 */
+.camera-controls {
+    padding: 30px 20px;
+    display: flex;
+    justify-content: space-around;
+    z-index: 2001;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+}
+
+.camera-controls button {
+    padding: 15px 25px;
+    font-size: 16px;
+    border-radius: 25px;
+    border: none;
+    font-weight: bold;
+}
+
+#capture-btn { background: white; color: black; }
+#close-camera-btn { background: #ff4444; color: white; }
+
+/* --- 悬浮背包按钮 --- */
+#bag-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 55px; 
+    height: 55px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #ddd;
+    font-size: 24px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 红点通知徽章 */
+#bag-badge {
+    position: absolute; 
+    top: -2px; 
+    right: -2px;
+    background: #ff4444; 
+    color: white; 
+    font-size: 12px;
+    font-weight: bold; 
+    width: 22px; 
+    height: 22px;
+    border-radius: 50%; 
+    line-height: 22px; 
+    text-align: center;
+    display: none; /* 默认没有单词时隐藏 */
+}
+
+/* --- 侧滑背包面板 --- */
+#inventory-layer {
+    position: absolute;
+    top: 0; 
+    right: 0;
+    width: 280px; 
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 1001; /* 层级比按钮更高 */
+    padding: 20px;
+    box-sizing: border-box;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+    
+    /* 核心动画魔法：默认藏在屏幕右侧外面 */
+    transform: translateX(100%); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+}
+
+/* 当我们用 JS 给面板加上这个 class 时，它就会滑进来 */
+#inventory-layer.open {
+    transform: translateX(0); 
+}
+
+.inv-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+.inv-header h3 { margin: 0; font-size: 16px; }
+#close-bag-btn { background: none; border: none; font-size: 20px; color: #666; cursor: pointer; }
+
+/* 保持你原来的卡牌样式不变 */
+.word-block { background: white; padding: 10px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); animation: popIn 0.3s ease-out; border-left: 4px solid transparent; }
+.word-title { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
+.word-pos { font-size: 12px; color: #666; }
+.word-tag { display: inline-block; font-size: 10px; color: white; padding: 2px 6px; border-radius: 10px; margin-top: 5px; }
+@keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* 生成的词汇块（类似卡牌） */
+.word-block {
+    background: white;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    animation: popIn 0.3s ease-out; /* 简单的弹出动画 */
+}
+
+/* 词汇块内部排版 */
+.word-title { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
+.word-pos { font-size: 12px; color: #666; }
+.word-tag { 
+    display: inline-block; 
+    font-size: 10px; 
+    color: white; 
+    padding: 2px 6px; 
+    border-radius: 10px; 
+    margin-top: 5px;
+}
+
+/* 动画特效 */
+@keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* 拍照时的闪光白屏特效 */
+.flash-effect {
+    background: white !important;
+}
+
+/* --- 语法组合工作台 --- */
+#combo-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 3000;
+    display: flex; justify-content: center; align-items: center;
+}
+
+#combo-layer.hidden { display: none !important; }
+
+.combo-panel {
+    background: white; width: 90%; max-width: 400px;
+    border-radius: 12px; padding: 20px; box-sizing: border-box;
+}
+
+.combo-panel h3 { margin-top: 0; color: #333; }
+.task-rule { color: #e91e63; font-weight: bold; font-size: 14px; }
+
+/* 语法插槽 */
+.slots-container { display: flex; gap: 10px; margin: 20px 0; }
+.slot {
+    flex: 1; border: 2px dashed #ccc; border-radius: 8px;
+    padding: 15px 10px; text-align: center; font-size: 14px;
+    color: #999; background: #fafafa; transition: 0.3s;
+}
+.slot.filled {
+    border-style: solid; border-color: #4CAF50;
+    background: #e8f5e9; color: #333; font-weight: bold; font-size: 18px;
+}
+
+/* 备选词库列表（横向滚动） */
+#combo-word-list {
+    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;
+}
+.combo-word-item {
+    flex-shrink: 0; padding: 8px 12px; border: 1px solid #ddd;
+    border-radius: 20px; background: white; cursor: pointer;
+    font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.combo-word-item.used { opacity: 0.5; pointer-events: none; }
+
+.combo-actions { display: flex; justify-content: space-between; margin-top: 20px; }
+.combo-actions button { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; font-size: 16px; }
+#btn-submit-combo { background: #4CAF50; color: white; width: 65%; opacity: 0.5; }
+#btn-submit-combo:not(:disabled) { opacity: 1; cursor: pointer; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4); }
+#btn-close-combo { background: #eee; color: #666; width: 30%; cursor: pointer; }
+
+/* --- 任务节点图标样式 --- */
+/* 这是给地图做定位的“外壳”，绝对不能加动画！ */
+.task-icon-container {
+    width: 60px;
+    height: 60px;
+    background: transparent;
+}
+
+/* 这是里面的内容层，专门负责跳动 */
+.icon-pulse {
+    width: 100%;
+    height: 100%;
+    font-size: 45px;
+    line-height: 60px;
+    text-align: center;
+    filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.4)); 
+    transform-origin: center center; 
+    animation: taskPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes taskPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); } 
+    100% { transform: scale(1); }
+}
+
+#quest-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); z-index: 4000;
+    display: flex; justify-content: center; align-items: center;
+}
+.quest-panel {
+    background: white; width: 85%; border-radius: 15px; padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+.sentence-preview {
+    background: #f0f0f0; padding: 20px; border-radius: 10px;
+    margin: 20px 0; text-align: center; font-size: 24px;
+}
+.slot-box {
+    border-bottom: 3px solid #e91e63; color: #e91e63;
+    padding: 0 15px; font-weight: bold;
+}
+#btn-start-scan {
+    width: 100%; padding: 15px; background: #e91e63;
+    color: white; border: none; border-radius: 30px;
+    font-size: 18px; font-weight: bold;
+}
+/* 强制隐藏任务面板，解决 CSS 权重冲突 */
+#quest-layer.hidden {
+    display: none !important;
+}
+
+/* 美化便利店任务的关闭按钮 */
+.quest-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+#btn-close-quest {
+    background: #f0f0f0;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+}
+
+/* --- 便利店任务图标样式 (彻底修复漂移版) --- */
+
+/* 1. 外壳：负责死死钉在地图上，绝对不能加动画 */
+.store-icon-container {
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    z-index: 1000 !important; /* 确保盖住底图 */
+}
+
+/* 2. 内壳：专门负责上下浮动 */
+.store-emoji {
+    width: 100%;
+    height: 100%;
+    font-size: 45px; 
+    text-align: center;
+    line-height: 50px;
+    filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.4)); 
+    animation: storeFloat 2s infinite ease-in-out; 
+}
+
+/* 3. 浮动动画 */
+@keyframes storeFloat {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-10px); } 
+    100% { transform: translateY(0); }
+}
+/* --- 专为移动端优化的 Ruby 注音样式 --- */
+ruby {
+    font-size: 22px; 
+    font-weight: bold;
+    ruby-align: center; 
+}
+rt {
+    font-size: 10px; 
+    color: #888; 
+    font-weight: normal;
+    letter-spacing: 0.5px; 
+    transform: translateY(-2px); /* 稍微往上抬一点，避免和汉字挤在一起 */
+}
+
+/* --- 战利品单词卡 UI --- */
+#word-card-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.75); z-index: 3500;
+    display: flex; justify-content: center; align-items: center;
+}
+#word-card-layer.hidden { display: none !important; }
+
+.loot-card {
+    background: white; width: 85%; border-radius: 20px;
+    padding: 30px 20px; text-align: center;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    border-top: 8px solid #ff9800; /* 顶部橙色高亮 */
+}
+
+.loot-header { font-size: 14px; color: #ff9800; font-weight: bold; margin-bottom: 15px; }
+
+.loot-word {
+    background: #fff8e1; padding: 25px 10px; border-radius: 15px;
+    margin-bottom: 25px;
+}
+.loot-word ruby { font-size: 32px; color: #333; }
+.loot-word span { display: block; font-size: 16px; color: #666; margin-top: 10px; }
+
+.loot-example-box { text-align: left; background: #f9f9f9; padding: 15px; border-radius: 12px; margin-bottom: 25px; }
+.ex-label { font-size: 12px; color: #999; font-weight: bold; margin-bottom: 5px; }
+.ex-text { font-size: 16px; color: #333; font-weight: bold; margin-bottom: 5px; }
+.ex-zh { font-size: 14px; color: #666; }
+
+.loot-btn {
+    width: 100%; padding: 16px; background: #ff9800; color: white;
+    border: none; border-radius: 30px; font-size: 18px; font-weight: bold;
+    box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+}
+.loot-btn:active { transform: scale(0.96); }

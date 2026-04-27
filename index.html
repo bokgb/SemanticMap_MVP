@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Semantic Map LBS Prototype</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="map"></div>
+
+    <div id="ui-layer">
+        <h2>系统信息</h2>
+        <p id="status-text">正在获取 GPS 定位...</p>
+        <button id="scan-btn">打开取景器 (Scan)</button>
+    </div>
+
+    <button id="bag-btn">
+        🎒 
+        <span id="bag-badge">0</span> </button>
+
+    <div id="inventory-layer">
+        <div class="inv-header">
+            <h3>已提取的词汇</h3>
+            <button id="close-bag-btn">✖</button>
+        </div>
+        <div id="word-list"></div>
+    </div>
+    
+    <div id="combo-layer" class="hidden">
+        <div class="combo-panel">
+            <h3>🧩 修复现实语义</h3>
+            <p id="task-desc">区域异常：缺少【交通】语境的动作描述。</p>
+            <p class="task-rule">要求：[名词] + [动词]</p>
+
+            <div class="slots-container">
+                <div class="slot empty" id="slot-noun" data-type="名词">点击下方名词填入</div>
+                <div class="slot empty" id="slot-verb" data-type="动词">点击下方动词填入</div>
+            </div>
+
+            <h4>你的词汇库：</h4>
+            <div id="combo-word-list"></div>
+
+            <div class="combo-actions">
+                <button id="btn-submit-combo" disabled>执行 Combo!</button>
+                <button id="btn-close-combo">撤退</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="quest-layer" class="hidden">
+    <div class="quest-panel">
+        <div class="quest-header">
+            <span class="location-tag">📍 Lawson 便利店</span>
+            <button id="btn-close-quest">✖</button>
+        </div>
+        
+        <div class="quest-content">
+            <h3>环境语义缺失！</h3>
+            <p>请通过拍照补充下述句子的空缺部分：</p>
+            
+            <div class="sentence-preview">
+                <span class="slot-box" id="quest-slot">?</span>
+                <span class="fixed-text">を たべる</span>
+            </div>
+        </div>
+
+            <button id="btn-start-scan">带着任务去拍照</button>
+        </div>
+    </div>
+
+    <div id="camera-layer" style="display: none;">
+        <video id="camera-feed" autoplay playsinline></video>
+        
+        <div class="viewfinder-frame"></div> 
+        
+        <div class="camera-controls">
+            <button id="capture-btn">提取属性 (Capture)</button>
+            <button id="close-camera-btn">关闭</button>
+        </div>
+    </div>
+
+    <div id="word-card-layer" class="hidden">
+        <div class="loot-card">
+            <div class="loot-header">✨ 发现新词汇 ✨</div>
+            <div id="loot-word-main" class="loot-word"></div>
+            
+            <div class="loot-example-box">
+                <div class="ex-label">💡 例句</div>
+                <div id="loot-example-text" class="ex-text"></div>
+                <div id="loot-example-zh" class="ex-zh"></div>
+            </div>
+
+            <button id="btn-collect-word" class="loot-btn">收下并存入背包</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

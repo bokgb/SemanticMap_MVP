@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><title>OSM 数据清洗器</title></head>
+<body>
+    <h2>上传你的原始 osmData.json，我会还给你一个纯净版！</h2>
+    <input type="file" id="fileInput" accept=".json">
+    <button id="downloadBtn" style="display:none; padding:10px; background:green; color:white;">⬇️ 下载干净的游戏数据</button>
+
+    <script>
+        let cleanData = [];
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const geojson = JSON.parse(e.target.result);
+                
+                // 核心清洗逻辑（和之前一样，但现在是在开发者的电脑上跑）
+                cleanData = geojson.features.map(feature => {
+                    const lng = feature.geometry.coordinates[0];
+                    const lat = feature.geometry.coordinates[1];
+                    const props = feature.properties;
+                    
+                    let type = '', questTag = '', emoji = '', name = props.name || '未知地点';
+
+                    if (props.shop === 'convenience') { type = 'convenience'; questTag = 'Food'; emoji = '🏪'; }
+                    else if (props.amenity === 'pharmacy') { type = 'pharmacy'; questTag = 'Health'; emoji = '💊'; }
+                    else if (props.railway === 'station') { type = 'station'; questTag = 'Transit'; emoji = '🚉'; }
+                    else if (props.leisure === 'park') { type = 'park'; questTag = 'Nature'; emoji = '🌳'; }
+
+                    return { lat, lng, type, questTag, emoji, name };
+                }).filter(spot => spot.type !== '');
+
+                alert(`清洗完成！从 ${geojson.features.length} 条垃圾数据中提取了 ${cleanData.length} 个干净地标。`);
+                document.getElementById('downloadBtn').style.display = 'block';
+            };
+            reader.readAsText(file);
+        });
+
+        // 下载清洗后的数据
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(cleanData)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "spotsData.json"; // 生成全新的干净文件！
+            a.click();
+        });
+    </script>
+</body>
+</html>
