@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     }
 
     // 2. 组装请求 URL（注意：这里必须用键盘左上角的反引号 `，不能用单引号！）
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
     try {
         const { contents } = req.body;
