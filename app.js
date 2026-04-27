@@ -238,8 +238,7 @@ document.getElementById('btn-close-quest').addEventListener('click', () => {
 });
 
 document.getElementById('btn-start-scan').addEventListener('click', () => {
-    // 玩家接取任务：要求拍一个带有 Food 标签的东西
-    activeQuest = { type: 'Eat', requiredTag: 'Food' }; 
+    // 【关键修复 1】：内鬼代码已被删掉，保留原汁原味的任务数据！
     document.getElementById('quest-layer').classList.add('hidden');
     scanBtn.click(); // 自动帮你点开相机！
 });
@@ -293,6 +292,7 @@ let currentVerb = null;
 // --- 升级版：自由探索生成与多目标追踪 ---
 let currentActiveMarker = null; // 记录当前玩家点击的是哪个任务图标
 window.currentComboTag = null;
+window.currentComboSpot = null;
 
 function spawnTaskMarker(lat, lng) {
     const customIcon = L.divIcon({
@@ -366,6 +366,14 @@ btnSubmit.addEventListener('click', () => {
         alert(`Combo 成功！你构筑了逻辑：\n${currentNoun.word.text} を ${currentVerb.word.text}`);
         comboLayer.classList.add('hidden');
         resetSlots();
+
+        // 【关键修复 3】：从雷达的总数据库中彻底超度这个公园！
+        if (window.currentComboSpot) {
+            const spotIndex = allSpots.indexOf(window.currentComboSpot);
+            if (spotIndex > -1) {
+                allSpots.splice(spotIndex, 1); 
+            }
+        }
         
         // 💥 给公园的图标也加上炫酷的爆炸特效并消除！
         if(currentActiveMarker) {
@@ -380,6 +388,7 @@ btnSubmit.addEventListener('click', () => {
                 dynamicMarkersLayer.removeLayer(destroyedMarker);
             }
             currentActiveMarker = null; // 清除记录
+            window.currentComboSpot = null; // 顺手清空记录
         }
     } else {
         alert(`语境不匹配！\n提示：该区域需要【${window.currentComboTag}】相关的词汇。`);
@@ -499,6 +508,7 @@ function spawnDynamicQuest(spot) {
             // 【关键修复 1】：记录当前点，并全局保存它需要的 Tag！
             currentActiveMarker = marker; 
             window.currentComboTag = spot.questTag; 
+            window.currentComboSpot = spot; 
             
             // 【关键修复 2】：调用正规的打开函数，它会帮你去渲染单词列表
             openComboPanel(); 
