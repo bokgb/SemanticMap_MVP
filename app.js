@@ -116,11 +116,12 @@ async function callRealVisionAI() {
 
     const url = '/api/gemini';
     
+    // 【修复点】：注意下面必须是 inlineData 和 mimeType ！
     const requestBody = {
         contents: [{
             parts: [
                 { text: promptText },
-                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                { inlineData: { mimeType: "image/jpeg", data: base64Image } }
             ]
         }],
         generationConfig: {
