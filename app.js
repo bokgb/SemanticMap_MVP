@@ -43,12 +43,32 @@ if ('geolocation' in navigator) {
 
 // --- 取景器与相机逻辑 ---
 const scanBtn = document.getElementById('scan-btn');
+const levelSelector = document.getElementById('level-selector');
+const difficultyHint = document.getElementById('difficulty-hint');
 const cameraLayer = document.getElementById('camera-layer');
 const cameraFeed = document.getElementById('camera-feed');
 const closeCameraBtn = document.getElementById('close-camera-btn');
 const captureBtn = document.getElementById('capture-btn');
 
 let currentStream = null;
+
+function updateDifficultyHint() {
+    if (!levelSelector || !difficultyHint) return;
+
+    const hintMap = {
+        N5: '当前难度：N5 - 新手',
+        N3: '当前难度：N3 - 进阶',
+        N1: '当前难度：N1 - 专家'
+    };
+
+    difficultyHint.innerText = hintMap[levelSelector.value] || '当前难度：未知';
+    difficultyHint.dataset.level = levelSelector.value;
+}
+
+if (levelSelector) {
+    levelSelector.addEventListener('change', updateDifficultyHint);
+    updateDifficultyHint();
+}
 
 scanBtn.addEventListener('click', async () => {
     cameraLayer.style.display = 'flex'; 
@@ -92,10 +112,25 @@ function captureFrameAsBase64() {
 async function callRealVisionAI() {
     const base64Image = captureFrameAsBase64();
     
+    // 【核心新增 1】：获取玩家当前选择的难度
+    const currentLevel = document.getElementById('level-selector').value;
+    
+    // 【核心新增 2】：为不同难度编写专属的“AI 调教指令”
+    const levelInstructions = {
+        'N5': "使用最基础的初级词汇（JLPT N5-N4级别），只使用极高频的日常词汇。例句要求极简，尽量使用「です/ます」体，非常直白，汉字上方必须有假名对应。",
+        'N3': "使用日常进阶词汇（JLPT N3-N2级别），包含常见的汉字。词汇可以更加具体（比如不光说'水'，可以说'冷水'）。例句要求像当地人日常交流般自然，包含至少一种进阶语法（如被动、使役、条件假定等）。",
+        'N1': "使用极其高级或专业的词汇（JLPT N1 或母语级别）。必须返回非常偏门、文雅或极其具象的词汇（例如看到普通的水杯，返回'タンブラー'或'水筒'，看到猫返回'野良猫'或'愛玩動物'）。例句要求结构复杂，带有强烈的文学色彩、商务语境或隐喻成分。"
+    };
+
+    // 【核心新增 3】：把动态指令注入到 Prompt 里
     const promptText = `
     你是一个 LBS 语言学习游戏的物体识别引擎。
     请识别图片中最主要的物品。
-    你必须严格返回一段 JSON 格式的数据，绝对不要包含任何 Markdown 符号、反引号或其他文字。
+
+    【难度要求】：${levelInstructions[currentLevel]}
+
+    你必须严格根据上述【难度要求】来选择返回的词汇和例句。
+    并且严格返回一段 JSON 格式的数据，绝对不要包含任何 Markdown 符号、反引号或其他文字。
     JSON 的格式必须完全遵守以下结构：
     {
         "word": {
@@ -107,7 +142,7 @@ async function callRealVisionAI() {
         "tag": "必须从以下选择其一：Food, Nature, Transit, Retail, Health, Item",
         "tagColor": "对应的十六进制颜色",
         "example": {
-            "s": "一个简短的日文例句（含汉字，尽量简单）",
+            "s": "日文例句（根据难度要求生成）",
             "k": "该例句的全假名注音（用于参考）",
             "z": "该例句的中文翻译"
         }

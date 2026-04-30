@@ -15,6 +15,14 @@
     <div id="ui-layer">
         <h2>系统信息</h2>
         <p id="status-text">正在获取 GPS 定位...</p>
+        
+        <!-- 【新增】：难度选择下拉菜单 -->
+        <select id="level-selector" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 8px; font-weight: bold; background: #fff8e1; border: 2px solid #ff9800; color: #ff9800;">
+            <option value="N5">👶 新手难度 (JLPT N5-N4)</option>
+            <option value="N3">🚶 进阶难度 (JLPT N3-N2)</option>
+            <option value="N1">🥷 专家难度 (JLPT N1+ / 原生)</option>
+        </select>
+        <div id="difficulty-hint">当前难度：N5 - 新手</div>
         <button id="scan-btn">打开取景器 (Scan)</button>
     </div>
 
