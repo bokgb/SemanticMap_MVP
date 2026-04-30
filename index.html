@@ -75,7 +75,11 @@
     <div id="camera-layer" style="display: none;">
         <video id="camera-feed" autoplay playsinline></video>
         
-        <div class="viewfinder-frame"></div> 
+    <!-- 在 <div class="viewfinder-frame"></div> 后面加上 -->
+    <div id="ai-scanning-overlay" class="hidden">
+        <div class="simple-spinner"></div>
+        <div class="simple-scanning-text">解析中...</div>
+    </div>
         
         <div class="camera-controls">
             <button id="capture-btn">提取属性 (Capture)</button>

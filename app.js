@@ -172,18 +172,41 @@ let activeQuest = null;
 
 // 监听“提取属性”按钮 (核心逻辑修改)
 captureBtn.addEventListener('click', async () => {
+    // 1. 白屏闪光反馈，稍微延长一点时间，增加“拍到了”的实感
     cameraLayer.classList.add('flash-effect');
-    setTimeout(() => cameraLayer.classList.remove('flash-effect'), 100);
+    setTimeout(() => cameraLayer.classList.remove('flash-effect'), 150);
+
+    // 2. 震动反馈 (如果是手机端且支持)
+    if (navigator.vibrate) navigator.vibrate(50); 
 
     const originalText = captureBtn.innerText;
-    captureBtn.innerText = "AI 提取中...";
+    captureBtn.innerText = "解析中...";
     captureBtn.disabled = true;
+    closeCameraBtn.disabled = true; // 防止识别中途关掉相机
 
+    // 3. 冻结摄像头画面，让玩家感觉画面定格了
+    if (cameraFeed && typeof cameraFeed.pause === 'function') {
+        cameraFeed.pause();
+    }
+
+    // 4. 显示极简的转圈遮罩
+    const scannerOverlay = document.getElementById('ai-scanning-overlay');
+    if (scannerOverlay) scannerOverlay.classList.remove('hidden');
+
+    // 5. 等待真实 AI 识别
     const aiResult = await callRealVisionAI();
 
+    // 6. 恢复所有状态
+    if (cameraFeed && typeof cameraFeed.play === 'function') {
+        cameraFeed.play();
+    }
+    if (scannerOverlay) scannerOverlay.classList.add('hidden');
+    
     captureBtn.innerText = originalText;
     captureBtn.disabled = false;
-    closeCameraBtn.click(); 
+    closeCameraBtn.disabled = false;
+    
+    closeCameraBtn.click(); // 识别完自动关掉相机层
 
     // 【融合点 4】：判断拍照后的去向
     if (activeQuest) {

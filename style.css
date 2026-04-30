@@ -214,6 +214,46 @@ h2, p {
 /* 拍照时的闪光白屏特效 */
 .flash-effect {
     background: white !important;
+    transition: background 0.1s ease-out;
+}
+
+/* --- 极简扫描遮罩层 --- */
+#ai-scanning-overlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 250px; height: 250px; /* 和取景框一样大 */
+    background: rgba(0, 0, 0, 0.4); /* 半透明纯色黑底 */
+    border-radius: 8px; /* 稍微给点圆角 */
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px); /* 轻微模糊背后的画面 */
+}
+#ai-scanning-overlay.hidden { display: none !important; }
+
+/* 极简转圈动画 */
+.simple-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid white; /* 纯白色高亮 */
+    border-radius: 50%;
+    animation: simpleSpin 1s linear infinite;
+    margin-bottom: 15px;
+}
+@keyframes simpleSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 极简文字 */
+.simple-scanning-text {
+    color: white;
+    font-size: 16px;
+    letter-spacing: 2px;
 }
 
 /* --- 语法组合工作台 --- */
