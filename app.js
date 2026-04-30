@@ -210,51 +210,53 @@ captureBtn.addEventListener('click', async () => {
 
     // 【融合点 4】：判断拍照后的去向
     if (activeQuest) {
-        // 如果身上有任务，就检查拍到的东西对不对
         if (aiResult.tag === activeQuest.requiredTag) {
-            alert(`🎉 任务完成！\n成功填入：【${aiResult.word.text}】 を たべる\n便利店区域已净化！`);
-
-            // 【新增】：任务结算与销毁逻辑
+            
+            // 🟢 AI 判定标签正确：任务成功分岔
             if (activeQuest.type === 'POI') {
-                console.log("✅ 拍照任务完成，正在销毁该地标...");
-                
-                // 1. 从雷达的总数据库 (allSpots) 中把这个点彻底抹除
-                // 【关键修复】：利用经纬度作为唯一标识去寻找本尊，而不是比对内存对象！
-                const spotIndex = allSpots.findIndex(s => s.lat === activeQuest.spot.lat && s.lng === activeQuest.spot.lng);
-                if (spotIndex > -1) {
-                    allSpots.splice(spotIndex, 1); 
-                    console.log("💥 数据库源文件抹除成功！");
+                alert(`🎉 任务完成！\n成功填入：【${aiResult.word.text}】 を たべる\n便利店区域已净化！`);
+            } else if (activeQuest.type === 'NPC') {
+                alert(`🐱 喵~！\n流浪猫开心地吃下了【${aiResult.word.text}】！\n作为报答，它让你摸了摸头。`);
+                // NPC 给玩家的额外奖励：立刻弹出单词卡！
+                setTimeout(() => showWordDetailCard(aiResult), 500); 
+            }
+
+            // 💥 通用销毁逻辑（全图搜捕，精准制导）
+            const destroyedMarker = activeQuest.marker;
+            const spotIndex = allSpots.findIndex(s => s.lat === activeQuest.spot.lat && s.lng === activeQuest.spot.lng);
+            if (spotIndex > -1) {
+                allSpots.splice(spotIndex, 1); 
+            }
+
+            let actualMarkerOnMap = null;
+            dynamicMarkersLayer.eachLayer(layer => {
+                if (layer.spotData && layer.spotData.lat === activeQuest.spot.lat && layer.spotData.lng === activeQuest.spot.lng) {
+                    actualMarkerOnMap = layer;
                 }
+            });
 
-                // 2. 华丽地从地图上拔掉图标
-                // 【核心修复】：防止 GPS 刷新导致旧图标失效，直接去图层里抓“最新”的那个图标！
-                let actualMarkerOnMap = null;
-                dynamicMarkersLayer.eachLayer(layer => {
-                    if (layer.spotData && layer.spotData.lat === activeQuest.spot.lat && layer.spotData.lng === activeQuest.spot.lng) {
-                        actualMarkerOnMap = layer;
-                    }
-                });
-
-                if (actualMarkerOnMap) {
-                    const iconElement = actualMarkerOnMap._icon; 
-                    if (iconElement) {
-                        iconElement.classList.add('marker-destroy-fx');
-                        setTimeout(() => {
-                            dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
-                        }, 600);
-                    } else {
-                        dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
-                    }
+            if (actualMarkerOnMap) {
+                const iconElement = actualMarkerOnMap._icon; 
+                if (iconElement) {
+                    iconElement.classList.add('marker-destroy-fx');
+                    setTimeout(() => dynamicMarkersLayer.removeLayer(actualMarkerOnMap), 600);
+                } else {
+                    dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
                 }
             }
 
             activeQuest = null; // 任务清空
         } else {
-            alert(`❌ 语境不符！\n你拍到了【${aiResult.word.text}】，但这东西不能“吃”哦。`);
-            activeQuest = null; // 任务失败清空
+            // 🔴 AI 判定标签错误：任务失败分岔
+            if (activeQuest.type === 'NPC') {
+                alert(`😾 喵？\n流浪猫闻了闻【${aiResult.word.text}】，嫌弃地走开了。\n（提示：你需要拍【Food】类的物品！）`);
+            } else {
+                alert(`❌ 语境不符！\n你拍到了【${aiResult.word.text}】，但这东西不能“吃”哦。`);
+            }
+            activeQuest = null; 
         }
     } else {
-        // 如果身上没任务（自由探索拍照），不要直接进包，弹出单词详情卡片！
+        // 如果没任务（自由探索拍照），弹出单词详情卡片
         showWordDetailCard(aiResult);
     }
 });
@@ -522,33 +524,42 @@ function spawnDynamicQuest(spot) {
     });
     
     const marker = L.marker([spot.lat, spot.lng], { icon: icon });
-
-    // 【关键修复 1】：给地图图标贴上包含坐标数据的身份证！
-    marker.spotData = spot;
+    marker.spotData = spot; 
         
     marker.on('click', () => {
-        // 【核心策划逻辑：根据地点类型分配任务】
         if (spot.type === 'convenience' || spot.type === 'pharmacy' || spot.type === 'station') {
-            
-            // 🔴 繁忙/室内区域 -> 【填空拍照任务】(快进快出)
+            // 🏪 【地标拍照任务】
             document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
+            
+            // 恢复便利店的默认文案
+            document.querySelector('.quest-content h3').innerText = "环境语义缺失！";
+            document.querySelector('.quest-content p').innerText = "请通过拍照补充下述句子的空缺部分：";
+            document.querySelector('.sentence-preview').innerHTML = `<span class="slot-box" id="quest-slot">?</span><span class="fixed-text">を たべる</span>`;
+            
             activeQuest = { type: 'POI', requiredTag: spot.questTag, spot: spot, marker: marker }; 
             document.getElementById('quest-layer').classList.remove('hidden');
             
         } else if (spot.type === 'park') {
-            
-            // 🟢 休闲/开阔区域 -> 【自由组合任务】(坐下来慢慢玩)
+            // 🌲 【公园 Combo 任务】
             document.getElementById('task-desc').innerText = `区域异常：此公园需要【${spot.questTag}】相关的词汇组合来净化！`;
             activeQuest = null; 
-            
-            // 【关键修复 1】：记录当前点，并全局保存它需要的 Tag！
             currentActiveMarker = marker; 
             window.currentComboTag = spot.questTag; 
             window.currentComboSpot = spot; 
-            
-            // 【关键修复 2】：调用正规的打开函数，它会帮你去渲染单词列表
             openComboPanel(); 
             
+        } else if (spot.type === 'npc_cat') {
+            // 🐱 【新增：流浪猫 NPC 委托】
+            document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
+            
+            // 动态替换为流浪猫的专属文案
+            document.querySelector('.quest-content h3').innerText = "它看起来很饿...";
+            document.querySelector('.quest-content p').innerText = "请通过拍照投喂带有【食物 (Food)】标签的物品：";
+            document.querySelector('.sentence-preview').innerHTML = `<span class="slot-box" id="quest-slot">?</span><span class="fixed-text">を あげる (给)</span>`;
+            
+            // 标记这个任务类型为 NPC！
+            activeQuest = { type: 'NPC', requiredTag: spot.questTag, spot: spot, marker: marker }; 
+            document.getElementById('quest-layer').classList.remove('hidden');
         }
     });
     
@@ -616,6 +627,30 @@ function initTestData() {
     testWords.forEach(wordData => addWordToInventory(wordData));
 }
 setTimeout(initTestData, 500);
+
+// 🔮 关卡设计师后门：在玩家身边强行召唤一只流浪猫
+function spawnTestCat() {
+    if (!playerMarker) return;
+    
+    // 获取玩家当前大概位置，在经纬度上偏移 0.0003（大约 30 米左右的地方）
+    const catSpot = {
+        id: "cat_001",
+        name: "饥饿的流浪猫",
+        type: "npc_cat",    // 对应我们前面写的逻辑
+        emoji: "🐱",
+        questTag: "Food",   // 要求玩家拍食物
+        lat: playerMarker.getLatLng().lat + 0.0003, 
+        lng: playerMarker.getLatLng().lng + 0.0003  
+    };
+    
+    // 塞进总数据库，并强制雷达扫描一次！
+    allSpots.push(catSpot);
+    updateVisibleSpots(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
+    console.log("🐱 隐藏事件：流浪猫已在附近生成！");
+}
+
+// 游戏启动 3 秒后，必定在你身边刷出一只猫
+setTimeout(spawnTestCat, 3000);
 
 // 🗺️ 关卡设计师数据注入 (Level Design)
 // ==========================================
