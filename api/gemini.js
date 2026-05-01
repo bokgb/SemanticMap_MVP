@@ -1,5 +1,32 @@
 // api/gemini.js (满血防弹版)
+const ipCache = new Map();
+
 export default async function handler(req, res) {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ip = (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : forwardedFor) || req.socket.remoteAddress || 'unknown';
+    const limit = 5; // 每分钟允许的最大请求次数
+    const windowMs = 60 * 1000;
+    const now = Date.now();
+
+    if (ipCache.has(ip)) {
+        const ipData = ipCache.get(ip);
+
+        if (now - ipData.startTime < windowMs) {
+            if (ipData.count >= limit) {
+                console.log(`🚨 拦截恶意刷单 IP: ${ip}`);
+                return res.status(429).json({
+                    error: { message: "你的相机过热了！请休息一分钟再拍。" }
+                });
+            }
+
+            ipData.count++;
+        } else {
+            ipCache.set(ip, { count: 1, startTime: now });
+        }
+    } else {
+        ipCache.set(ip, { count: 1, startTime: now });
+    }
+
     // 1. 检查 API Key
     const API_KEY = process.env.GEMINI_API_KEY;
     if (!API_KEY) {
