@@ -41,12 +41,14 @@
     <div id="combo-layer" class="hidden">
         <div class="combo-panel">
             <h3>🧩 修复现实语义</h3>
-            <p id="task-desc">区域异常：缺少【交通】语境的动作描述。</p>
-            <p class="task-rule">要求：[名词] + [动词]</p>
+            <p id="task-desc">区域异常：此公园需要【Nature】相关的词汇组合来净化！</p>
+            <p class="task-rule">要求：[形容词] + [名词] + を + [动词]</p>
 
             <div class="slots-container">
-                <div class="slot empty" id="slot-noun" data-type="名词">点击下方名词填入</div>
-                <div class="slot empty" id="slot-verb" data-type="动词">点击下方动词填入</div>
+                <div class="slot empty" id="slot-adj" data-type="形容词">形容词</div>
+                <div class="slot empty" id="slot-noun" data-type="名词">名词</div>
+                <div class="slot-text">を</div>
+                <div class="slot empty" id="slot-verb" data-type="动词">动词</div>
             </div>
 
             <h4>你的词汇库：</h4>

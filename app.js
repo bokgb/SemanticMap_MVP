@@ -348,9 +348,11 @@ closeBagBtn.addEventListener('click', () => {
 // --- 旧版 ⚠️ 自由组合任务逻辑 ---
 let taskLocation = null;
 const comboLayer = document.getElementById('combo-layer');
+const slotAdj = document.getElementById('slot-adj'); // 新增
 const slotNoun = document.getElementById('slot-noun');
 const slotVerb = document.getElementById('slot-verb');
 const btnSubmit = document.getElementById('btn-submit-combo');
+let currentAdj = null; // 新增
 let currentNoun = null;
 let currentVerb = null;
 
@@ -396,7 +398,13 @@ function renderComboWords() {
         // 【关键修复 3】：从 wordData.word 升级为 wordData.word.text
         btn.innerText = `${wordData.word.text} [${wordData.pos}]`;
         btn.addEventListener('click', () => {
-            if (wordData.pos === '名词' && !currentNoun) {
+            if (wordData.pos === '形容词' && !currentAdj) {
+                // 【新增】：处理形容词的填入
+                currentAdj = wordData;
+                slotAdj.innerText = wordData.word.text;
+                slotAdj.classList.add('filled');
+                btn.classList.add('used');
+            } else if (wordData.pos === '名词' && !currentNoun) {
                 currentNoun = wordData;
                 slotNoun.innerText = wordData.word.text; // 这里也要改
                 slotNoun.classList.add('filled');
@@ -414,21 +422,24 @@ function renderComboWords() {
 }
 
 function checkComboReady() {
-    if (currentNoun && currentVerb) btnSubmit.disabled = false;
+    // 必须三个槽都填满才能激活提交按钮！
+    if (currentAdj && currentNoun && currentVerb) btnSubmit.disabled = false;
 }
 
 function resetSlots() {
-    currentNoun = null; currentVerb = null;
+    currentAdj = null; currentNoun = null; currentVerb = null;
+    if(slotAdj) { slotAdj.innerText = '形容词'; slotAdj.classList.remove('filled'); }
     slotNoun.innerText = '点击下方名词填入'; slotNoun.classList.remove('filled');
     slotVerb.innerText = '点击下方动词填入'; slotVerb.classList.remove('filled');
     btnSubmit.disabled = true;
 }
 
-// --- 升级版：Combo 结算逻辑（只消除当前挑战的那个图标） ---
+// --- 升级版：Combo 结算逻辑 ---
 btnSubmit.addEventListener('click', () => {
-    // 【关键修复 4】：不再写死 Transit，而是动态对比当前公园需要的 Tag！
-    if (currentNoun.tag === window.currentComboTag || currentVerb.tag === window.currentComboTag) {
-        alert(`Combo 成功！你构筑了逻辑：\n${currentNoun.word.text} を ${currentVerb.word.text}`);
+    // 只要有任何一个词的 Tag 匹配当前公园的需求（Nature）就算验证通过
+    if (currentAdj.tag === window.currentComboTag || currentNoun.tag === window.currentComboTag || currentVerb.tag === window.currentComboTag) {
+        // 【核心修改】：弹出拼接好的完美句子
+        alert(`🎉 Combo 成功！你构筑了绝妙的句子：\n【 ${currentAdj.word.text} ${currentNoun.word.text} を ${currentVerb.word.text} 】`);
         comboLayer.classList.add('hidden');
         resetSlots();
 
@@ -657,8 +668,11 @@ loadOSMData();
 function initTestData() {
     const testWords = [
         { word: { text: "電車", kana: "でんしゃ", zh: "电车" }, pos: "名词", tag: "Transit", tagColor: "#9E9E9E" }, 
-        { word: { text: "乗る", kana: "のる", zh: "骑/乘" }, pos: "动词", tag: "Transit", tagColor: "#9E9E9E" },     
-        { word: { text: "パン", kana: "パン", zh: "面包" }, pos: "名词", tag: "Food", tagColor: "#E91E63" }      
+        { word: { text: "乗る", kana: "のる", zh: "骑/乘" }, pos: "动词", tag: "Transit", tagColor: "#9E9E9E" },
+        // 【新增】：公园关卡测试数据
+        { word: { text: "赤い", kana: "あかい", zh: "红色的" }, pos: "形容词", tag: "Nature", tagColor: "#4CAF50" }, 
+        { word: { text: "花", kana: "はな", zh: "花" }, pos: "名词", tag: "Nature", tagColor: "#4CAF50" }, 
+        { word: { text: "見つける", kana: "みつける", zh: "发现" }, pos: "动词", tag: "Nature", tagColor: "#4CAF50" }
     ];
     testWords.forEach(wordData => addWordToInventory(wordData));
 }

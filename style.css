@@ -304,6 +304,16 @@ h2, p {
     background: #e8f5e9; color: #333; font-weight: bold; font-size: 18px;
 }
 
+/* 新增：助词的排版样式 */
+.slot-text {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 18px;
+    color: #666;
+    padding: 0 5px;
+}
+
 /* 备选词库列表（横向滚动） */
 #combo-word-list {
     display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;
