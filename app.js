@@ -15,6 +15,31 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let playerMarker = L.marker([35.6895, 139.6917]).addTo(map);
 let statusText = document.getElementById('status-text');
 
+// 【新增】任务稀有度与句型模板库
+const QUEST_TEMPLATES = {
+    convenience: [
+        { rarity: 'N', weight: 0.7, text: "[ ? ] を 買う", req: "Food", reward: 1 },
+        { rarity: 'R', weight: 0.2, text: "[ 冷たい ] [ ? ] を 買う", req: "Food", reward: 2 },
+        { rarity: 'SR', weight: 0.1, text: "[ お弁当 ] を [ 温める ]", req: "Item", reward: 3 }
+    ],
+    park: [
+        { rarity: 'N', weight: 0.7, text: "[ ? ] を 見る", req: "Nature", reward: 1 },
+        { rarity: 'R', weight: 0.2, text: "[ 静かな ] [ ? ] を 見る", req: "Nature", reward: 2 },
+        { rarity: 'SR', weight: 0.1, text: "[ 赤い ] [ 花 ] を [ 見つける ]", req: "Nature", reward: 3 }
+    ],
+    station: [
+        { rarity: 'N', weight: 0.7, text: "[ ? ] に 乗る", req: "Transit", reward: 1 },
+        { rarity: 'R', weight: 0.3, text: "[ 切符 ] を [ 買う ]", req: "Item", reward: 2 }
+    ]
+};
+
+// 稀有度颜色配置
+const RARITY_CONFIG = {
+    'N':  { color: '#9e9e9e', label: '普通', scale: 1.0 },
+    'R':  { color: '#3f51b5', label: '稀有', scale: 1.2 },
+    'SR': { color: '#ff9800', label: '超稀有', scale: 1.5 }
+};
+
 // 获取 GPS 位置
 if ('geolocation' in navigator) {
     navigator.geolocation.watchPosition(
@@ -122,15 +147,21 @@ async function callRealVisionAI() {
         'N1': "【例句要求】：使用 JLPT N1 级别的高级书面语法或专业表达（如 ～ざるを得ない、～にほかならない、四字熟语）。句子要结构复杂，带有强烈的议论、说明或文学色彩。"
     };
 
-    // 【修改点 2】：给物品命名加上“常识紧箍咒”
+    // 【修改点 2】：给物品命名加上“常识紧箍咒” 并在高稀有度任务时要求额外掉落字段
+    const rewardPrompt = (typeof activeQuest !== 'undefined' && activeQuest && activeQuest.rarity && activeQuest.rarity !== 'N')
+        ? `【奖励模式】：由于这是${activeQuest.rarity}级任务，除了主单词外，请额外提供2个与其相关的形容词或动词，放入字段 "extra_words" 中。每个元素包含 {"text","kana","zh","pos"}。`
+        : "";
+
     const promptText = `
     你是一个 LBS 语言学习游戏的物体识别引擎。
     请识别图片中最主要的物品。
-    
+
+    ${rewardPrompt}
+
     【词汇提取绝对原则】：无论当前是什么难度，提取的物品名称 (word.text) 必须是现代日语中**最自然、最常用、最接地气**的说法！（例如：看到香蕉必须返回「バナナ」，绝对禁止返回生僻汉字「甘蕉」；看到水杯返回「コップ」或「グラス」）。
 
     ${levelInstructions[currentLevel]}
-    
+
     你必须严格根据上述要求来生成。并且严格返回一段 JSON 格式的数据，绝对不要包含任何 Markdown 符号、反引号或其他文字。
     JSON 的格式必须完全遵守以下结构：
     {
@@ -146,7 +177,10 @@ async function callRealVisionAI() {
             "s": "日文例句（必须严格遵守当前的难度【例句要求】生成）",
             "k": "该例句的全假名注音（用于参考）",
             "z": "该例句的中文翻译"
-        }
+        },
+        "extra_words": [ /* 可选；如果被要求提供额外掉落，请填充如下数组 */
+            {"text": "单词", "kana": "假名", "zh": "翻译", "pos": "词性"}
+        ]
     }
     `;
 
@@ -253,8 +287,25 @@ captureBtn.addEventListener('click', async () => {
                 alert(`🎉 任务完成！\n成功填入：【${aiResult.word.text}】 を たべる\n便利店区域已净化！`);
             } else if (activeQuest.type === 'NPC') {
                 alert(`🐱 喵~！\n流浪猫开心地吃下了【${aiResult.word.text}】！\n作为报答，它让你摸了摸头。`);
-                // NPC 给玩家的额外奖励：立刻弹出单词卡！
-                setTimeout(() => showWordDetailCard(aiResult), 500); 
+            }
+
+            // 先弹出主单词卡片
+            showWordDetailCard(aiResult);
+
+            // 如果有额外掉落 (R/SR任务)，延迟1.5秒后依次弹出
+            if (aiResult.extra_words && aiResult.extra_words.length > 0) {
+                aiResult.extra_words.forEach((extra, index) => {
+                    setTimeout(() => {
+                        const extraData = {
+                            word: { text: extra.text, kana: extra.kana, zh: extra.zh },
+                            pos: extra.pos || extra.pos || '名词',
+                            tag: aiResult.tag,
+                            tagColor: aiResult.tagColor,
+                            example: { s: "关联奖励单词", z: "奖励词汇" }
+                        };
+                        showWordDetailCard(extraData);
+                    }, (index + 1) * 1500);
+                });
             }
 
             // 💥 通用销毁逻辑（全图搜捕，精准制导）
@@ -361,6 +412,22 @@ let currentActiveMarker = null; // 记录当前玩家点击的是哪个任务图
 window.currentComboTag = null;
 window.currentComboSpot = null;
 
+// UI 面板的折叠/展开逻辑
+const uiLayer = document.getElementById('ui-layer');
+const uiToggleBtn = document.getElementById('ui-toggle-btn');
+if (uiToggleBtn && uiLayer) {
+    // 从 localStorage 读取上次状态
+    const collapsed = localStorage.getItem('uiLayerCollapsed') === '1';
+    if (collapsed) uiLayer.classList.add('collapsed');
+
+    uiToggleBtn.addEventListener('click', () => {
+        const isCollapsed = uiLayer.classList.toggle('collapsed');
+        // 切换按钮箭头方向
+        uiToggleBtn.innerText = isCollapsed ? '▼' : '▲';
+        localStorage.setItem('uiLayerCollapsed', isCollapsed ? '1' : '0');
+    });
+}
+
 function spawnTaskMarker(lat, lng) {
     const customIcon = L.divIcon({
         html: '<div class="icon-pulse">⚠️</div>', 
@@ -375,6 +442,88 @@ function spawnTaskMarker(lat, lng) {
         currentActiveMarker = marker; // 记住现在挑战的是这个坐标的点
         openComboPanel();
     });
+}
+
+// 创建 POI Marker 时就决定稀有度和模板，便于玩家一眼识别
+function createPoiMarker(spot) {
+    // 1. 在出生时就决定稀有度
+    const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES['convenience'];
+    const rand = Math.random();
+    let selectedTemplate = templates[0];
+    let cumulativeWeight = 0;
+    for (const t of templates) {
+        cumulativeWeight += t.weight;
+        if (rand < cumulativeWeight) {
+            selectedTemplate = t;
+            break;
+        }
+    }
+
+    const rarity = selectedTemplate.rarity;
+    const config = RARITY_CONFIG[rarity] || RARITY_CONFIG['N'];
+
+    // 2. 创建一个带颜色的自定义图标（让玩家一眼看出稀有度）
+    const size = Math.round(30 * (config.scale || 1));
+    const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="
+            background-color: ${config.color}; 
+            width: ${size}px; height: ${size}px; 
+            border-radius: 50%; 
+            border: 2px solid white;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold; font-size: 10px;
+            box-shadow: 0 0 10px ${config.color};">
+            ${rarity}
+        </div>`,
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
+    });
+
+    // 3. 创建 Marker 并将任务信息“绑定”到这个 Marker 对象上
+    const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
+    marker.spotData = spot;
+    marker.questData = {
+        rarity: rarity,
+        text: selectedTemplate.text,
+        config: config,
+        requiredTag: spot.questTag,
+        rewardCount: selectedTemplate.reward || 1
+    };
+
+    // 4. 点击事件：直接读取已经定好的数据
+    marker.on('click', () => {
+        openQuestUI(marker.questData, spot, marker);
+    });
+
+    return marker;
+}
+
+function openQuestUI(data, spot, marker) {
+    const questLayer = document.getElementById('quest-layer');
+    const questTitle = questLayer.querySelector('.quest-content h3');
+    const preview = questLayer.querySelector('.sentence-preview');
+
+    // 设置界面颜色和文字
+    questTitle.innerText = `${data.rarity}级任务：环境语义修复`;
+    questTitle.style.color = data.config.color;
+
+    // 渲染带插槽的句子
+    preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
+
+    // 记录当前活动任务
+    activeQuest = {
+        type: 'POI',
+        rarity: data.rarity,
+        text: data.text,
+        requiredTag: data.requiredTag,
+        rewardCount: data.rewardCount,
+        spot: spot,
+        marker: marker
+    };
+
+    document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
+    questLayer.classList.remove('hidden');
 }
 
 function openComboPanel() {
@@ -575,15 +724,49 @@ function spawnDynamicQuest(spot) {
         
     marker.on('click', () => {
         if (spot.type === 'convenience' || spot.type === 'pharmacy' || spot.type === 'station') {
-            // 🏪 【地标拍照任务】
+            // 🏪 【地标拍照任务】 - 动态根据模板库生成带稀有度的任务
             document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
-            
-            // 恢复便利店的默认文案
-            document.querySelector('.quest-content h3').innerText = "环境语义缺失！";
+
+            // 1. 获取该地点的模板列表
+            const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES['convenience'];
+
+            // 2. 简单的加权随机算法
+            const rand = Math.random();
+            let selectedQuest = templates[0]; // 默认 N
+            let cumulativeWeight = 0;
+            for (const t of templates) {
+                cumulativeWeight += t.weight;
+                if (rand < cumulativeWeight) {
+                    selectedQuest = t;
+                    break;
+                }
+            }
+
+            // 3. UI 渲染：根据稀有度变色
+            const rarityColors = { 'N': '#9e9e9e', 'R': '#3f51b5', 'SR': '#ff9800' };
+            const questTitle = document.querySelector('.quest-content h3');
+            questTitle.innerText = `${selectedQuest.rarity}级任务：环境语义缺失！`;
+            questTitle.style.color = rarityColors[selectedQuest.rarity] || '#9e9e9e';
+
             document.querySelector('.quest-content p').innerText = "请通过拍照补充下述句子的空缺部分：";
-            document.querySelector('.sentence-preview').innerHTML = `<span class="slot-box" id="quest-slot">?</span><span class="fixed-text">を たべる</span>`;
-            
-            activeQuest = { type: 'POI', requiredTag: spot.questTag, spot: spot, marker: marker }; 
+
+            // 4. 渲染任务句子预览
+            const previewHtml = selectedQuest.text.replace(/\[ \? \]/g, '<span class="slot-box">?</span>')
+                                                 .replace(/\[ \?/g, '[') // keep other brackets visually
+                                                 .replace(/\]/g, ']');
+            // For simplicity, replace the single placeholder
+            document.querySelector('.sentence-preview').innerHTML = selectedQuest.text.replace('[ ? ]', '<span class="slot-box">?</span>');
+
+            // 5. 将稀有度和奖励倍率存入 activeQuest
+            activeQuest = {
+                type: 'POI',
+                rarity: selectedQuest.rarity,
+                rewardCount: selectedQuest.reward,
+                requiredTag: selectedQuest.req,
+                spot: spot,
+                marker: marker
+            };
+
             document.getElementById('quest-layer').classList.remove('hidden');
             
         } else if (spot.type === 'park') {
@@ -652,9 +835,9 @@ function updateVisibleSpots(playerLat, playerLng) {
         }
     }
 
-    // 第四步：渲染到地图上
+    // 第四步：渲染到地图上（现在在出生时就决定稀有度）
     selectedSpots.forEach(spot => {
-        const marker = spawnDynamicQuest(spot);
+        const marker = createPoiMarker(spot);
         dynamicMarkersLayer.addLayer(marker);
     });
     

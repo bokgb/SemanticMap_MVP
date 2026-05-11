@@ -24,7 +24,29 @@ body, html {
     border-radius: 12px;
     z-index: 1000; /* UI 层覆盖在地图上方 */
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1), opacity 0.25s;
 }
+
+/* 折叠态：把面板整体向下移动，留下一个小把手 */
+#ui-layer.collapsed {
+    transform: translateY(78%);
+    opacity: 0.98;
+}
+
+/* 控制把手位置与样式 */
+#ui-toggle {
+    position: absolute;
+    top: -28px;
+    right: 20px;
+    z-index: 1002;
+}
+#ui-toggle-btn {
+    width: 46px; height: 28px; border-radius: 8px;
+    border: none; background: rgba(0,0,0,0.65); color: white; cursor: pointer;
+    font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 当面板折叠时，把按钮符号改为向下（通过 JS 切换文本） */
 
 h2, p {
     margin: 0 0 10px 0;
