@@ -691,6 +691,37 @@ document.getElementById('btn-collect-word').addEventListener('click', () => {
     alert("收录成功！右上角背包查看。");
 });
 
+// ==========================================
+// 🌍 临时双语切换系统 (为了明天 Zemi 发表特制版)
+// ==========================================
+let currentLang = 'zh'; // 默认中文
+
+function toggleLanguage() {
+    // 1. 切换状态
+    currentLang = currentLang === 'zh' ? 'ja' : 'zh';
+    
+    // 2. 更改切换按钮自身文字
+    const langBtn = document.getElementById('lang-toggle-btn');
+    if(langBtn) {
+        langBtn.innerText = currentLang === 'zh' ? '🇯🇵 日本語に切替 (Switch to JP)' : '🇨🇳 切回中文 (Switch to CN)';
+    }
+
+    // 3. 扫描所有带有 data-zh 和 data-ja 的元素并替换内部文本
+    const translatableElements = document.querySelectorAll('[data-zh][data-ja]');
+    translatableElements.forEach(el => {
+        el.innerText = el.getAttribute(`data-${currentLang}`);
+    });
+    
+    // 4. 处理带图标的特殊按钮 (背包)
+    const bagBtnText = document.getElementById('bag-btn-text');
+    if(bagBtnText) {
+        bagBtnText.innerText = currentLang === 'zh' ? '背包' : 'リュック';
+    }
+
+    // (可选体验优化) 提示老师已切换
+    // alert(currentLang === 'ja' ? '日本語モードに切り替えました！' : '已切回中文模式！');
+}
+
 
 // 🌍 OSM 数据驱动与动态视距渲染系统 (Viewport Culling)
 // ==========================================

@@ -16,26 +16,27 @@
         <div id="ui-toggle" title="收起/展开">
             <button id="ui-toggle-btn">▲</button>
         </div>
-        <h2>系统信息</h2>
-        <p id="status-text">正在获取 GPS 定位...</p>
+        <button id="lang-toggle-btn" onclick="toggleLanguage()" style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 8px; font-weight: bold; background: #e0f7fa; border: 2px solid #00bcd4; color: #00838f; cursor: pointer;">🇯🇵 日本語に切替 (Switch to JP)</button>
+
+        <h2 data-zh="系统信息" data-ja="システム情報">系统信息</h2>
+        <p id="status-text" data-zh="正在获取 GPS 定位..." data-ja="GPS位置情報を取得中...">正在获取 GPS 定位...</p>
         
-        <!-- 【新增】：难度选择下拉菜单 -->
         <select id="level-selector" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 8px; font-weight: bold; background: #fff8e1; border: 2px solid #ff9800; color: #ff9800;">
-            <option value="N5">👶 新手难度 (JLPT N5-N4)</option>
-            <option value="N3">🚶 进阶难度 (JLPT N3-N2)</option>
-            <option value="N1">🥷 专家难度 (JLPT N1+ / 原生)</option>
+            <option value="N5" data-zh="👶 新手 (JLPT N5-N4)" data-ja="👶 初心者 (JLPT N5-N4)">👶 新手 (JLPT N5-N4)</option>
+            <option value="N3" data-zh="🚶 进阶 (JLPT N3-N2)" data-ja="🚶 中級 (JLPT N3-N2)">🚶 进阶 (JLPT N3-N2)</option>
+            <option value="N1" data-zh="🥷 专家 (JLPT N1+)" data-ja="🥷 上級 (JLPT N1+)">🥷 专家 (JLPT N1+)</option>
         </select>
-        <div id="difficulty-hint">当前难度：N5 - 新手</div>
-        <button id="scan-btn">打开取景器 (Scan)</button>
+        <div id="difficulty-hint" data-zh="当前难度：N5 - 新手" data-ja="現在の難易度：N5 - 初心者">当前难度：N5 - 新手</div>
+        <button id="scan-btn" data-zh="打开取景器 (Scan)" data-ja="カメラを起動 (Scan)">打开取景器 (Scan)</button>
     </div>
 
     <button id="bag-btn">
-        🎒 
+        🎒 <span id="bag-btn-text">背包</span>
         <span id="bag-badge">0</span> </button>
 
     <div id="inventory-layer">
         <div class="inv-header">
-            <h3>已提取的词汇</h3>
+            <h3 data-zh="已提取的词汇" data-ja="抽出された語彙">已提取的词汇</h3>
             <button id="close-bag-btn">✖</button>
         </div>
         <div id="word-list"></div>
@@ -43,75 +44,65 @@
     
     <div id="combo-layer" class="hidden">
         <div class="combo-panel">
-            <h3>🧩 修复现实语义</h3>
-            <p id="task-desc">区域异常：此公园需要【Nature】相关的词汇组合来净化！</p>
-            <p class="task-rule">要求：[形容词] + [名词] + を + [动词]</p>
-
-            <div class="slots-container">
-                <div class="slot empty" id="slot-adj" data-type="形容词">形容词</div>
-                <div class="slot empty" id="slot-noun" data-type="名词">名词</div>
-                <div class="slot-text">を</div>
-                <div class="slot empty" id="slot-verb" data-type="动词">动词</div>
-            </div>
-
-            <h4>你的词汇库：</h4>
+            <h3 data-zh="🧩 修复现实语义" data-ja="🧩 現実のセマンティクス修復">🧩 修复现实语义</h3>
+            <p id="task-desc" data-zh="区域异常：此公园需要【Nature】相关的词汇组合来净化！" data-ja="エリア異常：この公園は【Nature】関連の語彙組み合わせで浄化する必要があります！">区域异常：此公园需要【Nature】相关的词汇组合来净化！</p>
+            <p class="task-rule" data-zh="要求：[形容词] + [名词] + を + [动词]" data-ja="条件：[形容詞] + [名詞] + を + [動詞]">要求：[形容词] + [名词] + を + [动词]</p>
+            <h4 data-zh="你的词汇库：" data-ja="あなたの語彙（インベントリ）：">你的词汇库：</h4>
             <div id="combo-word-list"></div>
 
             <div class="combo-actions">
-                <button id="btn-submit-combo" disabled>执行 Combo!</button>
-                <button id="btn-close-combo">撤退</button>
+                <button id="btn-submit-combo" disabled data-zh="执行 Combo!" data-ja="コンボを実行!">执行 Combo!</button>
+                <button id="btn-close-combo" data-zh="撤退" data-ja="戻る">撤退</button>
             </div>
         </div>
     </div>
     
     <div id="quest-layer" class="hidden">
-    <div class="quest-panel">
-        <div class="quest-header">
-            <span class="location-tag">📍 Lawson 便利店</span>
-            <button id="btn-close-quest">✖</button>
-        </div>
-        
-        <div class="quest-content">
-            <h3>环境语义缺失！</h3>
-            <p>请通过拍照补充下述句子的空缺部分：</p>
-            
-            <div class="sentence-preview">
-                <span class="slot-box" id="quest-slot">?</span>
-                <span class="fixed-text">を たべる</span>
+        <div class="quest-panel">
+            <div class="quest-header">
+                <span class="location-tag">📍 Lawson 便利店</span>
+                <button id="btn-close-quest">✖</button>
             </div>
-        </div>
 
-            <button id="btn-start-scan">带着任务去拍照</button>
+            <div class="quest-content">
+                <h3 data-zh="环境语义缺失！" data-ja="環境セマンティクス欠落！">环境语义缺失！</h3>
+                <p data-zh="请通过拍照补充下述句子的空缺部分：" data-ja="撮影して以下の文の空欄を埋めてください：">请通过拍照补充下述句子的空缺部分：</p>
+
+                <div class="sentence-preview">
+                    <span class="slot-box" id="quest-slot">?</span>
+                    <span class="fixed-text">を たべる</span>
+                </div>
+            </div>
+
+            <button id="btn-start-scan" data-zh="带着任务去拍照" data-ja="タスクを受けて撮影">带着任务去拍照</button>
         </div>
     </div>
 
     <div id="camera-layer" style="display: none;">
         <video id="camera-feed" autoplay playsinline></video>
-        
-    <!-- 在 <div class="viewfinder-frame"></div> 后面加上 -->
-    <div id="ai-scanning-overlay" class="hidden">
-        <div class="simple-spinner"></div>
-        <div class="simple-scanning-text">解析中...</div>
-    </div>
-        
+        <div id="ai-scanning-overlay" class="hidden">
+            <div class="simple-spinner"></div>
+            <div class="simple-scanning-text" data-zh="解析中..." data-ja="解析中...">解析中...</div>
+        </div>
+
         <div class="camera-controls">
-            <button id="capture-btn">提取属性 (Capture)</button>
-            <button id="close-camera-btn">关闭</button>
+            <button id="capture-btn" data-zh="提取属性 (Capture)" data-ja="属性を抽出 (Capture)">提取属性 (Capture)</button>
+            <button id="close-camera-btn" data-zh="关闭" data-ja="閉じる">关闭</button>
         </div>
     </div>
 
     <div id="word-card-layer" class="hidden">
         <div class="loot-card">
-            <div class="loot-header">✨ 发现新词汇 ✨</div>
+            <div class="loot-header" data-zh="✨ 发现新词汇 ✨" data-ja="✨ 新しい語彙を発見 ✨">✨ 发现新词汇 ✨</div>
             <div id="loot-word-main" class="loot-word"></div>
             
             <div class="loot-example-box">
-                <div class="ex-label">💡 例句</div>
+                <div class="ex-label" data-zh="💡 例句" data-ja="💡 例文">💡 例句</div>
                 <div id="loot-example-text" class="ex-text"></div>
                 <div id="loot-example-zh" class="ex-zh"></div>
             </div>
 
-            <button id="btn-collect-word" class="loot-btn">收下并存入背包</button>
+            <button id="btn-collect-word" class="loot-btn" data-zh="收下并存入背包" data-ja="リュックに保存">收下并存入背包</button>
         </div>
     </div>
 
