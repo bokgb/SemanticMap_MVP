@@ -6,6 +6,47 @@ let map = L.map('map', {
     zoomSnap: 0.5        
 }).setView([35.6895, 139.6917], 17); 
 
+// 【新增】用来记住每个地点已经生成的稀有度和任务，防止地图刷新时变异
+const QUEST_CACHE_STORAGE_KEY = 'semantic-map-quest-cache-v1';
+const questCache = {};
+const COOLDOWN_TIME = 1000 * 60 * 60 * 2;
+
+function getSpotKey(spot) {
+    return spot.id ? spot.id : `${spot.lat.toFixed(5)}_${spot.lng.toFixed(5)}`;
+}
+
+function createCompletedMarkerIcon() {
+    return L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background-color: #555; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; opacity: 0.6;">✅</div>`,
+        iconSize: [30, 30]
+    });
+}
+
+function loadQuestCache() {
+    try {
+        const rawCache = localStorage.getItem(QUEST_CACHE_STORAGE_KEY);
+        if (!rawCache) return;
+
+        const parsedCache = JSON.parse(rawCache);
+        if (parsedCache && typeof parsedCache === 'object') {
+            Object.assign(questCache, parsedCache);
+        }
+    } catch (error) {
+        console.warn('读取任务缓存失败，继续使用内存缓存。', error);
+    }
+}
+
+function saveQuestCache() {
+    try {
+        localStorage.setItem(QUEST_CACHE_STORAGE_KEY, JSON.stringify(questCache));
+    } catch (error) {
+        console.warn('保存任务缓存失败，仅保留当前页面内缓存。', error);
+    }
+}
+
+loadQuestCache();
+
 // 挂载 OpenStreetMap
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -292,6 +333,25 @@ captureBtn.addEventListener('click', async () => {
             // 先弹出主单词卡片
             showWordDetailCard(aiResult);
 
+            // 【新增】找到这个地点的身份证号
+            const spotKey = getSpotKey(activeQuest.spot);
+
+            // 1. 在缓存里把这个地点标记为“已完成”，并记录当前时间戳
+            questCache[spotKey] = {
+                status: 'completed',
+                completedAt: Date.now()
+            };
+            saveQuestCache();
+
+            // 2. 视觉反馈：直接把地图上的这个标记变成灰色打勾，表示不能再点了
+            if (activeQuest.marker) {
+                activeQuest.marker.setIcon(createCompletedMarkerIcon());
+                activeQuest.marker.off('click');
+            }
+
+            // 关闭任务面板
+            document.getElementById('quest-layer').classList.add('hidden');
+
             // 如果有额外掉落 (R/SR任务)，延迟1.5秒后依次弹出
             if (aiResult.extra_words && aiResult.extra_words.length > 0) {
                 aiResult.extra_words.forEach((extra, index) => {
@@ -306,30 +366,6 @@ captureBtn.addEventListener('click', async () => {
                         showWordDetailCard(extraData);
                     }, (index + 1) * 1500);
                 });
-            }
-
-            // 💥 通用销毁逻辑（全图搜捕，精准制导）
-            const destroyedMarker = activeQuest.marker;
-            const spotIndex = allSpots.findIndex(s => s.lat === activeQuest.spot.lat && s.lng === activeQuest.spot.lng);
-            if (spotIndex > -1) {
-                allSpots.splice(spotIndex, 1); 
-            }
-
-            let actualMarkerOnMap = null;
-            dynamicMarkersLayer.eachLayer(layer => {
-                if (layer.spotData && layer.spotData.lat === activeQuest.spot.lat && layer.spotData.lng === activeQuest.spot.lng) {
-                    actualMarkerOnMap = layer;
-                }
-            });
-
-            if (actualMarkerOnMap) {
-                const iconElement = actualMarkerOnMap._icon; 
-                if (iconElement) {
-                    iconElement.classList.add('marker-destroy-fx');
-                    setTimeout(() => dynamicMarkersLayer.removeLayer(actualMarkerOnMap), 600);
-                } else {
-                    dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
-                }
             }
 
             activeQuest = null; // 任务清空
@@ -446,23 +482,68 @@ function spawnTaskMarker(lat, lng) {
 
 // 创建 POI Marker 时就决定稀有度和模板，便于玩家一眼识别
 function createPoiMarker(spot) {
-    // 1. 在出生时就决定稀有度
-    const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES['convenience'];
-    const rand = Math.random();
-    let selectedTemplate = templates[0];
-    let cumulativeWeight = 0;
-    for (const t of templates) {
-        cumulativeWeight += t.weight;
-        if (rand < cumulativeWeight) {
-            selectedTemplate = t;
-            break;
+    // 给这个地点生成一个唯一的身份证号（用经纬度拼起来）
+    const spotKey = getSpotKey(spot);
+
+    let markerQuestData;
+
+    // 🔮 核心修复：检查缓存
+    if (questCache[spotKey]) {
+        const cache = questCache[spotKey];
+
+        // 🔮 检查是不是已经打过的点
+        if (cache.status === 'completed') {
+            const timePassed = Date.now() - cache.completedAt;
+
+            if (timePassed < COOLDOWN_TIME) {
+                // 还在冷却中：画一个灰色的 ✅ 图标
+                const completedIcon = createCompletedMarkerIcon();
+                L.marker([spot.lat, spot.lng], { icon: completedIcon }).addTo(map);
+                return; // ⚠️ 直接 return！不给它绑定任何点击事件和任务数据
+            } else {
+                // 冷却时间到了！从缓存中删掉它，让它重新掷骰子！
+                delete questCache[spotKey];
+                saveQuestCache();
+            }
+        } else {
+            // 这是之前生成过，还没打的，直接沿用以前的任务
+            markerQuestData = cache;
         }
+    } else {
+        // 如果是第一次看到这个地点，才进行抽卡计算
+        const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES['convenience'];
+        const rand = Math.random();
+        let selectedTemplate = templates[0];
+        let cumulativeWeight = 0;
+
+        for (const t of templates) {
+            cumulativeWeight += t.weight;
+            if (rand < cumulativeWeight) {
+                selectedTemplate = t;
+                break;
+            }
+        }
+
+        const rarity = selectedTemplate.rarity;
+        const config = RARITY_CONFIG[rarity] || RARITY_CONFIG['N'];
+
+        markerQuestData = {
+            rarity: rarity,
+            text: selectedTemplate.text,
+            config: config,
+            requiredTag: spot.questTag,
+            rewardCount: selectedTemplate.reward || 1
+        };
+
+        // 把抽卡结果存进缓存，锁死这个地点的命运
+        questCache[spotKey] = markerQuestData;
+        saveQuestCache();
     }
 
-    const rarity = selectedTemplate.rarity;
-    const config = RARITY_CONFIG[rarity] || RARITY_CONFIG['N'];
-
-    // 2. 创建一个带颜色的自定义图标（让玩家一眼看出稀有度）
+    // ==========================================
+    // 下面继续用 markerQuestData 来画你的图标
+    // ==========================================
+    const config = markerQuestData.config;
     const size = Math.round(30 * (config.scale || 1));
     const customIcon = L.divIcon({
         className: 'custom-marker',
@@ -474,7 +555,7 @@ function createPoiMarker(spot) {
             display: flex; align-items: center; justify-content: center;
             color: white; font-weight: bold; font-size: 10px;
             box-shadow: 0 0 10px ${config.color};">
-            ${rarity}
+            ${markerQuestData.rarity}
         </div>`,
         iconSize: [size, size],
         iconAnchor: [size/2, size/2]
@@ -483,13 +564,7 @@ function createPoiMarker(spot) {
     // 3. 创建 Marker 并将任务信息“绑定”到这个 Marker 对象上
     const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
     marker.spotData = spot;
-    marker.questData = {
-        rarity: rarity,
-        text: selectedTemplate.text,
-        config: config,
-        requiredTag: spot.questTag,
-        rewardCount: selectedTemplate.reward || 1
-    };
+    marker.questData = markerQuestData;
 
     // 4. 点击事件：直接读取已经定好的数据
     marker.on('click', () => {
