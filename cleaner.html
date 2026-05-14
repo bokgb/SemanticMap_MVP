@@ -1,51 +1,122 @@
 <!DOCTYPE html>
-<html>
-<head><title>OSM 数据清洗器</title></head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>OSM 数据清洗与合并器 (Pro版)</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 600px; }
+        .log-box { background: #333; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; min-height: 100px; margin-top: 15px; white-space: pre-wrap; }
+        button { padding: 10px 15px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; }
+        #downloadBtn { background: #4CAF50; color: white; display: none; }
+    </style>
+</head>
 <body>
-    <h2>上传你的原始 osmData.json，我会还给你一个纯净版！</h2>
-    <input type="file" id="fileInput" accept=".json">
-    <button id="downloadBtn" style="display:none; padding:10px; background:green; color:white;">⬇️ 下载干净的游戏数据</button>
+    <div class="container">
+        <h2>🗺️ 多文件数据清洗 & 合并去重器</h2>
+        <p>你可以<strong>同时选择多个文件</strong>（支持旧版的 spotsData.json 和新导出的 export.geojson）。系统会自动合并它们并剔除重复点。</p>
+        
+        <input type="file" id="fileInput" accept=".json, .geojson" multiple>
+        
+        <div class="log-box" id="logBox">等待文件导入...</div>
+        
+        <button id="downloadBtn">⬇️ 下载终极干净版 (spotsData.json)</button>
+    </div>
 
     <script>
-        let cleanData = [];
+        let finalCleanData = [];
 
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const geojson = JSON.parse(e.target.result);
+        function log(msg) {
+            const logBox = document.getElementById('logBox');
+            logBox.innerText += '\n> ' + msg;
+        }
+
+        document.getElementById('fileInput').addEventListener('change', async function(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            document.getElementById('logBox').innerText = '开始处理...';
+            let allRawSpots = [];
+
+            // 1. 遍历并读取所有选中的文件
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                log(`正在读取文件: ${file.name}`);
                 
-                // 核心清洗逻辑（和之前一样，但现在是在开发者的电脑上跑）
-                cleanData = geojson.features.map(feature => {
-                    const lng = feature.geometry.coordinates[0];
-                    const lat = feature.geometry.coordinates[1];
-                    const props = feature.properties;
-                    
-                    let type = '', questTag = '', emoji = '', name = props.name || '未知地点';
+                try {
+                    const text = await file.text();
+                    const jsonData = JSON.parse(text);
 
-                    if (props.shop === 'convenience') { type = 'convenience'; questTag = 'Food'; emoji = '🏪'; }
-                    else if (props.amenity === 'pharmacy') { type = 'pharmacy'; questTag = 'Health'; emoji = '💊'; }
-                    else if (props.railway === 'station') { type = 'station'; questTag = 'Transit'; emoji = '🚉'; }
-                    else if (props.leisure === 'park') { type = 'park'; questTag = 'Nature'; emoji = '🌳'; }
+                    // 判断是旧版的 Array 数据，还是新导出的 GeoJSON 数据
+                    if (Array.isArray(jsonData)) {
+                        log(`识别为旧版清洗数据，包含 ${jsonData.length} 个点`);
+                        allRawSpots = allRawSpots.concat(jsonData);
+                    } else if (jsonData.type === "FeatureCollection") {
+                        // 提取 GeoJSON 里的点
+                        const mappedFeatures = jsonData.features.map(feature => {
+                            // 确保是点数据
+                            if (!feature.geometry || feature.geometry.type !== "Point") return null;
+                            
+                            const lng = feature.geometry.coordinates[0];
+                            const lat = feature.geometry.coordinates[1];
+                            const props = feature.properties || {};
+                            
+                            let type = '', questTag = '', emoji = '', name = props.name || props["name:ja"] || props["brand"] || '未知地点';
 
-                    return { lat, lng, type, questTag, emoji, name };
-                }).filter(spot => spot.type !== '');
+                            if (props.shop === 'convenience') { type = 'convenience'; questTag = 'Food'; emoji = '🏪'; }
+                            else if (props.amenity === 'pharmacy') { type = 'pharmacy'; questTag = 'Health'; emoji = '💊'; }
+                            else if (props.railway === 'station' || props.public_transport === 'station') { type = 'station'; questTag = 'Transit'; emoji = '🚉'; }
+                            else if (props.leisure === 'park') { type = 'park'; questTag = 'Nature'; emoji = '🌳'; }
 
-                alert(`清洗完成！从 ${geojson.features.length} 条垃圾数据中提取了 ${cleanData.length} 个干净地标。`);
-                document.getElementById('downloadBtn').style.display = 'block';
-            };
-            reader.readAsText(file);
+                            return { lat, lng, type, questTag, emoji, name };
+                        }).filter(spot => spot !== null && spot.type !== '');
+
+                        log(`识别为 GeoJSON，提取了 ${mappedFeatures.length} 个有效游戏地标`);
+                        allRawSpots = allRawSpots.concat(mappedFeatures);
+                    }
+                } catch (err) {
+                    log(`❌ 文件 ${file.name} 解析失败: ${err.message}`);
+                }
+            }
+
+            // 2. 空间去重逻辑 (Deduplication)
+            log(`\n合并完成，总计获得 ${allRawSpots.length} 个点。开始执行空间去重...`);
+            
+            const uniqueMap = new Map();
+            let duplicateCount = 0;
+
+            allRawSpots.forEach(spot => {
+                // 核心：将坐标保留 4 位小数（约11米精度），加上类型，生成唯一身份 ID
+                // 例如: "34.7339_135.4474_park"
+                const uniqueKey = `${spot.lat.toFixed(4)}_${spot.lng.toFixed(4)}_${spot.type}`;
+                
+                if (!uniqueMap.has(uniqueKey)) {
+                    uniqueMap.set(uniqueKey, spot);
+                } else {
+                    duplicateCount++;
+                }
+            });
+
+            finalCleanData = Array.from(uniqueMap.values());
+
+            // 3. 输出结果
+            log(`✅ 去重完毕！发现并移除了 ${duplicateCount} 个重复地点。`);
+            log(`🎉 最终生成的干净数据库包含 ${finalCleanData.length} 个地点。`);
+            
+            document.getElementById('downloadBtn').style.display = 'block';
         });
 
-        // 下载清洗后的数据
+        // 下载合并后的数据
         document.getElementById('downloadBtn').addEventListener('click', () => {
-            const blob = new Blob([JSON.stringify(cleanData)], { type: "application/json" });
+            const blob = new Blob([JSON.stringify(finalCleanData)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = "spotsData.json"; // 生成全新的干净文件！
+            a.download = "spotsData.json";
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
     </script>
 </body>
