@@ -76,6 +76,10 @@ const QUEST_TEMPLATES = {
         { rarity: 'N', weight: 0.7, text: "[ ? ] に 乗る", req: "Transit", reward: 1 },
         { rarity: 'R', weight: 0.3, text: "[ ? ] を 買う", req: "Transit", reward: 2 } // 拍车票/西瓜卡
     ],
+    pharmacy: [
+        { rarity: 'N', weight: 0.7, text: "[ ? ] を 探す", req: "Health", reward: 1 },
+        { rarity: 'R', weight: 0.3, text: "[ 痛い ] から [ ? ] を 飲む", req: "Health", reward: 2 }
+    ],
     // 【新增】：流浪猫专属 SSR 任务
     npc_cat: [
         { rarity: 'SSR', weight: 1.0, text: "猫 に [ ? ] を あげる", req: "Food", reward: 3 }
@@ -572,27 +576,30 @@ function createPoiMarker(spot) {
     // ==========================================
     // 下面继续用 markerQuestData 来画你的图标
     // ==========================================
-    const config = markerQuestData.config;
-    const size = Math.round(30 * (config.scale || 1));
-    
-    // 【新增】：如果是猫，图标中心显示 🐱，否则显示稀有度文字
-    const innerContent = spot.type === 'npc_cat' ? '🐱' : markerQuestData.rarity;
-    const fontSize = spot.type === 'npc_cat' ? '18px' : '10px';
+    const config = markerQuestData.config || RARITY_CONFIG[markerQuestData.rarity] || RARITY_CONFIG['N'];
+    const size = spot.type === 'npc_cat' ? 36 : Math.round(30 * (config.scale || 1));
 
-    const customIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="
+    let iconHtml = "";
+    if (spot.type === 'npc_cat') {
+        iconHtml = `<div style="font-size: 28px; text-align: center; line-height: ${size}px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));">🐱</div>`;
+    } else {
+        iconHtml = `<div style="
             background-color: ${config.color}; 
-            width: ${size}px; height: ${size}px; 
+            width: 100%; height: 100%; 
             border-radius: 50%; 
             border: 2px solid white;
             display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: ${fontSize};
-            box-shadow: 0 0 15px ${config.color};">
-            ${innerContent}
-        </div>`,
+            color: white; font-weight: bold; font-size: 10px;
+            box-shadow: 0 0 10px ${config.color};">
+            ${markerQuestData.rarity}
+        </div>`;
+    }
+
+    const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: iconHtml,
         iconSize: [size, size],
-        iconAnchor: [size/2, size/2]
+        iconAnchor: [size / 2, size / 2]
     });
 
     // 3. 创建 Marker 并将任务信息“绑定”到这个 Marker 对象上
@@ -1003,23 +1010,63 @@ setTimeout(initTestData, 500);
 
 // 🔮 关卡设计师后门：在玩家身边强行召唤一只流浪猫
 function spawnTestCat() {
-    if (!playerMarker) return;
+    if (!playerMarker) {
+        alert("请先等待 GPS 定位成功！");
+        return;
+    }
     
-    // 获取玩家当前大概位置，在经纬度上偏移 0.0003（大约 30 米左右的地方）
-    const catSpot = {
-        id: "cat_001",
-        name: "饥饿的流浪猫",
-        type: "npc_cat",    // 对应我们前面写的逻辑
+    // 获取玩家位置并做微小偏移
+    const playerPos = playerMarker.getLatLng();
+    const catLat = playerPos.lat + 0.0002;
+    const catLng = playerPos.lng + 0.0002;
+    const spotKey = `cat_${Date.now()}`; // 唯一 key
+
+    // 确保这里的类型是 npc_cat
+    const spotData = {
+        lat: catLat,
+        lng: catLng,
+        type: 'npc_cat', 
+        id: spotKey,
+        name: "流浪猫",
         emoji: "🐱",
-        questTag: "Food",   // 要求玩家拍食物
-        lat: playerMarker.getLatLng().lat + 0.0003, 
-        lng: playerMarker.getLatLng().lng + 0.0003  
+        questTag: "Food"
     };
-    
-    // 塞进总数据库，并强制雷达扫描一次！
-    allSpots.push(catSpot);
-    updateVisibleSpots(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
-    console.log("🐱 隐藏事件：流浪猫已在附近生成！");
+
+    // 直接抽取小猫的 SSR 任务模板
+    const templates = QUEST_TEMPLATES['npc_cat'];
+    const selectedTemplate = templates[0];
+    const config = RARITY_CONFIG[selectedTemplate.rarity];
+
+    const markerQuestData = {
+        rarity: selectedTemplate.rarity,
+        text: selectedTemplate.text,
+        requiredTag: selectedTemplate.req,
+        rewardCount: selectedTemplate.reward,
+        config: config
+    };
+
+    // 写入缓存锁定
+    questCache[spotKey] = markerQuestData;
+    saveQuestCache();
+
+    // 绘制纯 🐱 图标
+    const catIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="font-size: 32px; text-align: center; animation: pulse 1.5s infinite; filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.4)); cursor: pointer;">🐱</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+    });
+
+    let marker = L.marker([catLat, catLng], { icon: catIcon }).addTo(map);
+    marker.spotData = spotData;
+    marker.questData = markerQuestData;
+
+    // 点击事件处理
+    marker.on('click', () => {
+        openQuestUI(marker.questData, spotData, marker);
+    });
+
+    alert("🐾 喵~ 玩家附近出现了一只纯正的流浪猫！");
 }
 
 // 游戏启动 3 秒后，必定在你身边刷出一只猫
