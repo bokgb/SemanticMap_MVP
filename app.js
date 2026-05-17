@@ -1008,12 +1008,9 @@ function initTestData() {
 }
 setTimeout(initTestData, 500);
 
-// 🔮 关卡设计师后门：在玩家身边强行召唤一只流浪猫
+// 🔮 关卡设计师后门：在玩家身边强行召唤一只流浪猫（极致静默版）
 function spawnTestCat() {
-    if (!playerMarker) {
-        alert("请先等待 GPS 定位成功！");
-        return;
-    }
+    if (!playerMarker) return; // 如果还没定位成功，静默退出
     
     // 获取玩家位置并做微小偏移
     const playerPos = playerMarker.getLatLng();
@@ -1027,12 +1024,10 @@ function spawnTestCat() {
         lng: catLng,
         type: 'npc_cat', 
         id: spotKey,
-        name: "流浪猫",
-        emoji: "🐱",
-        questTag: "Food"
+        name: "流浪猫"
     };
 
-    // 直接抽取小猫的 SSR 任务模板
+    // 抽取小猫的 SSR 任务模板
     const templates = QUEST_TEMPLATES['npc_cat'];
     const selectedTemplate = templates[0];
     const config = RARITY_CONFIG[selectedTemplate.rarity];
@@ -1047,7 +1042,6 @@ function spawnTestCat() {
 
     // 写入缓存锁定
     questCache[spotKey] = markerQuestData;
-    saveQuestCache();
 
     // 绘制纯 🐱 图标
     const catIcon = L.divIcon({
@@ -1058,7 +1052,6 @@ function spawnTestCat() {
     });
 
     let marker = L.marker([catLat, catLng], { icon: catIcon }).addTo(map);
-    marker.spotData = spotData;
     marker.questData = markerQuestData;
 
     // 点击事件处理
@@ -1066,7 +1059,7 @@ function spawnTestCat() {
         openQuestUI(marker.questData, spotData, marker);
     });
 
-    alert("🐾 喵~ 玩家附近出现了一只纯正的流浪猫！");
+    // 完事！没有任何弹窗，没有任何文字闪烁。深藏功与名。
 }
 
 // 游戏启动 3 秒后，必定在你身边刷出一只猫
