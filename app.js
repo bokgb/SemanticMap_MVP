@@ -1062,6 +1062,16 @@ function spawnTestCat() {
     // 完事！没有任何弹窗，没有任何文字闪烁。深藏功与名。
 }
 
+// 清除缓存函数（供手机用户快速清理）
+function clearQuestCacheAll() {
+    localStorage.clear();
+    questCache = {};
+    alert(currentLang === 'ja' ? "キャッシュをクリアしました。ページを再読み込みしてください。" : "缓存已清除，请刷新页面");
+    location.reload();
+}
+
+document.getElementById('clear-cache-btn').addEventListener('click', clearQuestCacheAll);
+
 // 游戏启动 3 秒后，必定在你身边刷出一只猫
 
 // 🗺️ 关卡设计师数据注入 (Level Design)
