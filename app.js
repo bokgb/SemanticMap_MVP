@@ -56,6 +56,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let playerMarker = L.marker([35.6895, 139.6917]).addTo(map);
 let statusText = document.getElementById('status-text');
 
+// 【新增】：标志位，确保猫咪只生成一次
+let catSpawned = false;
+
 // 【新增】任务稀有度与句型模板库
 // 修复后的任务模板库
 const QUEST_TEMPLATES = {
@@ -67,8 +70,6 @@ const QUEST_TEMPLATES = {
     park: [
         { rarity: 'N', weight: 0.7, text: "[ ? ] を 見る", req: "Nature", reward: 1 },
         { rarity: 'R', weight: 0.2, text: "[ 静かな ] [ ? ] で 休む", req: "Nature", reward: 2 }, // 拍长椅
-    // 【新增】：标志位，确保猫咪只生成一次
-    let catSpawned = false;
         { rarity: 'SR', weight: 0.1, text: "[ 赤い ] [ ? ] を 見つける", req: "Nature", reward: 3 } // 拍红花
     ],
     station: [
@@ -288,7 +289,13 @@ async function callRealVisionAI() {
         // 【核心排错工具】：直接在手机屏幕上把最真实的死因弹出来！
         alert(`🚨 系统排错：\n识别失败了！\n真实原因：${error.message}`);
         
-        return { word: "未知物品（エラー）", pos: "名词", tag: "Item", tagColor: "#607D8B" };
+        return {
+            word: { text: "未知物品（エラー）", kana: "", zh: "识别失败" },
+            pos: "名词",
+            tag: "Item",
+            tagColor: "#607D8B",
+            example: { s: "", k: "", z: "" }
+        };
     }
 }
 
@@ -931,7 +938,7 @@ function spawnDynamicQuest(spot) {
 
 // 3. 核心雷达算法：广域搜索 + 多样性强制保底
 function updateVisibleSpots(playerLat, playerLng) {
-    if (allSpots.length === 0 || !playerLat || !playerLng) return;
+    if (allSpots.length === 0 || playerLat == null || playerLng == null) return;
 
     const playerLocation = L.latLng(playerLat, playerLng);
     dynamicMarkersLayer.clearLayers(); 
