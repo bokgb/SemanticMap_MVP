@@ -57,28 +57,36 @@ let playerMarker = L.marker([35.6895, 139.6917]).addTo(map);
 let statusText = document.getElementById('status-text');
 
 // 【新增】任务稀有度与句型模板库
+// 修复后的任务模板库
 const QUEST_TEMPLATES = {
     convenience: [
         { rarity: 'N', weight: 0.7, text: "[ ? ] を 買う", req: "Food", reward: 1 },
-        { rarity: 'R', weight: 0.2, text: "[ 冷たい ] [ ? ] を 買う", req: "Food", reward: 2 },
-        { rarity: 'SR', weight: 0.1, text: "[ お弁当 ] を [ 温める ]", req: "Item", reward: 3 }
+        { rarity: 'R', weight: 0.2, text: "[ 冷たい ] [ ? ] を 買う", req: "Food", reward: 2 }, // 拍冷饮
+        { rarity: 'SR', weight: 0.1, text: "[ ? ] を 温める", req: "Food", reward: 3 } // 拍便当
     ],
     park: [
         { rarity: 'N', weight: 0.7, text: "[ ? ] を 見る", req: "Nature", reward: 1 },
-        { rarity: 'R', weight: 0.2, text: "[ 静かな ] [ ? ] を 見る", req: "Nature", reward: 2 },
-        { rarity: 'SR', weight: 0.1, text: "[ 赤い ] [ 花 ] を [ 見つける ]", req: "Nature", reward: 3 }
+        { rarity: 'R', weight: 0.2, text: "[ 静かな ] [ ? ] で 休む", req: "Nature", reward: 2 }, // 拍长椅
+    // 【新增】：标志位，确保猫咪只生成一次
+    let catSpawned = false;
+        { rarity: 'SR', weight: 0.1, text: "[ 赤い ] [ ? ] を 見つける", req: "Nature", reward: 3 } // 拍红花
     ],
     station: [
         { rarity: 'N', weight: 0.7, text: "[ ? ] に 乗る", req: "Transit", reward: 1 },
-        { rarity: 'R', weight: 0.3, text: "[ 切符 ] を [ 買う ]", req: "Item", reward: 2 }
+        { rarity: 'R', weight: 0.3, text: "[ ? ] を 買う", req: "Transit", reward: 2 } // 拍车票/西瓜卡
+    ],
+    // 【新增】：流浪猫专属 SSR 任务
+    npc_cat: [
+        { rarity: 'SSR', weight: 1.0, text: "猫 に [ ? ] を あげる", req: "Food", reward: 3 }
     ]
 };
 
-// 稀有度颜色配置
+// 稀有度颜色配置（新增 SSR 猛男粉色）
 const RARITY_CONFIG = {
     'N':  { color: '#9e9e9e', label: '普通', scale: 1.0 },
     'R':  { color: '#3f51b5', label: '稀有', scale: 1.2 },
-    'SR': { color: '#ff9800', label: '超稀有', scale: 1.5 }
+    'SR': { color: '#ff9800', label: '超稀有', scale: 1.5 },
+    'SSR': { color: '#e91e63', label: '极光稀有', scale: 1.8 } // 猫咪专属大小和颜色
 };
 
 // 获取 GPS 位置
@@ -91,6 +99,12 @@ if ('geolocation' in navigator) {
             statusText.innerText = `坐标更新成功：\n纬度 ${lat.toFixed(4)}\n经度 ${lng.toFixed(4)}`;
             map.setView([lat, lng], 16); 
             playerMarker.setLatLng([lat, lng]);
+            // 【新增】：GPS 定位成功，自动生成猫咪（只生成一次）
+            if (!catSpawned) {
+                catSpawned = true;
+                spawnTestCat();
+            }
+
 
             // 【新增】：每次真实的脚步移动，才触发一次雷达扫描！
             updateVisibleSpots(lat, lng);
@@ -192,36 +206,36 @@ async function callRealVisionAI() {
     const rewardPrompt = (typeof activeQuest !== 'undefined' && activeQuest && activeQuest.rarity && activeQuest.rarity !== 'N')
         ? `【奖励模式】：由于这是${activeQuest.rarity}级任务，除了主单词外，请额外提供2个与其相关的形容词或动词，放入字段 "extra_words" 中。每个元素包含 {"text","kana","zh","pos"}。`
         : "";
-
+    // 【新增】：小猫喂食任务的安全判定规则
+    let catSafetyRule = "";
+    if (typeof activeQuest !== 'undefined' && activeQuest && activeQuest.type === 'NPC') {
+        catSafetyRule = `
+        【特殊规则：流浪猫喂食判定】
+        当前玩家正在给流浪猫喂食。请扮演兽医，判定图片中的食物是否适合猫咪食用。
+        （警告：巧克力、洋葱、葡萄、纯牛奶、高盐高糖零食对猫危险；猫粮、无调味熟肉、鱼类是安全的。）
+        `;
+    }
     const promptText = `
     你是一个 LBS 语言学习游戏的物体识别引擎。
     请识别图片中最主要的物品。
 
     ${rewardPrompt}
+    ${catSafetyRule}
 
-    【词汇提取绝对原则】：无论当前是什么难度，提取的物品名称 (word.text) 必须是现代日语中**最自然、最常用、最接地气**的说法！（例如：看到香蕉必须返回「バナナ」，绝对禁止返回生僻汉字「甘蕉」；看到水杯返回「コップ」或「グラス」）。
+    【词汇提取绝对原则】：无论当前是什么难度，提取的物品名称 (word.text) 必须是现代日语中最自然、最常用、最接地气的说法！
 
     ${levelInstructions[currentLevel]}
 
-    你必须严格根据上述要求来生成。并且严格返回一段 JSON 格式的数据，绝对不要包含任何 Markdown 符号、反引号或其他文字。
-    JSON 的格式必须完全遵守以下结构：
+    严格返回 JSON 格式：
     {
-        "word": {
-            "text": "日文标准写法（含汉字或片假名）",
-            "kana": "对应的平假名读音（纯假名的外来语原样返回）",
-            "zh": "中文翻译"
-        },
+        "word": { "text": "日文", "kana": "假名", "zh": "中文" },
         "pos": "名词 或 动词",
         "tag": "必须从以下选择其一：Food, Nature, Transit, Retail, Health, Item",
         "tagColor": "对应的十六进制颜色",
-        "example": {
-            "s": "日文例句（必须严格遵守当前的难度【例句要求】生成）",
-            "k": "该例句的全假名注音（用于参考）",
-            "z": "该例句的中文翻译"
-        },
-        "extra_words": [ /* 可选；如果被要求提供额外掉落，请填充如下数组 */
-            {"text": "单词", "kana": "假名", "zh": "翻译", "pos": "词性"}
-        ]
+        "example": { "s": "日文例句", "k": "假名", "z": "中文" },
+        "extra_words": [ {"text": "单词", "kana": "假名", "zh": "翻译", "pos": "词性"} ],
+        "is_safe": true/false (如果有喂猫特殊规则必填),
+        "danger_reason": "如果危险请用中文解释原因，安全留空" (如果有喂猫特殊规则必填)
     }
     `;
 
@@ -324,10 +338,18 @@ captureBtn.addEventListener('click', async () => {
         if (aiResult.tag === activeQuest.requiredTag) {
             
             // 🟢 AI 判定标签正确：任务成功分岔
-            if (activeQuest.type === 'POI') {
-                alert(`🎉 任务完成！\n成功填入：【${aiResult.word.text}】 を たべる\n便利店区域已净化！`);
-            } else if (activeQuest.type === 'NPC') {
-                alert(`🐱 喵~！\n流浪猫开心地吃下了【${aiResult.word.text}】！\n作为报答，它让你摸了摸头。`);
+            if (activeQuest.type === 'NPC') {
+                // 【新增核心】：AI 兽医的死亡拦截！
+                if (aiResult.is_safe === false) {
+                    alert(`❌ 喂食失败！AI 兽医紧急警告：\n${aiResult.danger_reason}`);
+                    activeQuest = null;
+                    return; // 中断，不给奖励
+                }
+                alert(`🐱 喵~！\n流浪猫开心地吃下了【${aiResult.word.text}】！\n成功组合：猫 に [ ${aiResult.word.text} ] を あげる`);
+            } else if (activeQuest.type === 'POI') {
+                // 动态替换掉 [ ? ] 显示给玩家看
+                const finishedSentence = activeQuest.text.replace('[ ? ]', `[ ${aiResult.word.text} ]`);
+                alert(`🎉 任务完成！\n成功组合：${finishedSentence}\n区域已净化！`);
             }
 
             // 先弹出主单词卡片
@@ -545,6 +567,11 @@ function createPoiMarker(spot) {
     // ==========================================
     const config = markerQuestData.config;
     const size = Math.round(30 * (config.scale || 1));
+    
+    // 【新增】：如果是猫，图标中心显示 🐱，否则显示稀有度文字
+    const innerContent = spot.type === 'npc_cat' ? '🐱' : markerQuestData.rarity;
+    const fontSize = spot.type === 'npc_cat' ? '18px' : '10px';
+
     const customIcon = L.divIcon({
         className: 'custom-marker',
         html: `<div style="
@@ -553,9 +580,9 @@ function createPoiMarker(spot) {
             border-radius: 50%; 
             border: 2px solid white;
             display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: 10px;
-            box-shadow: 0 0 10px ${config.color};">
-            ${markerQuestData.rarity}
+            color: white; font-weight: bold; font-size: ${fontSize};
+            box-shadow: 0 0 15px ${config.color};">
+            ${innerContent}
         </div>`,
         iconSize: [size, size],
         iconAnchor: [size/2, size/2]
@@ -586,9 +613,9 @@ function openQuestUI(data, spot, marker) {
     // 渲染带插槽的句子
     preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
 
-    // 记录当前活动任务
+    // 记录当前活动任务（在 openQuestUI 内部）
     activeQuest = {
-        type: 'POI',
+        type: spot.type === 'npc_cat' ? 'NPC' : 'POI', // 【核心修复】：区分是 NPC 还是普通地点
         rarity: data.rarity,
         text: data.text,
         requiredTag: data.requiredTag,
@@ -989,7 +1016,6 @@ function spawnTestCat() {
 }
 
 // 游戏启动 3 秒后，必定在你身边刷出一只猫
-setTimeout(spawnTestCat, 3000);
 
 // 🗺️ 关卡设计师数据注入 (Level Design)
 // ==========================================
