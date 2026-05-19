@@ -2,6 +2,11 @@
 const ipCache = new Map();
 
 export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ error: { message: "只支持 POST 请求" } });
+    }
+
     const forwardedFor = req.headers['x-forwarded-for'];
     const ip = (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : forwardedFor) || req.socket.remoteAddress || 'unknown';
     const limit = 5; // 每分钟允许的最大请求次数
@@ -35,18 +40,33 @@ export default async function handler(req, res) {
     }
 
     // 2. 组装请求 URL（注意：这里必须用键盘左上角的反引号 `，不能用单引号！）
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
     try {
         const { contents, generationConfig, safetySettings } = req.body || {};
+        if (!Array.isArray(contents) || contents.length === 0) {
+            return res.status(400).json({ error: { message: "请求体缺少 contents" } });
+        }
+
+        const safeBody = { contents };
+        if (generationConfig && typeof generationConfig === 'object') {
+            safeBody.generationConfig = generationConfig;
+        }
+        if (Array.isArray(safetySettings)) {
+            safeBody.safetySettings = safetySettings;
+        }
         
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents, generationConfig, safetySettings })
+            body: JSON.stringify(safeBody)
         });
 
-        const data = await response.json();
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json')
+            ? await response.json()
+            : { error: { message: await response.text() } };
 
         // 3. 拦截 Google 的报错！
         if (!response.ok) {

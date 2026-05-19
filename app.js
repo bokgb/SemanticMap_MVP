@@ -1,10 +1,17 @@
 // 初始化地图，加入视距限制和 UI 隐藏
+const DEV_MODE = new URLSearchParams(window.location.search).get('dev') === '1'
+    || localStorage.getItem('semantic-map-dev-mode') === '1';
+const DEFAULT_CENTER = [34.6937, 135.5023];
+let currentLang = 'zh';
+let activeQuest = null;
+let lastPlayerPosition = { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] };
+
 let map = L.map('map', {
     zoomControl: false,  
     minZoom: 16,         
     maxZoom: 18,         
     zoomSnap: 0.5        
-}).setView([35.6895, 139.6917], 17); 
+}).setView(DEFAULT_CENTER, 17); 
 
 // 【新增】用来记住每个地点已经生成的稀有度和任务，防止地图刷新时变异
 const QUEST_CACHE_STORAGE_KEY = 'semantic-map-quest-cache-v1';
@@ -19,7 +26,8 @@ function createCompletedMarkerIcon() {
     return L.divIcon({
         className: 'custom-marker',
         html: `<div style="background-color: #555; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; opacity: 0.6;">✅</div>`,
-        iconSize: [30, 30]
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
     });
 }
 
@@ -53,8 +61,10 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
 }).addTo(map);
 
-let playerMarker = L.marker([35.6895, 139.6917]).addTo(map);
+let playerMarker = L.marker(DEFAULT_CENTER).addTo(map);
 let statusText = document.getElementById('status-text');
+let allSpots = []; // 存放从 JSON 洗出来的所有地标
+let dynamicMarkersLayer = L.layerGroup().addTo(map); // 专门用来放动态标记的图层
 
 // 【新增】：标志位，确保猫咪只生成一次
 let catSpawned = false;
@@ -100,12 +110,13 @@ if ('geolocation' in navigator) {
         (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
+            lastPlayerPosition = { lat, lng };
 
             statusText.innerText = `坐标更新成功：\n纬度 ${lat.toFixed(4)}\n经度 ${lng.toFixed(4)}`;
             map.setView([lat, lng], 16); 
             playerMarker.setLatLng([lat, lng]);
             // 【新增】：GPS 定位成功，自动生成猫咪（只生成一次）
-            if (!catSpawned) {
+            if (DEV_MODE && !catSpawned) {
                 catSpawned = true;
                 spawnTestCat();
             }
@@ -117,13 +128,17 @@ if ('geolocation' in navigator) {
 
         },
         (error) => {
-            console.error("定位获取失败:", error);
-            statusText.innerText = "GPS 定位失败，请检查权限或换用 HTTPS";
+            console.warn("定位获取失败，使用默认演示位置:", error);
+            statusText.innerText = "GPS 定位失败，已切换到关西演示位置";
+            map.setView(DEFAULT_CENTER, 16);
+            playerMarker.setLatLng(DEFAULT_CENTER);
+            updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
         },
         { enableHighAccuracy: true, maximumAge: 0 }
     );
 } else {
-    statusText.innerText = "你的设备不支持 GPS";
+    statusText.innerText = "你的设备不支持 GPS，已切换到关西演示位置";
+    updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
 }
 
 // --- 取景器与相机逻辑 ---
@@ -156,18 +171,32 @@ if (levelSelector) {
 }
 
 scanBtn.addEventListener('click', async () => {
-    cameraLayer.style.display = 'flex'; 
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("当前浏览器不支持摄像头调用，请使用 HTTPS 或 localhost 环境。");
+        return;
+    }
+
+    cameraLayer.style.display = 'flex';
+    captureBtn.disabled = true;
     try {
         currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         cameraFeed.srcObject = currentStream;
+        await cameraFeed.play();
+        captureBtn.disabled = false;
     } catch (err) {
+        cameraLayer.style.display = 'none';
+        activeQuest = null;
         alert("无法调用摄像头\n错误信息: " + err.message);
     }
 });
 
 closeCameraBtn.addEventListener('click', () => {
     cameraLayer.style.display = 'none'; 
+    captureBtn.disabled = false;
+    closeCameraBtn.disabled = false;
     if (currentStream) currentStream.getTracks().forEach(track => track.stop());
+    currentStream = null;
+    cameraFeed.srcObject = null;
 });
 
 // ==========================================
@@ -179,6 +208,9 @@ closeCameraBtn.addEventListener('click', () => {
 // 1. 负责把摄像头当前画面截取为 Base64 编码的图片
 function captureFrameAsBase64() {
     const video = document.getElementById('camera-feed');
+    if (!video || !video.videoWidth || !video.videoHeight) {
+        throw new Error("摄像头画面尚未准备好，请稍等一秒再拍。");
+    }
     // 创建一个隐形的画布
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
@@ -195,10 +227,16 @@ function captureFrameAsBase64() {
 
 // 2. 核心大招：调用真实的 AI 接口
 async function callRealVisionAI() {
-    const base64Image = captureFrameAsBase64();
+    let base64Image = "";
+    try {
+        base64Image = captureFrameAsBase64();
+    } catch (error) {
+        alert(`无法拍摄当前画面：${error.message}`);
+        return null;
+    }
     
     // 【核心新增 1】：获取玩家当前选择的难度
-    const currentLevel = document.getElementById('level-selector').value;
+    const currentLevel = levelSelector?.value || 'N5';
     
     // 【修改点 1】：把指令焦点全部转移到“例句生成”上
     const levelInstructions = {
@@ -208,12 +246,12 @@ async function callRealVisionAI() {
     };
 
     // 【修改点 2】：给物品命名加上“常识紧箍咒” 并在高稀有度任务时要求额外掉落字段
-    const rewardPrompt = (typeof activeQuest !== 'undefined' && activeQuest && activeQuest.rarity && activeQuest.rarity !== 'N')
+    const rewardPrompt = (activeQuest && activeQuest.rarity && activeQuest.rarity !== 'N')
         ? `【奖励模式】：由于这是${activeQuest.rarity}级任务，除了主单词外，请额外提供2个与其相关的形容词或动词，放入字段 "extra_words" 中。每个元素包含 {"text","kana","zh","pos"}。`
         : "";
     // 【新增】：小猫喂食任务的安全判定规则
     let catSafetyRule = "";
-    if (typeof activeQuest !== 'undefined' && activeQuest && activeQuest.type === 'NPC') {
+    if (activeQuest && activeQuest.type === 'NPC') {
         catSafetyRule = `
         【特殊规则：流浪猫喂食判定】
         当前玩家正在给流浪猫喂食。请扮演兽医，判定图片中的食物是否适合猫咪食用。
@@ -246,12 +284,12 @@ async function callRealVisionAI() {
 
     const url = '/api/gemini';
     
-    // 【修复点】：注意下面必须是 inlineData 和 mimeType ！
+    // Gemini REST API 的图片字段使用 snake_case。
     const requestBody = {
         contents: [{
             parts: [
                 { text: promptText },
-                { inlineData: { mimeType: "image/jpeg", data: base64Image } }
+                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
             ]
         }],
         generationConfig: {
@@ -279,7 +317,12 @@ async function callRealVisionAI() {
             throw new Error(`API 拒绝请求: ${data.error?.message || response.status}`);
         }
         
-        let resultText = data.candidates[0].content.parts[0].text;
+        const resultTextPart = data?.candidates?.[0]?.content?.parts?.find(part => typeof part.text === 'string');
+        if (!resultTextPart) {
+            throw new Error("AI 没有返回可解析的文本结果。");
+        }
+
+        let resultText = resultTextPart.text;
         
         // 【核心修复】：暴力清除大模型可能返回的 Markdown 代码块标记！
         resultText = resultText.replace(/```json/gi, '').replace(/```/gi, '').trim();
@@ -303,9 +346,6 @@ async function callRealVisionAI() {
     }
 }
 
-// 【融合点 3】：全局变量，用来记住玩家现在是不是带着“便利店任务”在拍照
-let activeQuest = null; 
-
 function completeActiveQuest(quest) {
     if (!quest || !quest.spot) return;
 
@@ -321,23 +361,21 @@ function completeActiveQuest(quest) {
     }
 }
 
-function showExtraWordRewards(aiResult) {
+function queueExtraWordRewards(aiResult) {
     if (!aiResult || !Array.isArray(aiResult.extra_words) || aiResult.extra_words.length === 0) return;
 
-    aiResult.extra_words.forEach((extra, index) => {
-        setTimeout(() => {
-            const extraData = normalizeAiResult({
-                word: { text: extra.text, kana: extra.kana, zh: extra.zh },
-                pos: extra.pos || '名词',
-                tag: aiResult.tag,
-                tagColor: aiResult.tagColor,
-                example: { s: "关联奖励单词", z: "奖励词汇" }
-            });
+    aiResult.extra_words.forEach((extra) => {
+        const extraData = normalizeAiResult({
+            word: { text: extra.text, kana: extra.kana, zh: extra.zh },
+            pos: extra.pos || '名词',
+            tag: aiResult.tag,
+            tagColor: aiResult.tagColor,
+            example: { s: "关联奖励单词", z: "奖励词汇" }
+        });
 
-            if (extraData) {
-                showWordDetailCard(extraData);
-            }
-        }, (index + 1) * 1500);
+        if (extraData) {
+            rewardQueue.push(extraData);
+        }
     });
 }
 
@@ -364,20 +402,25 @@ captureBtn.addEventListener('click', async () => {
     const scannerOverlay = document.getElementById('ai-scanning-overlay');
     if (scannerOverlay) scannerOverlay.classList.remove('hidden');
 
-    // 5. 等待真实 AI 识别
-    const aiResult = await callRealVisionAI();
-
-    // 6. 恢复所有状态
-    if (cameraFeed && typeof cameraFeed.play === 'function') {
-        cameraFeed.play();
+    let aiResult = null;
+    try {
+        aiResult = await callRealVisionAI();
+    } catch (error) {
+        console.error("AI 识别流程异常:", error);
+        alert(`🚨 识别流程异常：${error.message}`);
+    } finally {
+        // 6. 恢复所有状态
+        if (cameraFeed && typeof cameraFeed.play === 'function' && cameraFeed.srcObject) {
+            cameraFeed.play().catch(() => {});
+        }
+        if (scannerOverlay) scannerOverlay.classList.add('hidden');
+        
+        captureBtn.innerText = originalText;
+        captureBtn.disabled = false;
+        closeCameraBtn.disabled = false;
+        
+        closeCameraBtn.click(); // 识别完自动关掉相机层
     }
-    if (scannerOverlay) scannerOverlay.classList.add('hidden');
-    
-    captureBtn.innerText = originalText;
-    captureBtn.disabled = false;
-    closeCameraBtn.disabled = false;
-    
-    closeCameraBtn.click(); // 识别完自动关掉相机层
 
     if (!aiResult || !aiResult.word) {
         activeQuest = null;
@@ -403,6 +446,8 @@ captureBtn.addEventListener('click', async () => {
                 alert(`🎉 任务完成！\n成功组合：${finishedSentence}\n区域已净化！`);
             }
 
+            queueExtraWordRewards(aiResult);
+
             // 先弹出主单词卡片
             showWordDetailCard(aiResult);
 
@@ -410,8 +455,6 @@ captureBtn.addEventListener('click', async () => {
 
             // 关闭任务面板
             document.getElementById('quest-layer').classList.add('hidden');
-
-            showExtraWordRewards(aiResult);
 
             activeQuest = null; // 任务清空
         } else {
@@ -431,6 +474,7 @@ captureBtn.addEventListener('click', async () => {
 
 // --- 新增：便利店任务相关的交互逻辑 ---
 document.getElementById('btn-close-quest').addEventListener('click', () => {
+    activeQuest = null;
     document.getElementById('quest-layer').classList.add('hidden');
 });
 
@@ -440,25 +484,6 @@ document.getElementById('btn-start-scan').addEventListener('click', () => {
     scanBtn.click(); // 自动帮你点开相机！
 });
 
-function spawnStoreQuest(lat, lng, storeName) {
-    const storeIcon = L.divIcon({
-        // 【核心修改】：把 Emoji 用一个 div 包起来，作为会动的内壳
-        html: '<div class="store-emoji">🏪</div>', 
-        // 【核心修改】：把原来的类名改成外壳类名
-        className: 'store-icon-container', 
-        iconSize: [50, 50], 
-        iconAnchor: [25, 25]
-    });
-    
-    // 精准定位
-    const storeMarker = L.marker([lat, lng], { icon: storeIcon }).addTo(map);
-        
-    storeMarker.on('click', () => {
-        // 动态修改 HTML 里的店名 UI
-        document.querySelector('.location-tag').innerText = `📍 ${storeName}`;
-        document.getElementById('quest-layer').classList.remove('hidden');
-    });
-}
 // --- 背包与 UI 逻辑 ---
 let playerInventory = []; 
 const bagBtn = document.getElementById('bag-btn');
@@ -477,8 +502,7 @@ closeBagBtn.addEventListener('click', () => {
 });
 
 
-// --- 旧版 ⚠️ 自由组合任务逻辑 ---
-let taskLocation = null;
+// --- 自由组合任务逻辑 ---
 const comboLayer = document.getElementById('combo-layer');
 const slotAdj = document.getElementById('slot-adj'); // 新增
 const slotNoun = document.getElementById('slot-noun');
@@ -488,8 +512,6 @@ let currentAdj = null; // 新增
 let currentNoun = null;
 let currentVerb = null;
 
-// --- 升级版：自由探索生成与多目标追踪 ---
-let currentActiveMarker = null; // 记录当前玩家点击的是哪个任务图标
 window.currentComboTag = null;
 window.currentComboSpot = null;
 
@@ -500,28 +522,13 @@ if (uiToggleBtn && uiLayer) {
     // 从 localStorage 读取上次状态
     const collapsed = localStorage.getItem('uiLayerCollapsed') === '1';
     if (collapsed) uiLayer.classList.add('collapsed');
+    uiToggleBtn.innerText = collapsed ? '▼' : '▲';
 
     uiToggleBtn.addEventListener('click', () => {
         const isCollapsed = uiLayer.classList.toggle('collapsed');
         // 切换按钮箭头方向
         uiToggleBtn.innerText = isCollapsed ? '▼' : '▲';
         localStorage.setItem('uiLayerCollapsed', isCollapsed ? '1' : '0');
-    });
-}
-
-function spawnTaskMarker(lat, lng) {
-    const customIcon = L.divIcon({
-        html: '<div class="icon-pulse">⚠️</div>', 
-        className: 'task-icon-container', 
-        iconSize: [60, 60],     
-        iconAnchor: [30, 30]    
-    });
-    // 去掉偏移量，精准生成
-    let marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
-    
-    marker.on('click', () => {
-        currentActiveMarker = marker; // 记住现在挑战的是这个坐标的点
-        openComboPanel();
     });
 }
 
@@ -630,6 +637,15 @@ function createPoiMarker(spot) {
 
     // 4. 点击事件：直接读取已经定好的数据
     marker.on('click', () => {
+        if (spot.type === 'park') {
+            activeQuest = null;
+            document.getElementById('task-desc').innerText = `区域异常：此公园需要【${spot.questTag}】相关的词汇组合来净化！`;
+            window.currentComboTag = spot.questTag;
+            window.currentComboSpot = spot;
+            openComboPanel();
+            return;
+        }
+
         openQuestUI(marker.questData, spot, marker);
     });
 
@@ -671,6 +687,8 @@ function openComboPanel() {
 document.getElementById('btn-close-combo').addEventListener('click', () => {
     comboLayer.classList.add('hidden');
     resetSlots();
+    window.currentComboTag = null;
+    window.currentComboSpot = null;
 });
 
 function renderComboWords() {
@@ -742,6 +760,14 @@ btnSubmit.addEventListener('click', () => {
                 allSpots.splice(spotIndex, 1); 
             }
         }
+
+        if (window.currentComboSpot) {
+            questCache[getSpotKey(window.currentComboSpot)] = {
+                status: 'completed',
+                completedAt: Date.now()
+            };
+            saveQuestCache();
+        }
         
         // 💥 给公园的图标也加上炫酷的爆炸特效并消除！
         let actualMarkerOnMap = null;
@@ -762,8 +788,8 @@ btnSubmit.addEventListener('click', () => {
                 dynamicMarkersLayer.removeLayer(actualMarkerOnMap);
             }
         }
-        currentActiveMarker = null; 
         window.currentComboSpot = null;
+        window.currentComboTag = null;
     } else {
         alert(`语境不匹配！\n提示：该区域需要【${window.currentComboTag}】相关的词汇。`);
         comboLayer.classList.add('hidden');
@@ -845,8 +871,24 @@ function addWordToInventory(data) {
 // 🃏 战利品展示系统 (Loot Card)
 // ==========================================
 let pendingWord = null; 
+const rewardQueue = [];
+
+function showNextQueuedReward() {
+    const nextReward = rewardQueue.shift();
+    if (nextReward) {
+        showWordDetailCard(nextReward);
+    }
+}
 
 function showWordDetailCard(aiData) {
+    if (!aiData) return;
+
+    const cardLayer = document.getElementById('word-card-layer');
+    if (cardLayer && !cardLayer.classList.contains('hidden')) {
+        rewardQueue.push(aiData);
+        return;
+    }
+
     pendingWord = aiData;
     
     // 渲染巨大的带注音的主单词
@@ -868,14 +910,13 @@ function showWordDetailCard(aiData) {
 // 绑定“存入背包”按钮的点击事件
 document.getElementById('btn-collect-word').addEventListener('click', () => {
     document.getElementById('word-card-layer').classList.add('hidden');
-    addWordToInventory(pendingWord); // 真正存入背包
-    alert("收录成功！右上角背包查看。");
+    if (pendingWord) {
+        addWordToInventory(pendingWord); // 真正存入背包
+        pendingWord = null;
+        alert("收录成功！右上角背包查看。");
+    }
+    showNextQueuedReward();
 });
-
-// ==========================================
-// 🌍 临时双语切换系统 (为了明天 Zemi 发表特制版)
-// ==========================================
-let currentLang = 'zh'; // 默认中文
 
 function toggleLanguage() {
     // 1. 切换状态
@@ -907,108 +948,31 @@ function toggleLanguage() {
 // 🌍 OSM 数据驱动与动态视距渲染系统 (Viewport Culling)
 // ==========================================
 
-let allSpots = []; // 存放从 JSON 洗出来的所有地标
-let dynamicMarkersLayer = L.layerGroup().addTo(map); // 专门用来放动态标记的图层
 // 客户端只需要直接读取干净的数据！没有任何复杂的清洗逻辑！
 async function loadOSMData() {
     try {
         // 直接读取你洗好的纯净版数据
         const response = await fetch('spotsData.json');
-        allSpots = await response.json(); 
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+            throw new Error("spotsData.json 格式不是数组");
+        }
+
+        allSpots = data; 
         
         console.log(`✅ 成功加载了 ${allSpots.length} 个烘焙好的地标！`);
+        updateVisibleSpots(lastPlayerPosition.lat, lastPlayerPosition.lng);
     } catch (error) {
         console.error("加载数据失败", error);
+        statusText.innerText = "地标数据加载失败，请检查 spotsData.json";
     }
 }
 
-// 2. 动态生成任务地标 (情境驱动分配版)
-function spawnDynamicQuest(spot) {
-    const icon = L.divIcon({
-        html: `<div class="store-emoji">${spot.emoji}</div>`, 
-        className: 'store-icon-container', 
-        iconSize: [50, 50], 
-        iconAnchor: [25, 25]
-    });
-    
-    const marker = L.marker([spot.lat, spot.lng], { icon: icon });
-    marker.spotData = spot; 
-        
-    marker.on('click', () => {
-        if (spot.type === 'convenience' || spot.type === 'pharmacy' || spot.type === 'station') {
-            // 🏪 【地标拍照任务】 - 动态根据模板库生成带稀有度的任务
-            document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
-
-            // 1. 获取该地点的模板列表
-            const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES['convenience'];
-
-            // 2. 简单的加权随机算法
-            const rand = Math.random();
-            let selectedQuest = templates[0]; // 默认 N
-            let cumulativeWeight = 0;
-            for (const t of templates) {
-                cumulativeWeight += t.weight;
-                if (rand < cumulativeWeight) {
-                    selectedQuest = t;
-                    break;
-                }
-            }
-
-            // 3. UI 渲染：根据稀有度变色
-            const rarityColors = { 'N': '#9e9e9e', 'R': '#3f51b5', 'SR': '#ff9800' };
-            const questTitle = document.querySelector('.quest-content h3');
-            questTitle.innerText = `${selectedQuest.rarity}级任务：环境语义缺失！`;
-            questTitle.style.color = rarityColors[selectedQuest.rarity] || '#9e9e9e';
-
-            document.querySelector('.quest-content p').innerText = "请通过拍照补充下述句子的空缺部分：";
-
-            // 4. 渲染任务句子预览
-            const previewHtml = selectedQuest.text.replace(/\[ \? \]/g, '<span class="slot-box">?</span>')
-                                                 .replace(/\[ \?/g, '[') // keep other brackets visually
-                                                 .replace(/\]/g, ']');
-            // For simplicity, replace the single placeholder
-            document.querySelector('.sentence-preview').innerHTML = selectedQuest.text.replace('[ ? ]', '<span class="slot-box">?</span>');
-
-            // 5. 将稀有度和奖励倍率存入 activeQuest
-            activeQuest = {
-                type: 'POI',
-                rarity: selectedQuest.rarity,
-                rewardCount: selectedQuest.reward,
-                requiredTag: selectedQuest.req,
-                spot: spot,
-                marker: marker
-            };
-
-            document.getElementById('quest-layer').classList.remove('hidden');
-            
-        } else if (spot.type === 'park') {
-            // 🌲 【公园 Combo 任务】
-            document.getElementById('task-desc').innerText = `区域异常：此公园需要【${spot.questTag}】相关的词汇组合来净化！`;
-            activeQuest = null; 
-            currentActiveMarker = marker; 
-            window.currentComboTag = spot.questTag; 
-            window.currentComboSpot = spot; 
-            openComboPanel(); 
-            
-        } else if (spot.type === 'npc_cat') {
-            // 🐱 【新增：流浪猫 NPC 委托】
-            document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
-            
-            // 动态替换为流浪猫的专属文案
-            document.querySelector('.quest-content h3').innerText = "它看起来很饿...";
-            document.querySelector('.quest-content p').innerText = "请通过拍照投喂带有【食物 (Food)】标签的物品：";
-            document.querySelector('.sentence-preview').innerHTML = `<span class="slot-box" id="quest-slot">?</span><span class="fixed-text">を あげる (给)</span>`;
-            
-            // 标记这个任务类型为 NPC！
-            activeQuest = { type: 'NPC', requiredTag: spot.questTag, spot: spot, marker: marker }; 
-            document.getElementById('quest-layer').classList.remove('hidden');
-        }
-    });
-    
-    return marker;
-}
-
-// 3. 核心雷达算法：广域搜索 + 多样性强制保底
+// 核心雷达算法：广域搜索 + 多样性强制保底
 function updateVisibleSpots(playerLat, playerLng) {
     if (allSpots.length === 0 || playerLat == null || playerLng == null) return;
 
@@ -1073,7 +1037,9 @@ function initTestData() {
     ];
     testWords.forEach(wordData => addWordToInventory(wordData));
 }
-setTimeout(initTestData, 500);
+if (DEV_MODE) {
+    setTimeout(initTestData, 500);
+}
 
 // 🔮 关卡设计师后门：在玩家身边强行召唤一只流浪猫（极致静默版）
 function spawnTestCat() {
@@ -1091,7 +1057,9 @@ function spawnTestCat() {
         lng: catLng,
         type: 'npc_cat', 
         id: spotKey,
-        name: "流浪猫"
+        name: "流浪猫",
+        emoji: "🐱",
+        questTag: "Food"
     };
 
     // 抽取小猫的 SSR 任务模板
@@ -1109,6 +1077,7 @@ function spawnTestCat() {
 
     // 写入缓存锁定
     questCache[spotKey] = markerQuestData;
+    saveQuestCache();
 
     // 绘制纯 🐱 图标
     const catIcon = L.divIcon({
