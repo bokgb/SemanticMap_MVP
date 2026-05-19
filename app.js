@@ -285,7 +285,7 @@ async function callRealVisionAI() {
         resultText = resultText.replace(/```json/gi, '').replace(/```/gi, '').trim();
         
         const aiResult = JSON.parse(resultText);
-        return aiResult;
+        return normalizeAiResult(aiResult);
         
     } catch (error) {
         console.error("AI 识别失败:", error);
@@ -293,18 +293,53 @@ async function callRealVisionAI() {
         // 【核心排错工具】：直接在手机屏幕上把最真实的死因弹出来！
         alert(`🚨 系统排错：\n识别失败了！\n真实原因：${error.message}`);
         
-        return {
+        return normalizeAiResult({
             word: { text: "未知物品（エラー）", kana: "", zh: "识别失败" },
             pos: "名词",
             tag: "Item",
             tagColor: "#607D8B",
             example: { s: "", k: "", z: "" }
-        };
+        });
     }
 }
 
 // 【融合点 3】：全局变量，用来记住玩家现在是不是带着“便利店任务”在拍照
 let activeQuest = null; 
+
+function completeActiveQuest(quest) {
+    if (!quest || !quest.spot) return;
+
+    questCache[getSpotKey(quest.spot)] = {
+        status: 'completed',
+        completedAt: Date.now()
+    };
+    saveQuestCache();
+
+    if (quest.marker) {
+        quest.marker.setIcon(createCompletedMarkerIcon());
+        quest.marker.off('click');
+    }
+}
+
+function showExtraWordRewards(aiResult) {
+    if (!aiResult || !Array.isArray(aiResult.extra_words) || aiResult.extra_words.length === 0) return;
+
+    aiResult.extra_words.forEach((extra, index) => {
+        setTimeout(() => {
+            const extraData = normalizeAiResult({
+                word: { text: extra.text, kana: extra.kana, zh: extra.zh },
+                pos: extra.pos || '名词',
+                tag: aiResult.tag,
+                tagColor: aiResult.tagColor,
+                example: { s: "关联奖励单词", z: "奖励词汇" }
+            });
+
+            if (extraData) {
+                showWordDetailCard(extraData);
+            }
+        }, (index + 1) * 1500);
+    });
+}
 
 // 监听“提取属性”按钮 (核心逻辑修改)
 captureBtn.addEventListener('click', async () => {
@@ -344,6 +379,11 @@ captureBtn.addEventListener('click', async () => {
     
     closeCameraBtn.click(); // 识别完自动关掉相机层
 
+    if (!aiResult || !aiResult.word) {
+        activeQuest = null;
+        return;
+    }
+
     // 【融合点 4】：判断拍照后的去向
     if (activeQuest) {
         if (aiResult.tag === activeQuest.requiredTag) {
@@ -366,40 +406,12 @@ captureBtn.addEventListener('click', async () => {
             // 先弹出主单词卡片
             showWordDetailCard(aiResult);
 
-            // 【新增】找到这个地点的身份证号
-            const spotKey = getSpotKey(activeQuest.spot);
-
-            // 1. 在缓存里把这个地点标记为“已完成”，并记录当前时间戳
-            questCache[spotKey] = {
-                status: 'completed',
-                completedAt: Date.now()
-            };
-            saveQuestCache();
-
-            // 2. 视觉反馈：直接把地图上的这个标记变成灰色打勾，表示不能再点了
-            if (activeQuest.marker) {
-                activeQuest.marker.setIcon(createCompletedMarkerIcon());
-                activeQuest.marker.off('click');
-            }
+            completeActiveQuest(activeQuest);
 
             // 关闭任务面板
             document.getElementById('quest-layer').classList.add('hidden');
 
-            // 如果有额外掉落 (R/SR任务)，延迟1.5秒后依次弹出
-            if (aiResult.extra_words && aiResult.extra_words.length > 0) {
-                aiResult.extra_words.forEach((extra, index) => {
-                    setTimeout(() => {
-                        const extraData = {
-                            word: { text: extra.text, kana: extra.kana, zh: extra.zh },
-                            pos: extra.pos || extra.pos || '名词',
-                            tag: aiResult.tag,
-                            tagColor: aiResult.tagColor,
-                            example: { s: "关联奖励单词", z: "奖励词汇" }
-                        };
-                        showWordDetailCard(extraData);
-                    }, (index + 1) * 1500);
-                });
-            }
+            showExtraWordRewards(aiResult);
 
             activeQuest = null; // 任务清空
         } else {
@@ -513,65 +525,74 @@ function spawnTaskMarker(lat, lng) {
     });
 }
 
+function pickWeightedTemplate(templates) {
+    const rand = Math.random();
+    let selectedTemplate = templates[0];
+    let cumulativeWeight = 0;
+
+    for (const template of templates) {
+        cumulativeWeight += template.weight;
+        if (rand < cumulativeWeight) {
+            selectedTemplate = template;
+            break;
+        }
+    }
+
+    return selectedTemplate;
+}
+
+function buildQuestDataForSpot(spot, template) {
+    const rarity = template.rarity;
+    const config = RARITY_CONFIG[rarity] || RARITY_CONFIG['N'];
+
+    return {
+        rarity: rarity,
+        text: template.text,
+        config: config,
+        requiredTag: spot.questTag,
+        rewardCount: template.reward || 1
+    };
+}
+
+function getQuestStateForSpot(spot) {
+    const spotKey = getSpotKey(spot);
+    const cache = questCache[spotKey];
+
+    if (cache && cache.status === 'completed') {
+        const timePassed = Date.now() - cache.completedAt;
+
+        if (timePassed < COOLDOWN_TIME) {
+            return { status: 'completed' };
+        }
+
+        delete questCache[spotKey];
+        saveQuestCache();
+    } else if (cache) {
+        return { status: 'active', questData: cache };
+    }
+
+    const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES['convenience'];
+    const questData = buildQuestDataForSpot(spot, pickWeightedTemplate(templates));
+    questCache[spotKey] = questData;
+    saveQuestCache();
+
+    return { status: 'active', questData };
+}
+
+function createCompletedQuestMarker(spot) {
+    const completedMarker = L.marker([spot.lat, spot.lng], { icon: createCompletedMarkerIcon() });
+    completedMarker.spotData = spot;
+    return completedMarker;
+}
+
 // 创建 POI Marker 时就决定稀有度和模板，便于玩家一眼识别
 function createPoiMarker(spot) {
-    // 给这个地点生成一个唯一的身份证号（用经纬度拼起来）
-    const spotKey = getSpotKey(spot);
-
-    let markerQuestData;
-
-    // 🔮 核心修复：检查缓存
-    if (questCache[spotKey]) {
-        const cache = questCache[spotKey];
-
-        // 🔮 检查是不是已经打过的点
-        if (cache.status === 'completed') {
-            const timePassed = Date.now() - cache.completedAt;
-
-            if (timePassed < COOLDOWN_TIME) {
-                // 还在冷却中：画一个灰色的 ✅ 图标
-                const completedIcon = createCompletedMarkerIcon();
-                L.marker([spot.lat, spot.lng], { icon: completedIcon }).addTo(map);
-                return; // ⚠️ 直接 return！不给它绑定任何点击事件和任务数据
-            } else {
-                // 冷却时间到了！从缓存中删掉它，让它重新掷骰子！
-                delete questCache[spotKey];
-                saveQuestCache();
-            }
-        } else {
-            // 这是之前生成过，还没打的，直接沿用以前的任务
-            markerQuestData = cache;
-        }
-    } else {
-        // 如果是第一次看到这个地点，才进行抽卡计算
-        const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES['convenience'];
-        const rand = Math.random();
-        let selectedTemplate = templates[0];
-        let cumulativeWeight = 0;
-
-        for (const t of templates) {
-            cumulativeWeight += t.weight;
-            if (rand < cumulativeWeight) {
-                selectedTemplate = t;
-                break;
-            }
-        }
-
-        const rarity = selectedTemplate.rarity;
-        const config = RARITY_CONFIG[rarity] || RARITY_CONFIG['N'];
-
-        markerQuestData = {
-            rarity: rarity,
-            text: selectedTemplate.text,
-            config: config,
-            requiredTag: spot.questTag,
-            rewardCount: selectedTemplate.reward || 1
-        };
-
-        // 把抽卡结果存进缓存，锁死这个地点的命运
-        questCache[spotKey] = markerQuestData;
-        saveQuestCache();
+    const questState = getQuestStateForSpot(spot);
+    if (questState.status === 'completed') {
+        return createCompletedQuestMarker(spot);
     }
+
+    const markerQuestData = questState.questData;
 
     // ==========================================
     // 下面继续用 markerQuestData 来画你的图标
@@ -654,8 +675,12 @@ document.getElementById('btn-close-combo').addEventListener('click', () => {
 
 function renderComboWords() {
     const list = document.getElementById('combo-word-list');
+    if (!list || !slotAdj || !slotNoun || !slotVerb) return;
+
     list.innerHTML = ''; 
     playerInventory.forEach((wordData) => {
+        if (!wordData || !wordData.word || !wordData.word.text) return;
+
         const btn = document.createElement('div');
         btn.className = 'combo-word-item';
         btn.style.borderColor = wordData.tagColor; 
@@ -688,15 +713,17 @@ function renderComboWords() {
 
 function checkComboReady() {
     // 必须三个槽都填满才能激活提交按钮！
-    if (currentAdj && currentNoun && currentVerb) btnSubmit.disabled = false;
+    if (btnSubmit) {
+        btnSubmit.disabled = !(currentAdj && currentNoun && currentVerb);
+    }
 }
 
 function resetSlots() {
     currentAdj = null; currentNoun = null; currentVerb = null;
     if(slotAdj) { slotAdj.innerText = '形容词'; slotAdj.classList.remove('filled'); }
-    slotNoun.innerText = '点击下方名词填入'; slotNoun.classList.remove('filled');
-    slotVerb.innerText = '点击下方动词填入'; slotVerb.classList.remove('filled');
-    btnSubmit.disabled = true;
+    if(slotNoun) { slotNoun.innerText = '点击下方名词填入'; slotNoun.classList.remove('filled'); }
+    if(slotVerb) { slotVerb.innerText = '点击下方动词填入'; slotVerb.classList.remove('filled'); }
+    if(btnSubmit) btnSubmit.disabled = true;
 }
 
 // --- 升级版：Combo 结算逻辑 ---
@@ -745,13 +772,50 @@ btnSubmit.addEventListener('click', () => {
 });
 
 // --- 核心注音渲染器 ---
+function normalizeAiResult(result) {
+    if (!result || !result.word || !result.word.text) return null;
+
+    return {
+        ...result,
+        word: {
+            text: String(result.word.text || ''),
+            kana: String(result.word.kana || ''),
+            zh: String(result.word.zh || '')
+        },
+        pos: result.pos || '名词',
+        tag: result.tag || 'Item',
+        tagColor: sanitizeColor(result.tagColor),
+        example: result.example || { s: '', k: '', z: '' },
+        extra_words: Array.isArray(result.extra_words) ? result.extra_words : []
+    };
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function sanitizeColor(value, fallback = '#607D8B') {
+    const color = String(value ?? '').trim();
+    return /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(color) ? color : fallback;
+}
+
 function renderRubyWord(wordObj) {
     if (!wordObj || !wordObj.text) return "???";
+    const text = escapeHtml(wordObj.text);
+    const kana = escapeHtml(wordObj.kana);
+    const zh = escapeHtml(wordObj.zh);
+
     // 如果没有假名，或者文本和假名一样（外来语），就不显示上方注音
     if (!wordObj.kana || wordObj.text === wordObj.kana) {
-        return `<span>${wordObj.text}</span> <span style="font-size:12px; color:#888;">(${wordObj.zh})</span>`;
+        return `<span>${text}</span> <span style="font-size:12px; color:#888;">(${zh})</span>`;
     }
-    return `<ruby>${wordObj.text}<rt>${wordObj.kana}</rt></ruby> <span style="font-size:12px; color:#888;">(${wordObj.zh})</span>`;
+    return `<ruby>${text}<rt>${kana}</rt></ruby> <span style="font-size:12px; color:#888;">(${zh})</span>`;
 }
 
 // 修复背包渲染逻辑
@@ -760,12 +824,13 @@ function addWordToInventory(data) {
     const list = document.getElementById('word-list');
     const block = document.createElement('div');
     block.className = 'word-block';
-    block.style.borderLeftColor = data.tagColor;
+    const tagColor = sanitizeColor(data.tagColor);
+    block.style.borderLeftColor = tagColor;
     // 使用新的渲染器！
     block.innerHTML = `
         <div class="word-title">${renderRubyWord(data.word)}</div>
-        <div class="word-pos">[ ${data.pos} ]</div>
-        <div class="word-tag" style="background-color: ${data.tagColor}">${data.tag}</div>
+        <div class="word-pos">[ ${escapeHtml(data.pos)} ]</div>
+        <div class="word-tag" style="background-color: ${tagColor}">${escapeHtml(data.tag)}</div>
     `;
     list.prepend(block);
 
@@ -985,7 +1050,9 @@ function updateVisibleSpots(playerLat, playerLng) {
     // 第四步：渲染到地图上（现在在出生时就决定稀有度）
     selectedSpots.forEach(spot => {
         const marker = createPoiMarker(spot);
-        dynamicMarkersLayer.addLayer(marker);
+        if (marker) {
+            dynamicMarkersLayer.addLayer(marker);
+        }
     });
     
     console.log(`👀 雷达扫描：生成 ${selectedSpots.length} 个任务点 (包含了 ${foundTypes.size} 种不同的类型)`);
@@ -1064,8 +1131,8 @@ function spawnTestCat() {
 
 // 清除缓存函数（供手机用户快速清理）
 function clearQuestCacheAll() {
-    localStorage.clear();
-    questCache = {};
+    localStorage.removeItem(QUEST_CACHE_STORAGE_KEY);
+    Object.keys(questCache).forEach(key => delete questCache[key]);
     alert(currentLang === 'ja' ? "キャッシュをクリアしました。ページを再読み込みしてください。" : "缓存已清除，请刷新页面");
     location.reload();
 }
