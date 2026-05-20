@@ -8,6 +8,7 @@
     function updateDifficultyHint() {
         if (!elements.levelSelector || !elements.difficultyHint) return;
 
+        state.currentLevel = elements.levelSelector.value;
         const hintMap = {
             N5: '当前难度：N5 - 新手',
             N3: '当前难度：N3 - 进阶',
@@ -16,6 +17,10 @@
 
         elements.difficultyHint.innerText = hintMap[elements.levelSelector.value] || '当前难度：未知';
         elements.difficultyHint.dataset.level = elements.levelSelector.value;
+
+        if (SM.map && state.lastPlayerPosition) {
+            SM.map.updateVisibleSpots(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng);
+        }
     }
 
     async function openCamera() {
@@ -73,16 +78,30 @@
         }
 
         const currentLevel = elements.levelSelector?.value || 'N5';
+        state.currentLevel = currentLevel;
         const levelInstructions = {
-            N5: "【例句要求】：使用 JLPT N5-N4 级别的极简基础语法（如 です/ます、～を食べる）。句子要短，非常直白，汉字必须标注假名。",
-            N3: "【例句要求】：使用 JLPT N3-N2 级别的进阶日常语法（如 被动、使役、～てしまう、～かもしれない）。句子要像当地人日常交流，包含适度的细节或情感描写。",
-            N1: "【例句要求】：使用 JLPT N1 级别的高级书面语法或专业表达（如 ～ざるを得ない、～にほかならない、四字熟语）。句子要结构复杂，带有强烈的议论、说明或文学色彩。"
+            N5: "【等级】：JLPT N5-N4。优先返回最基础、最常见的名词。",
+            N3: "【等级】：JLPT N3-N2。优先返回自然日常用语，不要过度书面化。",
+            N1: "【等级】：JLPT N1。名词仍然要自然常用，但中文解释可以更精确。"
         };
 
         const activeQuest = state.activeQuest;
-        const rewardPrompt = (activeQuest && activeQuest.rarity && activeQuest.rarity !== 'N')
-            ? `【奖励模式】：由于这是${activeQuest.rarity}级任务，除了主单词外，请额外提供2个与其相关的形容词或动词，放入字段 "extra_words" 中。每个元素包含 {"text","kana","zh","pos"}。`
-            : "";
+        const questPrompt = activeQuest
+            ? `
+        【当前文型任务】
+        地点：${activeQuest.spot?.name || '未知地点'}
+        地点类型：${activeQuest.spot?.type || 'unknown'}
+        目标语义标签：${activeQuest.requiredTag}
+        目标文型：${activeQuest.text}
+        语法点：${activeQuest.grammar || '未指定'}
+        拍摄条件：${activeQuest.instruction || '能填入空格的现实物体'}
+
+        请判断图片中的主要物体是否适合填入目标文型的 [ ? ]。如果不适合，也返回识别出的词，但 tag 应反映真实语义类别。
+        `
+            : `
+        【练习扫描】
+        当前没有地点文型任务。只返回图片中最主要物品的名词信息。
+        `;
 
         let catSafetyRule = "";
         if (activeQuest && activeQuest.type === 'NPC') {
@@ -95,9 +114,10 @@
 
         const promptText = `
         你是一个 LBS 语言学习游戏的物体识别引擎。
-        请识别图片中最主要的物品。
+        请识别图片中最主要、最适合作为日语名词学习对象的物品。
+        拍照输入只负责补充名词，不要把动词、形容词作为主单词返回。
 
-        ${rewardPrompt}
+        ${questPrompt}
         ${catSafetyRule}
 
         【词汇提取绝对原则】：无论当前是什么难度，提取的物品名称 (word.text) 必须是现代日语中最自然、最常用、最接地气的说法！
@@ -107,7 +127,7 @@
         严格返回 JSON 格式：
         {
             "word": { "text": "日文", "kana": "假名", "zh": "中文" },
-            "pos": "名词 或 动词",
+            "pos": "名词",
             "tag": "必须从以下选择其一：Food, Nature, Transit, Retail, Health, Item",
             "tagColor": "对应的十六进制颜色",
             "example": { "s": "日文例句", "k": "假名", "z": "中文" },
@@ -217,7 +237,7 @@
 
         const activeQuest = state.activeQuest;
         if (!activeQuest) {
-            SM.inventory.showWordDetailCard(aiResult);
+            alert("请先点击地图上的地点文型任务，再开始正式拍照。");
             return;
         }
 
@@ -231,10 +251,18 @@
                 alert(`🐱 喵~！\n流浪猫开心地吃下了【${aiResult.word.text}】！\n成功组合：猫 に [ ${aiResult.word.text} ] を あげる`);
             } else if (activeQuest.type === 'POI') {
                 const finishedSentence = activeQuest.text.replace('[ ? ]', `[ ${aiResult.word.text} ]`);
-                alert(`🎉 任务完成！\n成功组合：${finishedSentence}\n区域已净化！`);
+                aiResult.quest = {
+                    level: activeQuest.level,
+                    grammar: activeQuest.grammar,
+                    review: buildGrammarReview(activeQuest, aiResult.word.text),
+                    sentence: finishedSentence,
+                    location: activeQuest.spot?.name || '',
+                    spotType: activeQuest.spot?.type || '',
+                    requiredTag: activeQuest.requiredTag
+                };
+                alert(`🎉 文型修复成功！\n${finishedSentence}\n已收录为地点词汇卡。`);
             }
 
-            SM.inventory.queueExtraWordRewards(aiResult);
             SM.inventory.showWordDetailCard(aiResult);
             SM.quests.completeQuest(activeQuest);
             document.getElementById('quest-layer').classList.add('hidden');
@@ -243,10 +271,80 @@
             if (activeQuest.type === 'NPC') {
                 alert(`😾 喵？\n流浪猫闻了闻【${aiResult.word.text}】，嫌弃地走开了。\n（提示：你需要拍【Food】类的物品！）`);
             } else {
-                alert(`❌ 语境不符！\n你拍到了【${aiResult.word.text}】，但这东西不能“吃”哦。`);
+                alert(`❌ 语境不符！\n你拍到了【${aiResult.word.text}】，它属于【${aiResult.tag}】。\n这个任务需要【${activeQuest.requiredTag}】相关物体：${activeQuest.instruction || ''}`);
             }
             state.activeQuest = null;
         }
+    }
+
+    function buildGrammarReview(quest, wordText) {
+        if (!quest) return [];
+
+        const text = quest.text || '';
+        const review = [];
+
+        if (quest.grammar) {
+            review.push(`文型：${quest.grammar}`);
+        }
+        if (text.includes('を')) {
+            review.push(`を：把「${wordText}」标记为动作对象`);
+        }
+        if (text.includes('に')) {
+            review.push('に：表示目标、到达点或存在位置');
+        }
+        if (text.includes('で')) {
+            review.push('で：表示动作发生的场所或手段');
+        }
+        if (text.includes('は')) {
+            review.push('は：提示主题，说明这个名词的性质或作用');
+        }
+        if (text.includes('が')) {
+            review.push('が：标记主语、存在物或被强调的信息');
+        }
+        if (text.includes('ために')) {
+            review.push('ために：表示目的，“为了……”');
+        }
+        if (text.includes('てから')) {
+            review.push('てから：表示动作顺序，“做完之后……”');
+        }
+        if (text.includes('ながら')) {
+            review.push('ながら：表示两个动作同时进行');
+        }
+        if (text.includes('ように')) {
+            review.push('ように：表示目的、提醒或避免某种情况');
+        }
+        if (text.includes('まで')) {
+            review.push('まで：表示持续到某个时间点或事件发生');
+        }
+        if (text.includes('ば')) {
+            review.push('ば：表示条件，“如果……”');
+        }
+        if (text.includes('かどうか')) {
+            review.push('かどうか：表示“是否……”');
+        }
+        if (text.includes('として')) {
+            review.push('として：表示身份、用途或立场，“作为……”');
+        }
+        if (text.includes('うえで')) {
+            review.push('うえで：表示“在……方面 / 为了……时”');
+        }
+        if (text.includes('において')) {
+            review.push('において：表示范围或场合，“在……中”');
+        }
+        if (text.includes('を通して')) {
+            review.push('を通して：表示媒介或经验路径，“通过……”');
+        }
+        if (text.includes('に応じて')) {
+            review.push('に応じて：表示根据情况变化，“根据……”');
+        }
+        if (text.includes('観点から')) {
+            review.push('観点から：表示判断角度，“从……观点来看”');
+        }
+        if (text.includes('頼らず')) {
+            review.push('ず：表示否定连接，“不……”');
+        }
+
+        return [...new Set(review)];
     }
 
     function init() {
@@ -264,7 +362,9 @@
         elements.levelSelector.addEventListener('change', updateDifficultyHint);
         updateDifficultyHint();
 
-        elements.scanBtn.addEventListener('click', openCamera);
+        elements.scanBtn.addEventListener('click', () => {
+            alert("请先点击地图上的地点任务，再带着文型目标去拍照。");
+        });
         elements.closeCameraBtn.addEventListener('click', closeCamera);
         elements.captureBtn.addEventListener('click', handleCapture);
     }

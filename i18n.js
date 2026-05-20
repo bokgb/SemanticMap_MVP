@@ -19,7 +19,7 @@
 
         const bagBtnText = document.getElementById('bag-btn-text');
         if (bagBtnText) {
-            bagBtnText.innerText = state.currentLang === 'zh' ? '背包' : 'リュック';
+            bagBtnText.innerText = state.currentLang === 'zh' ? '地点词汇卡' : '場所語彙カード';
         }
     }
 

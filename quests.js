@@ -2,31 +2,79 @@
     const SM = window.SemanticMap = window.SemanticMap || {};
     const state = SM.state = SM.state || {};
 
-    const QUEST_CACHE_STORAGE_KEY = 'semantic-map-quest-cache-v1';
+    const QUEST_CACHE_STORAGE_KEY = 'semantic-map-quest-cache-v2';
     const COOLDOWN_TIME = 1000 * 60 * 60 * 2;
     const questCache = {};
 
     const QUEST_TEMPLATES = {
-        convenience: [
-            { rarity: 'N', weight: 0.7, text: "[ ? ] を 買う", req: "Food", reward: 1 },
-            { rarity: 'R', weight: 0.2, text: "[ 冷たい ] [ ? ] を 買う", req: "Food", reward: 2 },
-            { rarity: 'SR', weight: 0.1, text: "[ ? ] を 温める", req: "Food", reward: 3 }
-        ],
-        park: [
-            { rarity: 'N', weight: 0.7, text: "[ ? ] を 見る", req: "Nature", reward: 1 },
-            { rarity: 'R', weight: 0.2, text: "[ 静かな ] [ ? ] で 休む", req: "Nature", reward: 2 },
-            { rarity: 'SR', weight: 0.1, text: "[ 赤い ] [ ? ] を 見つける", req: "Nature", reward: 3 }
-        ],
-        station: [
-            { rarity: 'N', weight: 0.7, text: "[ ? ] に 乗る", req: "Transit", reward: 1 },
-            { rarity: 'R', weight: 0.3, text: "[ ? ] を 買う", req: "Transit", reward: 2 }
-        ],
-        pharmacy: [
-            { rarity: 'N', weight: 0.7, text: "[ ? ] を 探す", req: "Health", reward: 1 },
-            { rarity: 'R', weight: 0.3, text: "[ 痛い ] から [ ? ] を 飲む", req: "Health", reward: 2 }
-        ],
+        N5: {
+            convenience: [
+                { rarity: 'N', weight: 0.4, text: "コンビニで [ ? ] を買います。", req: "Food", grammar: "場所で N を Vます", instruction: "便利店里可以买到的食物或饮料。", reward: 1 },
+                { rarity: 'N', weight: 0.3, text: "これは [ ? ] です。", req: "Food", grammar: "これは N です", instruction: "便利店里常见的食品、饮料或商品。", reward: 1 },
+                { rarity: 'R', weight: 0.3, text: "[ ? ] を飲みます。", req: "Food", grammar: "N を Vます", instruction: "可以喝的东西，例如水、咖啡、茶。", reward: 1 }
+            ],
+            park: [
+                { rarity: 'N', weight: 0.4, text: "公園に [ ? ] があります。", req: "Nature", grammar: "場所に N があります", instruction: "公园里存在的自然物或设施。", reward: 1 },
+                { rarity: 'N', weight: 0.3, text: "公園で [ ? ] を見ます。", req: "Nature", grammar: "場所で N を Vます", instruction: "公园里能看见的自然物。", reward: 1 },
+                { rarity: 'R', weight: 0.3, text: "[ ? ] はきれいです。", req: "Nature", grammar: "N は 形容詞です", instruction: "公园里漂亮、明显的自然物。", reward: 1 }
+            ],
+            station: [
+                { rarity: 'N', weight: 0.4, text: "駅で [ ? ] を買います。", req: "Transit", grammar: "場所で N を Vます", instruction: "车站里可以买到或使用的交通相关物品。", reward: 1 },
+                { rarity: 'N', weight: 0.3, text: "[ ? ] に乗ります。", req: "Transit", grammar: "N に Vます", instruction: "可以乘坐的交通工具。", reward: 1 },
+                { rarity: 'R', weight: 0.3, text: "[ ? ] を見ます。", req: "Transit", grammar: "N を Vます", instruction: "车站里需要查看的标识、出口、站牌或时刻表。", reward: 1 }
+            ],
+            pharmacy: [
+                { rarity: 'N', weight: 0.4, text: "薬局で [ ? ] を買います。", req: "Health", grammar: "場所で N を Vます", instruction: "药妆店里可以买到的健康相关物品。", reward: 1 },
+                { rarity: 'N', weight: 0.3, text: "[ ? ] を使います。", req: "Health", grammar: "N を Vます", instruction: "可以使用的健康、卫生用品。", reward: 1 },
+                { rarity: 'R', weight: 0.3, text: "これは [ ? ] です。", req: "Health", grammar: "これは N です", instruction: "药妆店里常见的药品或卫生用品。", reward: 1 }
+            ]
+        },
+        N3: {
+            convenience: [
+                { rarity: 'R', weight: 0.35, text: "昼ごはんのために、[ ? ] を買いました。", req: "Food", grammar: "N のために", instruction: "适合作为午饭或补给的便利店食品。", reward: 1 },
+                { rarity: 'R', weight: 0.35, text: "[ ? ] を温めてもらえますか。", req: "Food", grammar: "Vてもらえますか", instruction: "可以请店员加热的食品。", reward: 1 },
+                { rarity: 'SR', weight: 0.3, text: "[ ? ] を買ってから、学校へ行きます。", req: "Food", grammar: "Vてから", instruction: "上学前可以买的食物或饮料。", reward: 1 }
+            ],
+            park: [
+                { rarity: 'R', weight: 0.35, text: "[ ? ] を見ていると、気持ちが落ち着きます。", req: "Nature", grammar: "Vていると", instruction: "看着会让人放松的自然物。", reward: 1 },
+                { rarity: 'R', weight: 0.35, text: "[ ? ] の近くで休むことにしました。", req: "Nature", grammar: "N の近くで", instruction: "公园里适合靠近休息的自然物或设施。", reward: 1 },
+                { rarity: 'SR', weight: 0.3, text: "[ ? ] を見ながら、散歩します。", req: "Nature", grammar: "Vながら", instruction: "散步时可以看的自然物。", reward: 1 }
+            ],
+            station: [
+                { rarity: 'R', weight: 0.35, text: "[ ? ] に乗る前に、時刻表を確認します。", req: "Transit", grammar: "Vる前に", instruction: "乘坐前需要关注的交通工具。", reward: 1 },
+                { rarity: 'R', weight: 0.35, text: "[ ? ] をなくさないようにしてください。", req: "Transit", grammar: "Vないように", instruction: "车站里不能弄丢的重要交通物品。", reward: 1 },
+                { rarity: 'SR', weight: 0.3, text: "[ ? ] が来るまで、ホームで待ちます。", req: "Transit", grammar: "Vるまで", instruction: "会到站、可以等待的交通工具。", reward: 1 }
+            ],
+            pharmacy: [
+                { rarity: 'R', weight: 0.35, text: "風邪をひいたので、[ ? ] を買いました。", req: "Health", grammar: "ので", instruction: "感冒或身体不适时会买的东西。", reward: 1 },
+                { rarity: 'R', weight: 0.35, text: "[ ? ] を使えば、少し楽になります。", req: "Health", grammar: "Vば", instruction: "使用后能缓解不适的健康用品。", reward: 1 },
+                { rarity: 'SR', weight: 0.3, text: "[ ? ] が必要かどうか、店員に聞きます。", req: "Health", grammar: "かどうか", instruction: "不确定是否需要、可以询问店员的药品或用品。", reward: 1 }
+            ]
+        },
+        N1: {
+            convenience: [
+                { rarity: 'SR', weight: 0.34, text: "時間が限られている場合、[ ? ] は手軽な食事として有用だ。", req: "Food", grammar: "N として", instruction: "能作为便捷食物的便利店商品。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "災害時に備えるうえで、[ ? ] は欠かせない。", req: "Food", grammar: "Vるうえで", instruction: "灾害准备或日常储备中有用的食品饮料。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "健康面を考慮すると、[ ? ] ばかりに頼るべきではない。", req: "Food", grammar: "N ばかりに頼るべきではない", instruction: "可以吃喝但不应过度依赖的便利店食品。", reward: 1 }
+            ],
+            park: [
+                { rarity: 'SR', weight: 0.34, text: "都市生活において、[ ? ] のような自然環境は精神的な安定に寄与する。", req: "Nature", grammar: "N において", instruction: "代表自然环境、能让人放松的事物。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "景観を維持するうえで、[ ? ] の管理は欠かせない。", req: "Nature", grammar: "Vるうえで", instruction: "公园景观维护中重要的自然物或设施。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "[ ? ] を通して、季節の移り変わりを感じることができる。", req: "Nature", grammar: "N を通して", instruction: "能体现季节变化的自然物。", reward: 1 }
+            ],
+            station: [
+                { rarity: 'SR', weight: 0.34, text: "円滑に移動するためには、[ ? ] の確認が不可欠だ。", req: "Transit", grammar: "N が不可欠だ", instruction: "顺利移动前需要确认的交通信息或标识。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "混雑時において、[ ? ] の利用には注意が必要だ。", req: "Transit", grammar: "N において", instruction: "拥挤时需要注意使用的交通设施或工具。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "公共交通機関を利用するうえで、[ ? ] は重要な手がかりとなる。", req: "Transit", grammar: "Vるうえで", instruction: "使用公共交通时重要的线索、标识或物品。", reward: 1 }
+            ],
+            pharmacy: [
+                { rarity: 'SR', weight: 0.34, text: "症状に応じて、[ ? ] を適切に選択する必要がある。", req: "Health", grammar: "N に応じて", instruction: "需要根据症状选择的药品或健康用品。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "衛生管理の観点から、[ ? ] の使用は有効だ。", req: "Health", grammar: "N の観点から", instruction: "从卫生管理角度有用的用品。", reward: 1 },
+                { rarity: 'SR', weight: 0.33, text: "自己判断のみに頼らず、[ ? ] の説明を確認すべきだ。", req: "Health", grammar: "N のみに頼らず", instruction: "购买前应该确认说明的药品或健康用品。", reward: 1 }
+            ]
+        },
         npc_cat: [
-            { rarity: 'SSR', weight: 1.0, text: "猫 に [ ? ] を あげる", req: "Food", reward: 3 }
+            { rarity: 'SSR', weight: 1.0, text: "猫 に [ ? ] を あげる", req: "Food", grammar: "N に N をあげる", instruction: "猫可以安全食用的食物。", reward: 1 }
         ]
     };
 
@@ -37,8 +85,13 @@
         SSR: { color: '#e91e63', label: '极光稀有', scale: 1.8 }
     };
 
+    function getCurrentLevel() {
+        return state.currentLevel || document.getElementById('level-selector')?.value || 'N5';
+    }
+
     function getSpotKey(spot) {
-        return spot.id ? spot.id : `${spot.lat.toFixed(5)}_${spot.lng.toFixed(5)}`;
+        const baseKey = spot.id ? spot.id : `${spot.lat.toFixed(5)}_${spot.lng.toFixed(5)}`;
+        return `${getCurrentLevel()}_${baseKey}`;
     }
 
     function loadQuestCache() {
@@ -95,8 +148,11 @@
         return {
             rarity,
             text: template.text,
+            grammar: template.grammar || '',
+            instruction: template.instruction || '',
+            level: getCurrentLevel(),
             config,
-            requiredTag: spot.questTag,
+            requiredTag: template.req || spot.questTag,
             rewardCount: template.reward || 1
         };
     }
@@ -118,7 +174,8 @@
             return { status: 'active', questData: cache };
         }
 
-        const templates = QUEST_TEMPLATES[spot.type] || QUEST_TEMPLATES.convenience;
+        const levelTemplates = QUEST_TEMPLATES[getCurrentLevel()] || QUEST_TEMPLATES.N5;
+        const templates = levelTemplates[spot.type] || levelTemplates.convenience;
         const questData = buildQuestDataForSpot(spot, pickWeightedTemplate(templates));
         questCache[spotKey] = questData;
         saveQuestCache();

@@ -68,15 +68,6 @@
         marker.questData = markerQuestData;
 
         marker.on('click', () => {
-            if (spot.type === 'park') {
-                state.activeQuest = null;
-                document.getElementById('task-desc').innerText = `区域异常：此公园需要【${spot.questTag}】相关的词汇组合来净化！`;
-                state.currentComboTag = spot.questTag;
-                state.currentComboSpot = spot;
-                SM.inventory.openComboPanel();
-                return;
-            }
-
             openQuestUI(marker.questData, spot, marker);
         });
 
@@ -88,7 +79,7 @@
         const questTitle = questLayer.querySelector('.quest-content h3');
         const preview = questLayer.querySelector('.sentence-preview');
 
-        questTitle.innerText = `${data.rarity}级任务：环境语义修复`;
+        questTitle.innerText = `${data.rarity}级文型任务`;
         questTitle.style.color = data.config.color;
         preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
 
@@ -96,6 +87,9 @@
             type: spot.type === 'npc_cat' ? 'NPC' : 'POI',
             rarity: data.rarity,
             text: data.text,
+            grammar: data.grammar,
+            instruction: data.instruction,
+            level: data.level,
             requiredTag: data.requiredTag,
             rewardCount: data.rewardCount,
             spot,

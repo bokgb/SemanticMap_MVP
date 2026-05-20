@@ -66,6 +66,16 @@
             <div class="word-title">${renderRubyWord(data.word)}</div>
             <div class="word-pos">[ ${escapeHtml(data.pos)} ]</div>
             <div class="word-tag" style="background-color: ${tagColor}">${escapeHtml(data.tag)}</div>
+            ${data.quest ? `
+                <div class="word-quest-meta">${escapeHtml(data.quest.location)} / ${escapeHtml(data.quest.level || '')}</div>
+                <div class="word-sentence">${escapeHtml(data.quest.sentence || '')}</div>
+                ${Array.isArray(data.quest.review) && data.quest.review.length ? `
+                    <div class="grammar-review">
+                        <div class="grammar-review-title">语法复盘</div>
+                        ${data.quest.review.map(item => `<div class="grammar-review-item">${escapeHtml(item)}</div>`).join('')}
+                    </div>
+                ` : ''}
+            ` : ''}
         `;
         elements.wordList.prepend(block);
 
@@ -95,8 +105,13 @@
         elements.lootWordMain.innerHTML = renderRubyWord(aiData.word);
 
         if (aiData.example) {
-            elements.lootExampleText.innerText = aiData.example.s || '';
-            elements.lootExampleZh.innerText = aiData.example.z || '';
+            elements.lootExampleText.innerText = aiData.quest?.sentence || aiData.example.s || '';
+            elements.lootExampleZh.innerText = aiData.quest
+                ? [
+                    aiData.quest.location,
+                    ...(Array.isArray(aiData.quest.review) ? aiData.quest.review : [])
+                ].filter(Boolean).join('\n')
+                : aiData.example.z || '';
         } else {
             elements.lootExampleText.innerText = "没有找到合适的例句。";
             elements.lootExampleZh.innerText = "";
@@ -274,7 +289,7 @@
             if (pendingWord) {
                 addWordToInventory(pendingWord);
                 pendingWord = null;
-                alert("收录成功！右上角背包查看。");
+                alert("收录成功！右上角地点词汇卡查看。");
             }
             showNextQueuedReward();
         });
