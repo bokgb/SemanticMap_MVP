@@ -3,6 +3,12 @@
     const state = SM.state = SM.state || {};
 
     const DEFAULT_CENTER = [34.6937, 135.5023];
+    const VISIBLE_SPOT_RADIUS_METERS = 900;
+    const CLOSE_SPOT_RADIUS_METERS = 360;
+    const MAX_VISIBLE_SPOTS = 8;
+    const MAX_SPOTS_PER_TAG = 2;
+    const MIN_ANY_SPOT_DISTANCE_METERS = 135;
+    const MIN_SAME_TAG_DISTANCE_METERS = 180;
     let map = null;
     let playerMarker = null;
     let dynamicMarkersLayer = null;
@@ -129,23 +135,56 @@
 
         const nearbySpots = allSpots
             .map(spot => ({ ...spot, distance: playerLocation.distanceTo([spot.lat, spot.lng]) }))
-            .filter(spot => spot.distance < 1000)
+            .filter(spot => spot.distance < VISIBLE_SPOT_RADIUS_METERS)
             .sort((a, b) => a.distance - b.distance);
 
         const selectedSpots = [];
-        const foundTypes = new Set();
+        const selectedByTag = {};
+
+        function isFarEnoughFromAllSpots(spot) {
+            return selectedSpots.every(selected => {
+                return L.latLng(selected.lat, selected.lng).distanceTo([spot.lat, spot.lng]) >= MIN_ANY_SPOT_DISTANCE_METERS;
+            });
+        }
+
+        function isFarEnoughFromSameTag(spot) {
+            return selectedSpots.every(selected => {
+                if (selected.questTag !== spot.questTag) return true;
+                return L.latLng(selected.lat, selected.lng).distanceTo([spot.lat, spot.lng]) >= MIN_SAME_TAG_DISTANCE_METERS;
+            });
+        }
+
+        function trySelectSpot(spot, { enforceAnyDistance = true, enforceSameTagDistance = true } = {}) {
+            const tag = spot.questTag || spot.type || 'Other';
+            selectedByTag[tag] = selectedByTag[tag] || 0;
+            if (selectedSpots.length >= MAX_VISIBLE_SPOTS) return false;
+            if (selectedByTag[tag] >= MAX_SPOTS_PER_TAG) return false;
+            if (selectedSpots.some(selected => selected.lat === spot.lat && selected.lng === spot.lng)) return false;
+            if (enforceAnyDistance && !isFarEnoughFromAllSpots(spot)) return false;
+            if (enforceSameTagDistance && !isFarEnoughFromSameTag(spot)) return false;
+
+            selectedSpots.push(spot);
+            selectedByTag[tag]++;
+            return true;
+        }
 
         for (const spot of nearbySpots) {
-            if (!foundTypes.has(spot.questTag)) {
-                selectedSpots.push(spot);
-                foundTypes.add(spot.questTag);
+            if (!selectedByTag[spot.questTag]) {
+                trySelectSpot(spot, { enforceAnyDistance: true, enforceSameTagDistance: false });
             }
         }
 
         for (const spot of nearbySpots) {
-            if (selectedSpots.length >= 10) break;
-            if (!selectedSpots.includes(spot) && spot.distance < 300) {
-                selectedSpots.push(spot);
+            if (selectedSpots.length >= MAX_VISIBLE_SPOTS) break;
+            if (spot.distance < CLOSE_SPOT_RADIUS_METERS) {
+                trySelectSpot(spot);
+            }
+        }
+
+        if (selectedSpots.length < 4) {
+            for (const spot of nearbySpots) {
+                if (selectedSpots.length >= 4 || selectedSpots.length >= MAX_VISIBLE_SPOTS) break;
+                trySelectSpot(spot, { enforceAnyDistance: true, enforceSameTagDistance: false });
             }
         }
 
@@ -166,7 +205,7 @@
             }
         });
 
-        console.log(`👀 雷达扫描：生成 ${selectedSpots.length} 个任务点 (包含了 ${foundTypes.size} 种不同的类型)`);
+        console.log(`👀 雷达扫描：生成 ${selectedSpots.length} 个任务点`, selectedByTag);
     }
 
     function removeSpotFromPool(spot) {
