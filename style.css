@@ -58,6 +58,93 @@ body, html {
     border-left: 5px solid #1e88e5;
 }
 
+#level-onboarding-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(13, 31, 39, 0.62);
+    backdrop-filter: blur(6px);
+}
+
+#level-onboarding-layer.hidden {
+    display: none !important;
+}
+
+.level-onboarding-panel {
+    width: min(92vw, 420px);
+    padding: 24px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 16px 42px rgba(0,0,0,0.28);
+}
+
+.level-onboarding-kicker {
+    margin: 0 0 8px;
+    color: #00897b;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.level-onboarding-panel h1 {
+    margin: 0;
+    color: #1f2d35;
+    font-size: 28px;
+    line-height: 1.18;
+    letter-spacing: 0;
+}
+
+.level-onboarding-copy {
+    margin: 12px 0 20px;
+    color: #546e7a;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.level-choice-list {
+    display: grid;
+    gap: 10px;
+}
+
+.level-choice-btn {
+    width: 100%;
+    min-height: 64px;
+    padding: 12px 14px;
+    border: 2px solid rgba(0, 150, 136, 0.18);
+    border-radius: 12px;
+    background: #ffffff;
+    color: #263238;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+.level-choice-btn:active {
+    transform: scale(0.98);
+}
+
+.level-choice-main {
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.level-choice-sub {
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: #e0f2f1;
+    color: #00796b;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
 @keyframes toast-in {
     from {
         opacity: 0;

@@ -21,6 +21,28 @@
     <div id="map"></div>
     <div id="toast-layer" aria-live="polite" aria-atomic="true"></div>
 
+    <div id="level-onboarding-layer" class="hidden">
+        <div class="level-onboarding-panel">
+            <p class="level-onboarding-kicker" data-zh="开始前" data-ja="開始前">开始前</p>
+            <h1 data-zh="选择你的日语等级" data-ja="日本語レベルを選択">选择你的日语等级</h1>
+            <p class="level-onboarding-copy" data-zh="地图任务会按照你选择的等级生成文型。" data-ja="選んだレベルに合わせて地図タスクが生成されます。">地图任务会按照你选择的等级生成文型。</p>
+            <div class="level-choice-list">
+                <button class="level-choice-btn" type="button" data-level-choice="N5">
+                    <span class="level-choice-main" data-zh="新手" data-ja="初心者">新手</span>
+                    <span class="level-choice-sub">JLPT N5-N4</span>
+                </button>
+                <button class="level-choice-btn" type="button" data-level-choice="N3">
+                    <span class="level-choice-main" data-zh="进阶" data-ja="中級">进阶</span>
+                    <span class="level-choice-sub">JLPT N3-N2</span>
+                </button>
+                <button class="level-choice-btn" type="button" data-level-choice="N1">
+                    <span class="level-choice-main" data-zh="专家" data-ja="上級">专家</span>
+                    <span class="level-choice-sub">JLPT N1+</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <button id="locate-btn" class="map-control-btn" type="button" title="回到当前位置" aria-label="回到当前位置">
         <span class="locate-icon" aria-hidden="true"></span>
         <span class="locate-label" data-zh="当前位置" data-ja="現在地">当前位置</span>
@@ -127,12 +149,12 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="ui.js?v=grammar-24"></script>
-    <script src="quests.js?v=grammar-24"></script>
-    <script src="inventory.js?v=grammar-24"></script>
-    <script src="i18n.js?v=grammar-24"></script>
-    <script src="vision.js?v=grammar-24"></script>
-    <script src="map.js?v=grammar-24"></script>
-    <script src="app.js?v=grammar-24"></script>
+    <script src="ui.js?v=grammar-25"></script>
+    <script src="quests.js?v=grammar-25"></script>
+    <script src="inventory.js?v=grammar-25"></script>
+    <script src="i18n.js?v=grammar-25"></script>
+    <script src="vision.js?v=grammar-25"></script>
+    <script src="map.js?v=grammar-25"></script>
+    <script src="app.js?v=grammar-25"></script>
 </body>
 </html>

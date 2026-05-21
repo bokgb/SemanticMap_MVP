@@ -4,6 +4,7 @@
 
     const elements = {};
     let currentStream = null;
+    const LEVEL_STORAGE_KEY = 'semantic-map-selected-level';
 
     function updateDifficultyHint() {
         if (!elements.levelSelector || !elements.difficultyHint) return;
@@ -21,6 +22,46 @@
         if (SM.map && state.lastPlayerPosition) {
             SM.map.updateVisibleSpots(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng);
         }
+    }
+
+    function setLevel(level, { persist = true, refresh = true } = {}) {
+        if (!elements.levelSelector) return;
+
+        const option = Array.from(elements.levelSelector.options).find(item => item.value === level);
+        const nextLevel = option ? level : 'N5';
+        elements.levelSelector.value = nextLevel;
+        if (persist) {
+            localStorage.setItem(LEVEL_STORAGE_KEY, nextLevel);
+        }
+
+        if (refresh) {
+            updateDifficultyHint();
+        } else {
+            state.currentLevel = nextLevel;
+        }
+    }
+
+    function initLevelOnboarding() {
+        const savedLevel = localStorage.getItem(LEVEL_STORAGE_KEY);
+
+        if (savedLevel) {
+            setLevel(savedLevel, { persist: false, refresh: false });
+        }
+
+        if (!elements.levelOnboardingLayer) return;
+
+        if (!savedLevel) {
+            elements.levelOnboardingLayer.classList.remove('hidden');
+        }
+
+        elements.levelChoiceButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const level = button.dataset.levelChoice || 'N5';
+                setLevel(level, { persist: true, refresh: true });
+                elements.levelOnboardingLayer.classList.add('hidden');
+                SM.ui?.showToast(`已选择：${button.querySelector('.level-choice-main')?.innerText || level}`, { type: 'success' });
+            });
+        });
     }
 
     async function openCamera() {
@@ -391,6 +432,8 @@
             scanBtn: document.getElementById('scan-btn'),
             levelSelector: document.getElementById('level-selector'),
             difficultyHint: document.getElementById('difficulty-hint'),
+            levelOnboardingLayer: document.getElementById('level-onboarding-layer'),
+            levelChoiceButtons: document.querySelectorAll('[data-level-choice]'),
             cameraLayer: document.getElementById('camera-layer'),
             cameraFeed: document.getElementById('camera-feed'),
             closeCameraBtn: document.getElementById('close-camera-btn'),
@@ -398,7 +441,10 @@
             scannerOverlay: document.getElementById('ai-scanning-overlay')
         });
 
-        elements.levelSelector.addEventListener('change', updateDifficultyHint);
+        initLevelOnboarding();
+        elements.levelSelector.addEventListener('change', () => {
+            setLevel(elements.levelSelector.value, { persist: true, refresh: true });
+        });
         updateDifficultyHint();
 
         elements.scanBtn.addEventListener('click', () => {
