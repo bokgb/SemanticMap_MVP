@@ -15,7 +15,7 @@ body, html {
 
 .map-control-btn {
     position: absolute;
-    right: 88px;
+    left: 20px;
     bottom: var(--locate-btn-bottom, 238px);
     z-index: 999;
     min-width: 112px;
