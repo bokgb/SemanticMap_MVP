@@ -7,9 +7,7 @@
 
         const langBtn = document.getElementById('lang-toggle-btn');
         if (langBtn) {
-            langBtn.innerText = state.currentLang === 'zh'
-                ? '🇯🇵 日本語に切替 (Switch to JP)'
-                : '🇨🇳 切回中文 (Switch to CN)';
+            langBtn.innerText = state.currentLang === 'zh' ? 'JP' : '中文';
         }
 
         const translatableElements = document.querySelectorAll('[data-zh][data-ja]');

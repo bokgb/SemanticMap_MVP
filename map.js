@@ -9,12 +9,16 @@
     const MAX_SPOTS_PER_TAG = 2;
     const MIN_ANY_SPOT_DISTANCE_METERS = 135;
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
+    const MAP_BOUNDS_RADIUS_METERS = 1200;
+    const DEFAULT_ZOOM = 17;
+    const FOCUS_ZOOM = 17;
     let map = null;
     let playerMarker = null;
     let dynamicMarkersLayer = null;
     let allSpots = [];
     let catSpawned = false;
     let statusText = null;
+    let hasCenteredOnPlayer = false;
 
     function escapeAttribute(value) {
         return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -30,6 +34,33 @@
         const completedMarker = L.marker([spot.lat, spot.lng], { icon: SM.quests.createCompletedMarkerIcon() });
         completedMarker.spotData = spot;
         return completedMarker;
+    }
+
+    function createPlayerMarkerIcon(source = 'gps') {
+        const demoClass = source === 'gps' ? '' : ' demo';
+        return L.divIcon({
+            className: 'player-position-marker',
+            html: `<div class="player-location-dot${demoClass}"></div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+    }
+
+    function setPlayerPosition(lat, lng, source = 'gps') {
+        state.lastPlayerPosition = { lat, lng, source };
+
+        if (!playerMarker) {
+            playerMarker = L.marker([lat, lng], {
+                icon: createPlayerMarkerIcon(source),
+                keyboard: false,
+                interactive: false,
+                zIndexOffset: 1000
+            }).addTo(map);
+            return;
+        }
+
+        playerMarker.setLatLng([lat, lng]);
+        playerMarker.setIcon(createPlayerMarkerIcon(source));
     }
 
     function createPoiMarker(spot) {
@@ -272,18 +303,45 @@
         });
     }
 
+    function getLimitedBounds(lat, lng) {
+        const center = L.latLng(lat, lng);
+        const latOffset = MAP_BOUNDS_RADIUS_METERS / 111320;
+        const lngOffset = MAP_BOUNDS_RADIUS_METERS / (111320 * Math.max(0.2, Math.cos(center.lat * Math.PI / 180)));
+        return L.latLngBounds(
+            [center.lat - latOffset, center.lng - lngOffset],
+            [center.lat + latOffset, center.lng + lngOffset]
+        );
+    }
+
+    function updateMapBounds(lat, lng) {
+        if (!map || lat == null || lng == null) return;
+        const bounds = getLimitedBounds(lat, lng);
+        map.setMaxBounds(bounds);
+        state.mapBounds = bounds;
+    }
+
+    function focusOnPlayer(zoom = FOCUS_ZOOM) {
+        if (!map || !state.lastPlayerPosition) return;
+        const { lat, lng } = state.lastPlayerPosition;
+        updateMapBounds(lat, lng);
+        map.setView([lat, lng], zoom, { animate: true });
+        updateVisibleSpots(lat, lng);
+    }
+
     function initGeolocation() {
         if ('geolocation' in navigator) {
             navigator.geolocation.watchPosition(
                 (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    state.lastPlayerPosition = { lat, lng };
+                    setPlayerPosition(lat, lng, 'gps');
+                    updateMapBounds(lat, lng);
 
                     statusText.innerText = `坐标更新成功：\n纬度 ${lat.toFixed(4)}\n经度 ${lng.toFixed(4)}`;
-                    map.setView([lat, lng], 16);
-                    playerMarker.setLatLng([lat, lng]);
-
+                    if (!hasCenteredOnPlayer) {
+                        map.setView([lat, lng], FOCUS_ZOOM);
+                        hasCenteredOnPlayer = true;
+                    }
                     if (state.devMode && !catSpawned) {
                         catSpawned = true;
                         spawnTestCat();
@@ -293,17 +351,48 @@
                 },
                 (error) => {
                     console.warn("定位获取失败，使用默认演示位置:", error);
+                    if (state.lastPlayerPosition?.source === 'gps') {
+                        statusText.innerText = "GPS 暂时中断，已保留上次定位";
+                        updateVisibleSpots(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng);
+                        return;
+                    }
+
                     statusText.innerText = "GPS 定位失败，已切换到关西演示位置";
-                    map.setView(DEFAULT_CENTER, 16);
-                    playerMarker.setLatLng(DEFAULT_CENTER);
+                    setPlayerPosition(DEFAULT_CENTER[0], DEFAULT_CENTER[1], 'demo');
+                    updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+                    map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
                     updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
                 },
                 { enableHighAccuracy: true, maximumAge: 0 }
             );
         } else {
             statusText.innerText = "你的设备不支持 GPS，已切换到关西演示位置";
+            setPlayerPosition(DEFAULT_CENTER[0], DEFAULT_CENTER[1], 'demo');
+            updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
             updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
         }
+    }
+
+    function initLocateButton() {
+        const locateBtn = document.getElementById('locate-btn');
+        if (!locateBtn) return;
+
+        locateBtn.addEventListener('click', () => {
+            focusOnPlayer();
+        });
+    }
+
+    function updateFloatingControlPositions() {
+        const locateBtn = document.getElementById('locate-btn');
+        const uiLayer = document.getElementById('ui-layer');
+        if (!locateBtn || !uiLayer) return;
+
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const panelRect = uiLayer.getBoundingClientRect();
+        const gap = 14;
+        const bottom = Math.max(24, viewportHeight - panelRect.top + gap);
+
+        locateBtn.style.setProperty('--locate-btn-bottom', `${Math.round(bottom)}px`);
     }
 
     function initUiToggle() {
@@ -311,15 +400,22 @@
         const uiToggleBtn = document.getElementById('ui-toggle-btn');
         if (!uiToggleBtn || !uiLayer) return;
 
-        const collapsed = localStorage.getItem('uiLayerCollapsed') === '1';
-        if (collapsed) uiLayer.classList.add('collapsed');
-        uiToggleBtn.innerText = collapsed ? '▼' : '▲';
+        uiLayer.classList.add('collapsed');
+        uiToggleBtn.innerText = '▼';
+        localStorage.setItem('uiLayerCollapsed', '1');
+        updateFloatingControlPositions();
 
         uiToggleBtn.addEventListener('click', () => {
             const isCollapsed = uiLayer.classList.toggle('collapsed');
             uiToggleBtn.innerText = isCollapsed ? '▼' : '▲';
             localStorage.setItem('uiLayerCollapsed', isCollapsed ? '1' : '0');
+            updateFloatingControlPositions();
+            window.setTimeout(updateFloatingControlPositions, 360);
         });
+
+        window.addEventListener('resize', updateFloatingControlPositions);
+        window.setTimeout(updateFloatingControlPositions, 0);
+        window.setTimeout(updateFloatingControlPositions, 400);
     }
 
     function initQuestButtons() {
@@ -339,25 +435,29 @@
     function init() {
         statusText = document.getElementById('status-text');
         state.defaultCenter = DEFAULT_CENTER;
-        state.lastPlayerPosition = { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] };
+        state.lastPlayerPosition = { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1], source: 'initial' };
 
         map = L.map('map', {
             zoomControl: false,
             minZoom: 16,
             maxZoom: 18,
-            zoomSnap: 0.5
-        }).setView(DEFAULT_CENTER, 17);
+            zoomSnap: 0.5,
+            maxBoundsViscosity: 0.9,
+            inertiaMaxSpeed: 600
+        }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        playerMarker = L.marker(DEFAULT_CENTER).addTo(map);
         dynamicMarkersLayer = L.layerGroup().addTo(map);
+        updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
 
         initUiToggle();
         initQuestButtons();
+        initLocateButton();
+        updateFloatingControlPositions();
         initGeolocation();
         loadOSMData();
     }
@@ -371,6 +471,7 @@
         updateVisibleSpots,
         removeSpotFromPool,
         removeMarkerForSpot,
+        focusOnPlayer,
         spawnTestCat
     };
 })();

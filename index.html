@@ -20,11 +20,16 @@
 <body>
     <div id="map"></div>
 
+    <button id="locate-btn" class="map-control-btn" type="button" title="回到当前位置" aria-label="回到当前位置">
+        <span class="locate-icon" aria-hidden="true"></span>
+        <span class="locate-label" data-zh="当前位置" data-ja="現在地">当前位置</span>
+    </button>
+
     <div id="ui-layer">
         <div id="ui-toggle" title="收起/展开">
             <button id="ui-toggle-btn">▲</button>
         </div>
-        <button id="lang-toggle-btn" onclick="toggleLanguage()" style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 8px; font-weight: bold; background: #e0f7fa; border: 2px solid #00bcd4; color: #00838f; cursor: pointer;">🇯🇵 日本語に切替 (Switch to JP)</button>
+        <button id="lang-toggle-btn" onclick="toggleLanguage()" type="button">JP</button>
 
         <h2 data-zh="系统信息" data-ja="システム情報">系统信息</h2>
         <p id="status-text" data-zh="正在获取 GPS 定位..." data-ja="GPS位置情報を取得中...">正在获取 GPS 定位...</p>
@@ -120,11 +125,11 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="quests.js?v=grammar-6"></script>
-    <script src="inventory.js?v=grammar-6"></script>
-    <script src="i18n.js?v=grammar-6"></script>
-    <script src="vision.js?v=grammar-6"></script>
-    <script src="map.js?v=grammar-6"></script>
-    <script src="app.js?v=grammar-6"></script>
+    <script src="quests.js?v=grammar-15"></script>
+    <script src="inventory.js?v=grammar-15"></script>
+    <script src="i18n.js?v=grammar-15"></script>
+    <script src="vision.js?v=grammar-15"></script>
+    <script src="map.js?v=grammar-15"></script>
+    <script src="app.js?v=grammar-15"></script>
 </body>
 </html>

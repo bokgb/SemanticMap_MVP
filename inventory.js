@@ -294,9 +294,7 @@
             showNextQueuedReward();
         });
 
-        if (state.devMode) {
-            setTimeout(initTestData, 500);
-        }
+        // Dev mode keeps map/testing helpers, but vocabulary cards should be earned through quests.
     }
 
     SM.inventory = {
