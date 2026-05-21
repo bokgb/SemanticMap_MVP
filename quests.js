@@ -270,12 +270,19 @@
     }
 
     function clearQuestCacheAll() {
-        localStorage.removeItem(QUEST_CACHE_STORAGE_KEY);
+        const keysToRemove = [];
+        for (let index = 0; index < localStorage.length; index++) {
+            const key = localStorage.key(index);
+            if (key && (key.startsWith('semantic-map-') || key === 'uiLayerCollapsed')) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
         Object.keys(questCache).forEach(key => delete questCache[key]);
         const currentLang = state.currentLang || 'zh';
         SM.ui?.showToast(currentLang === 'ja'
-            ? "キャッシュをクリアしました。ページを再読み込みしてください。"
-            : "缓存已清除，请刷新页面", { type: 'success' });
+            ? "進行状況をリセットしました。"
+            : "已重置全部进度，正在重新开始", { type: 'success' });
         location.reload();
     }
 
