@@ -203,7 +203,7 @@
         if (!currentAdj || !currentNoun || !currentVerb) return;
 
         if (currentAdj.tag === currentComboTag || currentNoun.tag === currentComboTag || currentVerb.tag === currentComboTag) {
-            alert(`🎉 Combo 成功！你构筑了绝妙的句子：\n【 ${currentAdj.word.text} ${currentNoun.word.text} を ${currentVerb.word.text} 】`);
+            SM.ui?.showToast(`Combo 成功！\n${currentAdj.word.text} ${currentNoun.word.text} を ${currentVerb.word.text}`, { type: 'success' });
             elements.comboLayer.classList.add('hidden');
             resetSlots();
 
@@ -222,7 +222,7 @@
             state.currentComboSpot = null;
             state.currentComboTag = null;
         } else {
-            alert(`语境不匹配！\n提示：该区域需要【${currentComboTag}】相关的词汇。`);
+            SM.ui?.showToast(`语境不匹配：该区域需要 ${currentComboTag} 相关词汇。`, { type: 'warning' });
             elements.comboLayer.classList.add('hidden');
             resetSlots();
         }
@@ -289,7 +289,6 @@
             if (pendingWord) {
                 addWordToInventory(pendingWord);
                 pendingWord = null;
-                alert("收录成功！右上角地点词汇卡查看。");
             }
             showNextQueuedReward();
         });

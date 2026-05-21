@@ -25,7 +25,7 @@
 
     async function openCamera() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert("当前浏览器不支持摄像头调用，请使用 HTTPS 或 localhost 环境。");
+            SM.ui?.showToast("当前浏览器不支持摄像头调用，请使用 HTTPS 或 localhost 环境。", { type: 'error', duration: 4200 });
             return;
         }
 
@@ -39,7 +39,7 @@
         } catch (err) {
             elements.cameraLayer.style.display = 'none';
             state.activeQuest = null;
-            alert("无法调用摄像头\n错误信息: " + err.message);
+            SM.ui?.showToast(`无法调用摄像头：${err.message}`, { type: 'error', duration: 4200 });
         }
     }
 
@@ -73,7 +73,7 @@
         try {
             base64Image = captureFrameAsBase64();
         } catch (error) {
-            alert(`无法拍摄当前画面：${error.message}`);
+            SM.ui?.showToast(`无法拍摄当前画面：${error.message}`, { type: 'error', duration: 4200 });
             return null;
         }
 
@@ -159,7 +159,7 @@
             const data = await response.json();
 
             if (data.error) {
-                alert("🚨 AI 识别出错: " + (data.error.message || "请检查后端日志"));
+                SM.ui?.showToast(`AI 识别出错：${data.error.message || "请检查后端日志"}`, { type: 'error', duration: 4200 });
                 return null;
             }
 
@@ -179,7 +179,7 @@
             return SM.inventory.normalizeAiResult(aiResult);
         } catch (error) {
             console.error("AI 识别失败:", error);
-            alert(`🚨 系统排错：\n识别失败了！\n真实原因：${error.message}`);
+            SM.ui?.showToast(`识别失败：${error.message}`, { type: 'error', duration: 4200 });
 
             return SM.inventory.normalizeAiResult({
                 word: { text: "未知物品（エラー）", kana: "", zh: "识别失败" },
@@ -213,7 +213,7 @@
             aiResult = await callRealVisionAI();
         } catch (error) {
             console.error("AI 识别流程异常:", error);
-            alert(`🚨 识别流程异常：${error.message}`);
+            SM.ui?.showToast(`识别流程异常：${error.message}`, { type: 'error', duration: 4200 });
         } finally {
             if (elements.cameraFeed && typeof elements.cameraFeed.play === 'function' && elements.cameraFeed.srcObject) {
                 elements.cameraFeed.play().catch(() => {});
@@ -237,18 +237,18 @@
 
         const activeQuest = state.activeQuest;
         if (!activeQuest) {
-            alert("请先点击地图上的地点文型任务，再开始正式拍照。");
+            SM.ui?.showToast("请先点击地图上的地点文型任务，再开始正式拍照。", { type: 'warning' });
             return;
         }
 
         if (aiResult.tag === activeQuest.requiredTag) {
             if (activeQuest.type === 'NPC') {
                 if (aiResult.is_safe === false) {
-                    alert(`❌ 喂食失败！AI 兽医紧急警告：\n${aiResult.danger_reason}`);
+                    SM.ui?.showToast(`喂食失败：${aiResult.danger_reason}`, { type: 'warning', duration: 4200 });
                     state.activeQuest = null;
                     return;
                 }
-                alert(`🐱 喵~！\n流浪猫开心地吃下了【${aiResult.word.text}】！\n成功组合：猫 に [ ${aiResult.word.text} ] を あげる`);
+                SM.ui?.showToast(`喂食成功：猫 に ${aiResult.word.text} を あげる`, { type: 'success' });
             } else if (activeQuest.type === 'POI') {
                 const finishedSentence = activeQuest.text.replace('[ ? ]', `[ ${aiResult.word.text} ]`);
                 aiResult.quest = {
@@ -260,7 +260,6 @@
                     spotType: activeQuest.spot?.type || '',
                     requiredTag: activeQuest.requiredTag
                 };
-                alert(`🎉 文型修复成功！\n${finishedSentence}\n已收录为地点词汇卡。`);
             }
 
             SM.inventory.showWordDetailCard(aiResult);
@@ -268,18 +267,18 @@
             if (activeQuest.type === 'POI' && SM.map?.recordQuestComplete) {
                 const areaResult = SM.map.recordQuestComplete(activeQuest);
                 if (areaResult?.justPurified) {
-                    alert(`✨ 区域净化完成！\n${areaResult.area.name}\n修复值 ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`);
+                    SM.ui?.showToast(`区域净化完成！\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
                 } else if (areaResult?.addedPoints) {
-                    alert(`区域修复 +${areaResult.addedPoints}\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`);
+                    SM.ui?.showToast(`区域修复 +${areaResult.addedPoints}\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success' });
                 }
             }
             document.getElementById('quest-layer').classList.add('hidden');
             state.activeQuest = null;
         } else {
             if (activeQuest.type === 'NPC') {
-                alert(`😾 喵？\n流浪猫闻了闻【${aiResult.word.text}】，嫌弃地走开了。\n（提示：你需要拍【Food】类的物品！）`);
+                SM.ui?.showToast(`语境不符：你拍到了 ${aiResult.word.text}，这个任务需要 Food 类物品。`, { type: 'warning', duration: 4200 });
             } else {
-                alert(`❌ 语境不符！\n你拍到了【${aiResult.word.text}】，它属于【${aiResult.tag}】。\n这个任务需要【${activeQuest.requiredTag}】相关物体：${activeQuest.instruction || ''}`);
+                SM.ui?.showToast(`语境不符：${aiResult.word.text} 属于 ${aiResult.tag}，这个任务需要 ${activeQuest.requiredTag}。`, { type: 'warning', duration: 4200 });
             }
             state.activeQuest = null;
         }
@@ -371,7 +370,7 @@
         updateDifficultyHint();
 
         elements.scanBtn.addEventListener('click', () => {
-            alert("请先点击地图上的地点任务，再带着文型目标去拍照。");
+            SM.ui?.showToast("请先点击地图上的地点任务，再带着文型目标去拍照。", { type: 'warning' });
         });
         elements.closeCameraBtn.addEventListener('click', closeCamera);
         elements.captureBtn.addEventListener('click', handleCapture);

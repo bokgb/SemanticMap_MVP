@@ -273,9 +273,9 @@
         localStorage.removeItem(QUEST_CACHE_STORAGE_KEY);
         Object.keys(questCache).forEach(key => delete questCache[key]);
         const currentLang = state.currentLang || 'zh';
-        alert(currentLang === 'ja'
+        SM.ui?.showToast(currentLang === 'ja'
             ? "キャッシュをクリアしました。ページを再読み込みしてください。"
-            : "缓存已清除，请刷新页面");
+            : "缓存已清除，请刷新页面", { type: 'success' });
         location.reload();
     }
 
