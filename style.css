@@ -635,6 +635,18 @@ h2, p {
     font-weight: 800;
     border: 1px solid rgba(0, 150, 136, 0.22);
 }
+
+.repair-reward-chip.outside {
+    background: #eceff1;
+    color: #546e7a;
+    border-color: rgba(84, 110, 122, 0.25);
+}
+
+.repair-reward-chip.special {
+    background: #fff3e0;
+    color: #ef6c00;
+    border-color: rgba(239, 108, 0, 0.28);
+}
 .slot-box {
     border-bottom: 3px solid #e91e63; color: #e91e63;
     padding: 0 15px; font-weight: bold;

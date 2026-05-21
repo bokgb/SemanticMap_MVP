@@ -248,7 +248,15 @@
                     state.activeQuest = null;
                     return;
                 }
-                SM.ui?.showToast(`喂食成功：猫 に ${aiResult.word.text} を あげる`, { type: 'success' });
+                const areaResult = SM.map?.recordCatComplete?.(activeQuest);
+                if (areaResult?.justPurified) {
+                    SM.ui?.showToast(`小猫救援 +${areaResult.addedPoints}\n${areaResult.area.name} 净化完成`, { type: 'success', duration: 3600 });
+                } else if (areaResult?.addedPoints) {
+                    SM.ui?.showToast(`小猫救援 +${areaResult.addedPoints}\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
+                } else {
+                    SM.ui?.showToast(`喂食成功：猫 に ${aiResult.word.text} を あげる`, { type: 'success' });
+                }
+                SM.map?.clearCatEvent?.(activeQuest.marker);
             } else if (activeQuest.type === 'POI') {
                 const finishedSentence = activeQuest.text.replace('[ ? ]', `[ ${aiResult.word.text} ]`);
                 aiResult.quest = {
@@ -270,6 +278,8 @@
                     SM.ui?.showToast(`区域净化完成！\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
                 } else if (areaResult?.addedPoints) {
                     SM.ui?.showToast(`区域修复 +${areaResult.addedPoints}\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success' });
+                } else if (areaResult?.outsideArea) {
+                    SM.ui?.showToast("区域外练习完成：已获得词卡，但不增加区域修复值。", { type: 'info', duration: 3200 });
                 }
             }
             document.getElementById('quest-layer').classList.add('hidden');

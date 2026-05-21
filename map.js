@@ -19,6 +19,14 @@
         SR: 4,
         SSR: 6
     };
+    const CAT_REPAIR_POINTS = 5;
+    const CAT_SPAWN_DELAY_MS = {
+        devMin: 4000,
+        devMax: 9000,
+        min: 45000,
+        max: 90000
+    };
+    const CAT_NEARBY_AREA_RADIUS_METERS = 900;
     const GAME_AREAS = [
         {
             id: 'tenroku',
@@ -35,7 +43,8 @@
     let areaLayer = null;
     let areaProgress = {};
     let allSpots = [];
-    let catSpawned = false;
+    let catSpawnTimer = null;
+    let activeCatMarker = null;
     let statusText = null;
     let hasCenteredOnPlayer = false;
 
@@ -107,6 +116,27 @@
         }) || null;
     }
 
+    function getAreaById(areaId) {
+        if (!areaId) return null;
+        return GAME_AREAS.find(area => area.id === areaId) || null;
+    }
+
+    function getNearestArea(lat, lng, maxDistance = CAT_NEARBY_AREA_RADIUS_METERS) {
+        if (lat == null || lng == null) return null;
+
+        let nearest = null;
+        let nearestDistance = Infinity;
+        GAME_AREAS.forEach(area => {
+            const distance = L.latLng(area.center).distanceTo([lat, lng]);
+            if (distance < nearestDistance) {
+                nearest = area;
+                nearestDistance = distance;
+            }
+        });
+
+        return nearestDistance <= maxDistance ? nearest : null;
+    }
+
     function getAreaRecord(area) {
         const record = areaProgress[area.id] || {};
         areaProgress[area.id] = {
@@ -172,15 +202,13 @@
         updateAreaDisplay();
     }
 
-    function recordQuestComplete(questOrSpot) {
-        const spot = questOrSpot?.spot || questOrSpot;
-        const rarity = questOrSpot?.rarity || questOrSpot?.questData?.rarity || 'N';
-        const area = getSpotArea(spot);
+    function applyAreaRepair(area, questOrSpot, earnedPoints, rewardKey) {
         if (!area || !SM.quests) return null;
 
+        const rarity = questOrSpot?.rarity || questOrSpot?.questData?.rarity || 'N';
         const record = getAreaRecord(area);
-        const spotKey = SM.quests.getSpotKey(spot);
-        const earnedPoints = getRepairPointsForRarity(rarity);
+        const spot = questOrSpot?.spot || questOrSpot;
+        const spotKey = rewardKey || SM.quests.getSpotKey(spot);
         const previousPoints = record.completedRewards[spotKey] || 0;
         let addedPoints = 0;
 
@@ -208,6 +236,49 @@
             requiredPoints: area.requiredPoints,
             purified: record.purified,
             justPurified: record.purified && !wasPurified
+        };
+    }
+
+    function recordQuestComplete(questOrSpot) {
+        const spot = questOrSpot?.spot || questOrSpot;
+        const rarity = questOrSpot?.rarity || questOrSpot?.questData?.rarity || 'N';
+        const area = getSpotArea(spot);
+        if (!area || !SM.quests) {
+            return {
+                area: null,
+                rarity,
+                addedPoints: 0,
+                earnedPoints: 0,
+                outsideArea: true
+            };
+        }
+
+        const earnedPoints = getRepairPointsForRarity(rarity);
+        return applyAreaRepair(area, questOrSpot, earnedPoints);
+    }
+
+    function recordCatComplete(questOrSpot) {
+        const spot = questOrSpot?.spot || questOrSpot;
+        const area = getAreaById(spot?.areaId)
+            || getSpotArea(spot)
+            || getSpotArea(state.lastPlayerPosition)
+            || getNearestArea(spot?.lat ?? state.lastPlayerPosition?.lat, spot?.lng ?? state.lastPlayerPosition?.lng);
+
+        if (!area) {
+            return {
+                area: null,
+                rarity: questOrSpot?.rarity || 'SSR',
+                addedPoints: 0,
+                earnedPoints: 0,
+                outsideArea: true,
+                isCat: true
+            };
+        }
+
+        const rewardKey = `cat_help_${spot?.id || Date.now()}`;
+        return {
+            ...applyAreaRepair(area, questOrSpot, CAT_REPAIR_POINTS, rewardKey),
+            isCat: true
         };
     }
 
@@ -265,11 +336,21 @@
         const repairPointsChip = questLayer.querySelector('#quest-repair-points');
         const preview = questLayer.querySelector('.sentence-preview');
         const repairPoints = getRepairPointsForRarity(data.rarity);
+        const isCatQuest = spot.type === 'npc_cat';
+        const targetArea = isCatQuest
+            ? getAreaById(spot.areaId) || getSpotArea(spot) || getSpotArea(state.lastPlayerPosition) || getNearestArea(spot.lat, spot.lng)
+            : getSpotArea(spot);
 
         questTitle.innerText = `${data.rarity}级文型任务`;
         questTitle.style.color = data.config.color;
         if (repairPointsChip) {
-            repairPointsChip.innerText = `区域修复值 +${repairPoints}`;
+            repairPointsChip.classList.toggle('outside', !isCatQuest && !targetArea);
+            repairPointsChip.classList.toggle('special', isCatQuest);
+            repairPointsChip.innerText = isCatQuest
+                ? `小猫救援 +${CAT_REPAIR_POINTS}`
+                : targetArea
+                    ? `区域修复值 +${repairPoints}`
+                    : '区域外练习：不加修复值';
         }
         preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
 
@@ -282,6 +363,7 @@
             level: data.level,
             requiredTag: data.requiredTag,
             rewardCount: data.rewardCount,
+            targetAreaId: targetArea?.id || null,
             spot,
             marker
         };
@@ -420,19 +502,42 @@
         }
     }
 
+    function getRandomCatDelay() {
+        const min = state.devMode ? CAT_SPAWN_DELAY_MS.devMin : CAT_SPAWN_DELAY_MS.min;
+        const max = state.devMode ? CAT_SPAWN_DELAY_MS.devMax : CAT_SPAWN_DELAY_MS.max;
+        return Math.round(min + Math.random() * (max - min));
+    }
+
+    function scheduleRandomCatSpawn() {
+        if (catSpawnTimer || activeCatMarker || !playerMarker) return;
+
+        catSpawnTimer = window.setTimeout(() => {
+            catSpawnTimer = null;
+            spawnTestCat();
+        }, getRandomCatDelay());
+    }
+
     function spawnTestCat() {
-        if (!playerMarker) return;
+        if (!playerMarker || activeCatMarker) return;
 
         const playerPos = playerMarker.getLatLng();
-        const catLat = playerPos.lat + 0.0002;
-        const catLng = playerPos.lng + 0.0002;
+        const angle = Math.random() * Math.PI * 2;
+        const distanceMeters = 55 + Math.random() * 75;
+        const latOffset = Math.cos(angle) * distanceMeters / 111320;
+        const lngOffset = Math.sin(angle) * distanceMeters / (111320 * Math.max(0.2, Math.cos(playerPos.lat * Math.PI / 180)));
+        const catLat = playerPos.lat + latOffset;
+        const catLng = playerPos.lng + lngOffset;
         const spotKey = `cat_${Date.now()}`;
+        const targetArea = getSpotArea({ lat: catLat, lng: catLng })
+            || getSpotArea({ lat: playerPos.lat, lng: playerPos.lng })
+            || getNearestArea(playerPos.lat, playerPos.lng);
 
         const spotData = {
             lat: catLat,
             lng: catLng,
             type: 'npc_cat',
             id: spotKey,
+            areaId: targetArea?.id || null,
             name: "流浪猫",
             emoji: "🐱",
             questTag: "Food"
@@ -450,10 +555,22 @@
         });
 
         const marker = L.marker([catLat, catLng], { icon: catIcon }).addTo(map);
+        activeCatMarker = marker;
         marker.questData = markerQuestData;
+        marker.spotData = spotData;
         marker.on('click', () => {
             openQuestUI(marker.questData, spotData, marker);
         });
+    }
+
+    function clearCatEvent(marker) {
+        if (marker && map.hasLayer(marker)) {
+            map.removeLayer(marker);
+        }
+        if (!marker || marker === activeCatMarker) {
+            activeCatMarker = null;
+        }
+        scheduleRandomCatSpawn();
     }
 
     function getLimitedBounds(lat, lng) {
@@ -478,7 +595,6 @@
         const { lat, lng } = state.lastPlayerPosition;
         updateMapBounds(lat, lng);
         map.setView([lat, lng], zoom, { animate: true });
-        updateVisibleSpots(lat, lng);
     }
 
     function initGeolocation() {
@@ -495,10 +611,7 @@
                         map.setView([lat, lng], FOCUS_ZOOM);
                         hasCenteredOnPlayer = true;
                     }
-                    if (state.devMode && !catSpawned) {
-                        catSpawned = true;
-                        spawnTestCat();
-                    }
+                    scheduleRandomCatSpawn();
 
                     updateVisibleSpots(lat, lng);
                 },
@@ -514,6 +627,7 @@
                     setPlayerPosition(DEFAULT_CENTER[0], DEFAULT_CENTER[1], 'demo');
                     updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
                     map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+                    scheduleRandomCatSpawn();
                     updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
                 },
                 { enableHighAccuracy: true, maximumAge: 0 }
@@ -522,6 +636,7 @@
             statusText.innerText = "你的设备不支持 GPS，已切换到关西演示位置";
             setPlayerPosition(DEFAULT_CENTER[0], DEFAULT_CENTER[1], 'demo');
             updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+            scheduleRandomCatSpawn();
             updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
         }
     }
@@ -627,6 +742,8 @@
         removeMarkerForSpot,
         focusOnPlayer,
         recordQuestComplete,
+        recordCatComplete,
+        clearCatEvent,
         spawnTestCat
     };
 })();
