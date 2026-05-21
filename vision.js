@@ -265,6 +265,14 @@
 
             SM.inventory.showWordDetailCard(aiResult);
             SM.quests.completeQuest(activeQuest);
+            if (activeQuest.type === 'POI' && SM.map?.recordQuestComplete) {
+                const areaResult = SM.map.recordQuestComplete(activeQuest);
+                if (areaResult?.justPurified) {
+                    alert(`✨ 区域净化完成！\n${areaResult.area.name}\n修复值 ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`);
+                } else if (areaResult?.addedPoints) {
+                    alert(`区域修复 +${areaResult.addedPoints}\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`);
+                }
+            }
             document.getElementById('quest-layer').classList.add('hidden');
             state.activeQuest = null;
         } else {

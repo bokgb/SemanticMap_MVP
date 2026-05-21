@@ -2,7 +2,7 @@
     const SM = window.SemanticMap = window.SemanticMap || {};
     const state = SM.state = SM.state || {};
 
-    const DEFAULT_CENTER = [34.6937, 135.5023];
+    const DEFAULT_CENTER = [34.7106, 135.5108];
     const VISIBLE_SPOT_RADIUS_METERS = 900;
     const CLOSE_SPOT_RADIUS_METERS = 360;
     const MAX_VISIBLE_SPOTS = 8;
@@ -12,9 +12,28 @@
     const MAP_BOUNDS_RADIUS_METERS = 1200;
     const DEFAULT_ZOOM = 17;
     const FOCUS_ZOOM = 17;
+    const AREA_PROGRESS_STORAGE_KEY = 'semantic-map-area-progress-v2';
+    const RARITY_REPAIR_POINTS = {
+        N: 1,
+        R: 2,
+        SR: 4,
+        SSR: 6
+    };
+    const GAME_AREAS = [
+        {
+            id: 'tenroku',
+            name: '天六语义修复区',
+            center: [34.7106, 135.5108],
+            radius: 520,
+            requiredPoints: 6,
+            description: '天神橋筋六丁目周边'
+        }
+    ];
     let map = null;
     let playerMarker = null;
     let dynamicMarkersLayer = null;
+    let areaLayer = null;
+    let areaProgress = {};
     let allSpots = [];
     let catSpawned = false;
     let statusText = null;
@@ -61,6 +80,135 @@
 
         playerMarker.setLatLng([lat, lng]);
         playerMarker.setIcon(createPlayerMarkerIcon(source));
+    }
+
+    function loadAreaProgress() {
+        try {
+            const rawProgress = localStorage.getItem(AREA_PROGRESS_STORAGE_KEY);
+            areaProgress = rawProgress ? JSON.parse(rawProgress) || {} : {};
+        } catch (error) {
+            console.warn('读取区域进度失败，使用空进度。', error);
+            areaProgress = {};
+        }
+    }
+
+    function saveAreaProgress() {
+        try {
+            localStorage.setItem(AREA_PROGRESS_STORAGE_KEY, JSON.stringify(areaProgress));
+        } catch (error) {
+            console.warn('保存区域进度失败。', error);
+        }
+    }
+
+    function getSpotArea(spot) {
+        if (!spot) return null;
+        return GAME_AREAS.find(area => {
+            return L.latLng(area.center).distanceTo([spot.lat, spot.lng]) <= area.radius;
+        }) || null;
+    }
+
+    function getAreaRecord(area) {
+        const record = areaProgress[area.id] || {};
+        areaProgress[area.id] = {
+            completedSpotKeys: Array.isArray(record.completedSpotKeys) ? record.completedSpotKeys : [],
+            repairPoints: Number(record.repairPoints || 0),
+            completedRewards: record.completedRewards && typeof record.completedRewards === 'object' ? record.completedRewards : {},
+            purified: Boolean(record.purified)
+        };
+        return areaProgress[area.id];
+    }
+
+    function getAreaRepairPoints(area) {
+        return getAreaRecord(area).repairPoints;
+    }
+
+    function getRepairPointsForRarity(rarity) {
+        return RARITY_REPAIR_POINTS[rarity] || RARITY_REPAIR_POINTS.N;
+    }
+
+    function updateAreaDisplay() {
+        if (!areaLayer) return;
+
+        areaLayer.eachLayer(layer => {
+            const area = layer.areaData;
+            if (!area || !layer.getTooltip) return;
+
+            const points = getAreaRepairPoints(area);
+            const record = getAreaRecord(area);
+            const label = record.purified
+                ? `${area.name} 修复完成`
+                : `${area.name} ${Math.min(points, area.requiredPoints)}/${area.requiredPoints}`;
+            layer.setStyle?.({
+                color: record.purified ? '#26a69a' : '#00acc1',
+                fillColor: record.purified ? '#80cbc4' : '#b2ebf2',
+                fillOpacity: record.purified ? 0.2 : 0.13
+            });
+            layer.bindTooltip(label, {
+                permanent: true,
+                direction: 'top',
+                className: 'area-label'
+            });
+        });
+    }
+
+    function initAreas() {
+        loadAreaProgress();
+        areaLayer = L.layerGroup().addTo(map);
+
+        GAME_AREAS.forEach(area => {
+            const circle = L.circle(area.center, {
+                radius: area.radius,
+                color: '#00acc1',
+                weight: 2,
+                fillColor: '#b2ebf2',
+                fillOpacity: 0.13,
+                dashArray: '6 6',
+                interactive: false
+            });
+            circle.areaData = area;
+            areaLayer.addLayer(circle);
+        });
+
+        updateAreaDisplay();
+    }
+
+    function recordQuestComplete(questOrSpot) {
+        const spot = questOrSpot?.spot || questOrSpot;
+        const rarity = questOrSpot?.rarity || questOrSpot?.questData?.rarity || 'N';
+        const area = getSpotArea(spot);
+        if (!area || !SM.quests) return null;
+
+        const record = getAreaRecord(area);
+        const spotKey = SM.quests.getSpotKey(spot);
+        const earnedPoints = getRepairPointsForRarity(rarity);
+        const previousPoints = record.completedRewards[spotKey] || 0;
+        let addedPoints = 0;
+
+        if (!previousPoints) {
+            record.completedSpotKeys.push(spotKey);
+            record.completedRewards[spotKey] = earnedPoints;
+            record.repairPoints += earnedPoints;
+            addedPoints = earnedPoints;
+        }
+
+        const wasPurified = record.purified;
+        if (record.repairPoints >= area.requiredPoints) {
+            record.purified = true;
+        }
+
+        saveAreaProgress();
+        updateAreaDisplay();
+
+        return {
+            area,
+            rarity,
+            addedPoints,
+            earnedPoints,
+            repairPoints: record.repairPoints,
+            requiredPoints: area.requiredPoints,
+            purified: record.purified,
+            justPurified: record.purified && !wasPurified
+        };
     }
 
     function createPoiMarker(spot) {
@@ -114,10 +262,15 @@
     function openQuestUI(data, spot, marker) {
         const questLayer = document.getElementById('quest-layer');
         const questTitle = questLayer.querySelector('.quest-content h3');
+        const repairPointsChip = questLayer.querySelector('#quest-repair-points');
         const preview = questLayer.querySelector('.sentence-preview');
+        const repairPoints = getRepairPointsForRarity(data.rarity);
 
         questTitle.innerText = `${data.rarity}级文型任务`;
         questTitle.style.color = data.config.color;
+        if (repairPointsChip) {
+            repairPointsChip.innerText = `区域修复值 +${repairPoints}`;
+        }
         preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
 
         state.activeQuest = {
@@ -452,6 +605,7 @@
         }).addTo(map);
 
         dynamicMarkersLayer = L.layerGroup().addTo(map);
+        initAreas();
         updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
 
         initUiToggle();
@@ -472,6 +626,7 @@
         removeSpotFromPool,
         removeMarkerForSpot,
         focusOnPlayer,
+        recordQuestComplete,
         spawnTestCat
     };
 })();
