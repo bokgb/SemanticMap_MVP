@@ -106,9 +106,10 @@
         let catSafetyRule = "";
         if (activeQuest && activeQuest.type === 'NPC') {
             catSafetyRule = `
-            【特殊规则：流浪猫喂食判定】
-            当前玩家正在给流浪猫喂食。请扮演兽医，判定图片中的食物是否适合猫咪食用。
-            （警告：巧克力、洋葱、葡萄、纯牛奶、高盐高糖零食对猫危险；猫粮、无调味熟肉、鱼类是安全的。）
+            【特殊规则：流浪猫帮助事件】
+            这是轻量游戏事件，不是严格兽医模拟。请把面包、饭团、便当、点心、水、茶、咖啡、饮料等日常可食用/可饮用物品都判定为 Food，并让任务通过。
+            只有在图片主体明显不是食物饮料，或明显是危险/不可食用物品时，才不要判定为 Food。
+            如果物品只是“不太适合真实猫咪食用”，但它仍然是人类日常食物或饮料，也请保持 tag 为 Food，不要因为真实喂养风险而失败。
             `;
         }
 
@@ -132,8 +133,8 @@
             "tagColor": "对应的十六进制颜色",
             "example": { "s": "日文例句", "k": "假名", "z": "中文" },
             "extra_words": [ {"text": "单词", "kana": "假名", "zh": "翻译", "pos": "词性"} ],
-            "is_safe": true/false (如果有喂猫特殊规则必填),
-            "danger_reason": "如果危险请用中文解释原因，安全留空" (如果有喂猫特殊规则必填)
+            "is_safe": true/false (流浪猫事件可选；只要是食物或饮料通常填 true),
+            "danger_reason": "只有明显不可食用或明显危险时才填写，其他情况留空"
         }
         `;
 
@@ -241,13 +242,13 @@
             return;
         }
 
-        if (aiResult.tag === activeQuest.requiredTag) {
+        const isCatQuest = activeQuest.type === 'NPC';
+        const isCatFoodLike = isCatQuest && isLooseCatFood(aiResult);
+        const isQuestMatch = aiResult.tag === activeQuest.requiredTag || isCatFoodLike;
+
+        if (isQuestMatch) {
             if (activeQuest.type === 'NPC') {
-                if (aiResult.is_safe === false) {
-                    SM.ui?.showToast(`喂食失败：${aiResult.danger_reason}`, { type: 'warning', duration: 4200 });
-                    state.activeQuest = null;
-                    return;
-                }
+                aiResult.tag = 'Food';
                 const areaResult = SM.map?.recordCatComplete?.(activeQuest);
                 if (areaResult?.justPurified) {
                     SM.ui?.showToast(`小猫救援 +${areaResult.addedPoints}\n${areaResult.area.name} 净化完成`, { type: 'success', duration: 3600 });
@@ -292,6 +293,27 @@
             }
             state.activeQuest = null;
         }
+    }
+
+    function isLooseCatFood(aiResult) {
+        const text = `${aiResult?.word?.text || ''} ${aiResult?.word?.kana || ''} ${aiResult?.word?.zh || ''}`.toLowerCase();
+        const foodWords = [
+            'パン', 'ぱん', '面包', 'bread',
+            'おにぎり', '弁当', 'べんとう', '饭团', '便当',
+            '水', 'みず', 'water',
+            '茶', 'お茶', 'ちゃ', 'tea',
+            'コーヒー', 'coffee', '咖啡',
+            'ジュース', 'juice', '饮料', '飲料',
+            '牛乳', 'ミルク', '奶', 'milk',
+            '菓子', 'お菓子', 'スナック', '点心', '零食',
+            '食べ物', '食品', '食物', 'food',
+            'ご飯', 'ごはん', '米饭',
+            'サンドイッチ', 'sandwich', '三明治',
+            '肉', '魚', '鱼', '肉类',
+            '果物', '水果'
+        ];
+
+        return foodWords.some(word => text.includes(word.toLowerCase()));
     }
 
     function buildGrammarReview(quest, wordText) {

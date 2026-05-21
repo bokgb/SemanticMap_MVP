@@ -134,7 +134,7 @@
             ]
         },
         npc_cat: [
-            { rarity: 'SSR', weight: 1.0, text: "猫 に [ ? ] を あげる", req: "Food", grammar: "N に N をあげる", instruction: "猫可以安全食用的食物。", reward: 1 }
+            { rarity: 'SSR', weight: 1.0, text: "猫 に [ ? ] を あげる", req: "Food", grammar: "N に N をあげる", instruction: "食物或饮料都可以帮助流浪猫。", reward: 1 }
         ]
     };
 
