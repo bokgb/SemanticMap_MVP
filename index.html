@@ -63,7 +63,6 @@
             <option value="N1" data-zh="🥷 专家 (JLPT N1+)" data-ja="🥷 上級 (JLPT N1+)">🥷 专家 (JLPT N1+)</option>
         </select>
         <div id="difficulty-hint" data-zh="当前难度：N5 - 新手" data-ja="現在の難易度：N5 - 初心者">当前难度：N5 - 新手</div>
-        <button id="scan-btn" data-zh="先选择地图任务" data-ja="先に地図タスクを選択">先选择地图任务</button>
         <button id="clear-cache-btn" style="width: 100%; padding: 8px; margin-top: 10px; border-radius: 8px; font-weight: bold; background: #ffebee; border: 2px solid #f44336; color: #c62828; cursor: pointer;" data-zh="🗑️ 重置进度" data-ja="🗑️ 進行状況をリセット">🗑️ 重置进度</button>
     </div>
 
@@ -78,28 +77,6 @@
         </div>
         <div id="word-list"></div>
     </div>
-    
-    <div id="combo-layer" class="hidden">
-        <div class="combo-panel">
-            <h3 data-zh="🧩 修复现实语义" data-ja="🧩 現実のセマンティクス修復">🧩 修复现实语义</h3>
-            <p id="task-desc" data-zh="区域异常：此公园需要【Nature】相关的词汇组合来净化！" data-ja="エリア異常：この公園は【Nature】関連の語彙組み合わせで浄化する必要があります！">区域异常：此公园需要【Nature】相关的词汇组合来净化！</p>
-            <p class="task-rule" data-zh="要求：[形容词] + [名词] + を + [动词]" data-ja="条件：[形容詞] + [名詞] + を + [動詞]">要求：[形容词] + [名词] + を + [动词]</p>
-            <div class="slots-container">
-                <div id="slot-adj" class="slot">形容词</div>
-                <div id="slot-noun" class="slot">点击下方名词填入</div>
-                <div class="slot-text">を</div>
-                <div id="slot-verb" class="slot">点击下方动词填入</div>
-            </div>
-            <h4 data-zh="你的词汇库：" data-ja="あなたの語彙（インベントリ）：">你的词汇库：</h4>
-            <div id="combo-word-list"></div>
-
-            <div class="combo-actions">
-                <button id="btn-submit-combo" disabled data-zh="执行 Combo!" data-ja="コンボを実行!">执行 Combo!</button>
-                <button id="btn-close-combo" data-zh="撤退" data-ja="戻る">撤退</button>
-            </div>
-        </div>
-    </div>
-    
     <div id="quest-layer" class="hidden">
         <div class="quest-panel">
             <div class="quest-header">
@@ -149,12 +126,12 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="ui.js?v=grammar-26"></script>
-    <script src="quests.js?v=grammar-26"></script>
-    <script src="inventory.js?v=grammar-26"></script>
-    <script src="i18n.js?v=grammar-26"></script>
-    <script src="vision.js?v=grammar-26"></script>
-    <script src="map.js?v=grammar-26"></script>
-    <script src="app.js?v=grammar-26"></script>
+    <script src="ui.js?v=grammar-32"></script>
+    <script src="quests.js?v=grammar-32"></script>
+    <script src="inventory.js?v=grammar-32"></script>
+    <script src="i18n.js?v=grammar-32"></script>
+    <script src="vision.js?v=grammar-32"></script>
+    <script src="map.js?v=grammar-32"></script>
+    <script src="app.js?v=grammar-32"></script>
 </body>
 </html>

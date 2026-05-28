@@ -12,7 +12,7 @@
     const MAP_BOUNDS_RADIUS_METERS = 1200;
     const DEFAULT_ZOOM = 17;
     const FOCUS_ZOOM = 17;
-    const AREA_PROGRESS_STORAGE_KEY = 'semantic-map-area-progress-v2';
+    const AREA_PROGRESS_STORAGE_KEY = 'semantic-map-area-progress-v3';
     const RARITY_REPAIR_POINTS = {
         N: 1,
         R: 2,
@@ -28,15 +28,89 @@
     };
     const CAT_NEARBY_AREA_RADIUS_METERS = 900;
     const GAME_AREAS = [
+        // 修复区按“步行可达的语义场景”组织，而不是行政区。
         {
             id: 'tenroku',
-            name: '天六语义修复区',
+            name: '天六商店街修复区',
             center: [34.7106, 135.5108],
-            radius: 520,
-            requiredPoints: 6,
+            radius: 480,
+            requiredPoints: 8,
             description: '天神橋筋六丁目周边'
+        },
+        {
+            id: 'ogimachi_park',
+            name: '扇町公园修复区',
+            center: [34.70413, 135.50915],
+            radius: 430,
+            requiredPoints: 6,
+            description: '扇町公园与周边生活设施'
+        },
+        {
+            id: 'nakazakicho',
+            name: '中崎町路地修复区',
+            center: [34.7068, 135.5051],
+            radius: 430,
+            requiredPoints: 7,
+            description: '中崎町站、巷道与小店周边'
+        },
+        {
+            id: 'umeda',
+            name: '梅田地下街修复区',
+            center: [34.7025, 135.4959],
+            radius: 560,
+            requiredPoints: 12,
+            description: '大阪站、梅田商业与交通节点'
+        },
+        {
+            id: 'minamimorimachi',
+            name: '南森町生活修复区',
+            center: [34.6977, 135.5115],
+            radius: 460,
+            requiredPoints: 8,
+            description: '南森町、大阪天满宫与生活街区'
+        },
+        {
+            id: 'kyoto_station',
+            name: '京都駅交通修复区',
+            center: [34.9858, 135.7588],
+            radius: 540,
+            requiredPoints: 10,
+            description: '京都站与八条口周边'
+        },
+        {
+            id: 'nishiki_market',
+            name: '锦市场商店街修复区',
+            center: [35.0050, 135.7648],
+            radius: 500,
+            requiredPoints: 8,
+            description: '锦市场、四条与商业街周边'
+        },
+        {
+            id: 'gion',
+            name: '祇园街路修复区',
+            center: [35.0037, 135.7750],
+            radius: 480,
+            requiredPoints: 7,
+            description: '祇园四条与花见小路周边'
+        },
+        {
+            id: 'fushimi_inari',
+            name: '伏见稻荷修复区',
+            center: [34.9671, 135.7727],
+            radius: 560,
+            requiredPoints: 6,
+            description: '伏见稻荷、稻荷站与参道周边'
+        },
+        {
+            id: 'nijo_castle',
+            name: '二条城周边修复区',
+            center: [35.0142, 135.7480],
+            radius: 560,
+            requiredPoints: 6,
+            description: '二条城、二条站与周边街区'
         }
     ];
+    const AREA_URL_PARAMS = ['area', 'testArea', 'demoArea'];
     let map = null;
     let playerMarker = null;
     let dynamicMarkersLayer = null;
@@ -62,6 +136,45 @@
         const completedMarker = L.marker([spot.lat, spot.lng], { icon: SM.quests.createCompletedMarkerIcon() });
         completedMarker.spotData = spot;
         return completedMarker;
+    }
+
+    function getRequestedDemoArea() {
+        if (!state.devMode) return null;
+
+        const params = new URLSearchParams(window.location.search);
+        const areaId = AREA_URL_PARAMS
+            .map(key => params.get(key))
+            .find(Boolean);
+
+        if (!areaId) return null;
+        return GAME_AREAS.find(area => area.id === areaId) || null;
+    }
+
+    function getDefaultCenterConfig() {
+        const requestedArea = getRequestedDemoArea();
+        if (requestedArea) {
+            return {
+                center: [...requestedArea.center],
+                area: requestedArea,
+                forcedDemo: true
+            };
+        }
+
+        return {
+            center: [...DEFAULT_CENTER],
+            area: null,
+            forcedDemo: false
+        };
+    }
+
+    function setDemoPosition(message) {
+        const center = state.defaultCenter || DEFAULT_CENTER;
+        statusText.innerText = message;
+        setPlayerPosition(center[0], center[1], 'demo');
+        updateMapBounds(center[0], center[1]);
+        map.setView(center, DEFAULT_ZOOM);
+        scheduleRandomCatSpawn();
+        updateVisibleSpots(center[0], center[1]);
     }
 
     function createPlayerMarkerIcon(source = 'gps') {
@@ -109,11 +222,25 @@
         }
     }
 
+    function getContainingAreas(spot) {
+        if (!spot) return [];
+
+        return GAME_AREAS
+            .map(area => {
+                const distance = L.latLng(area.center).distanceTo([spot.lat, spot.lng]);
+                return {
+                    area,
+                    distance,
+                    radiusRatio: distance / area.radius
+                };
+            })
+            .filter(item => item.distance <= item.area.radius)
+            .sort((a, b) => a.radiusRatio - b.radiusRatio || a.distance - b.distance)
+            .map(item => item.area);
+    }
+
     function getSpotArea(spot) {
-        if (!spot) return null;
-        return GAME_AREAS.find(area => {
-            return L.latLng(area.center).distanceTo([spot.lat, spot.lng]) <= area.radius;
-        }) || null;
+        return getContainingAreas(spot)[0] || null;
     }
 
     function getAreaById(areaId) {
@@ -474,13 +601,6 @@
         console.log(`👀 雷达扫描：生成 ${selectedSpots.length} 个任务点`, selectedByTag);
     }
 
-    function removeSpotFromPool(spot) {
-        const spotIndex = allSpots.findIndex(s => s.lat === spot.lat && s.lng === spot.lng);
-        if (spotIndex > -1) {
-            allSpots.splice(spotIndex, 1);
-        }
-    }
-
     function removeMarkerForSpot(spot) {
         let actualMarkerOnMap = null;
         dynamicMarkersLayer.eachLayer(layer => {
@@ -598,6 +718,11 @@
     }
 
     function initGeolocation() {
+        if (state.forcedDemoArea) {
+            setDemoPosition(`开发测试位置：${state.forcedDemoArea.name}\nURL 参数 area=${state.forcedDemoArea.id}`);
+            return;
+        }
+
         if ('geolocation' in navigator) {
             navigator.geolocation.watchPosition(
                 (position) => {
@@ -623,21 +748,12 @@
                         return;
                     }
 
-                    statusText.innerText = "GPS 定位失败，已切换到关西演示位置";
-                    setPlayerPosition(DEFAULT_CENTER[0], DEFAULT_CENTER[1], 'demo');
-                    updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
-                    map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-                    scheduleRandomCatSpawn();
-                    updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+                    setDemoPosition("GPS 定位失败，已切换到关西演示位置");
                 },
                 { enableHighAccuracy: true, maximumAge: 0 }
             );
         } else {
-            statusText.innerText = "你的设备不支持 GPS，已切换到关西演示位置";
-            setPlayerPosition(DEFAULT_CENTER[0], DEFAULT_CENTER[1], 'demo');
-            updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
-            scheduleRandomCatSpawn();
-            updateVisibleSpots(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+            setDemoPosition("你的设备不支持 GPS，已切换到关西演示位置");
         }
     }
 
@@ -702,8 +818,11 @@
 
     function init() {
         statusText = document.getElementById('status-text');
-        state.defaultCenter = DEFAULT_CENTER;
-        state.lastPlayerPosition = { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1], source: 'initial' };
+        const defaultCenterConfig = getDefaultCenterConfig();
+        const initialCenter = defaultCenterConfig.center;
+        state.defaultCenter = initialCenter;
+        state.forcedDemoArea = defaultCenterConfig.forcedDemo ? defaultCenterConfig.area : null;
+        state.lastPlayerPosition = { lat: initialCenter[0], lng: initialCenter[1], source: 'initial' };
 
         map = L.map('map', {
             zoomControl: false,
@@ -712,7 +831,7 @@
             zoomSnap: 0.5,
             maxBoundsViscosity: 0.9,
             inertiaMaxSpeed: 600
-        }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+        }).setView(initialCenter, DEFAULT_ZOOM);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -721,7 +840,7 @@
 
         dynamicMarkersLayer = L.layerGroup().addTo(map);
         initAreas();
-        updateMapBounds(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+        updateMapBounds(initialCenter[0], initialCenter[1]);
 
         initUiToggle();
         initQuestButtons();
@@ -738,12 +857,13 @@
         },
         openQuestUI,
         updateVisibleSpots,
-        removeSpotFromPool,
         removeMarkerForSpot,
         focusOnPlayer,
         recordQuestComplete,
         recordCatComplete,
         clearCatEvent,
-        spawnTestCat
+        spawnTestCat,
+        areas: GAME_AREAS,
+        getSpotArea
     };
 })();

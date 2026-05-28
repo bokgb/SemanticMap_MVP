@@ -120,125 +120,6 @@
         elements.wordCardLayer.classList.remove('hidden');
     }
 
-    function queueExtraWordRewards(aiResult) {
-        if (!aiResult || !Array.isArray(aiResult.extra_words) || aiResult.extra_words.length === 0) return;
-
-        aiResult.extra_words.forEach((extra) => {
-            const extraData = normalizeAiResult({
-                word: { text: extra.text, kana: extra.kana, zh: extra.zh },
-                pos: extra.pos || '名词',
-                tag: aiResult.tag,
-                tagColor: aiResult.tagColor,
-                example: { s: "关联奖励单词", z: "奖励词汇" }
-            });
-
-            if (extraData) {
-                rewardQueue.push(extraData);
-            }
-        });
-    }
-
-    function openComboPanel() {
-        elements.comboLayer.classList.remove('hidden');
-        renderComboWords();
-    }
-
-    function renderComboWords() {
-        const list = elements.comboWordList;
-        if (!list || !elements.slotAdj || !elements.slotNoun || !elements.slotVerb) return;
-
-        list.innerHTML = '';
-        playerInventory.forEach((wordData) => {
-            if (!wordData || !wordData.word || !wordData.word.text) return;
-
-            const btn = document.createElement('div');
-            btn.className = 'combo-word-item';
-            btn.style.borderColor = wordData.tagColor;
-            btn.innerText = `${wordData.word.text} [${wordData.pos}]`;
-            btn.addEventListener('click', () => {
-                if (wordData.pos === '形容词' && !state.currentAdj) {
-                    state.currentAdj = wordData;
-                    elements.slotAdj.innerText = wordData.word.text;
-                    elements.slotAdj.classList.add('filled');
-                    btn.classList.add('used');
-                } else if (wordData.pos === '名词' && !state.currentNoun) {
-                    state.currentNoun = wordData;
-                    elements.slotNoun.innerText = wordData.word.text;
-                    elements.slotNoun.classList.add('filled');
-                    btn.classList.add('used');
-                } else if (wordData.pos === '动词' && !state.currentVerb) {
-                    state.currentVerb = wordData;
-                    elements.slotVerb.innerText = wordData.word.text;
-                    elements.slotVerb.classList.add('filled');
-                    btn.classList.add('used');
-                }
-                checkComboReady();
-            });
-            list.appendChild(btn);
-        });
-    }
-
-    function checkComboReady() {
-        if (elements.btnSubmitCombo) {
-            elements.btnSubmitCombo.disabled = !(state.currentAdj && state.currentNoun && state.currentVerb);
-        }
-    }
-
-    function resetSlots() {
-        state.currentAdj = null;
-        state.currentNoun = null;
-        state.currentVerb = null;
-
-        elements.slotAdj.innerText = '形容词';
-        elements.slotAdj.classList.remove('filled');
-        elements.slotNoun.innerText = '点击下方名词填入';
-        elements.slotNoun.classList.remove('filled');
-        elements.slotVerb.innerText = '点击下方动词填入';
-        elements.slotVerb.classList.remove('filled');
-        elements.btnSubmitCombo.disabled = true;
-    }
-
-    function submitCombo() {
-        const { currentAdj, currentNoun, currentVerb, currentComboTag, currentComboSpot } = state;
-        if (!currentAdj || !currentNoun || !currentVerb) return;
-
-        if (currentAdj.tag === currentComboTag || currentNoun.tag === currentComboTag || currentVerb.tag === currentComboTag) {
-            SM.ui?.showToast(`Combo 成功！\n${currentAdj.word.text} ${currentNoun.word.text} を ${currentVerb.word.text}`, { type: 'success' });
-            elements.comboLayer.classList.add('hidden');
-            resetSlots();
-
-            if (currentComboSpot && SM.map) {
-                SM.map.removeSpotFromPool(currentComboSpot);
-            }
-
-            if (currentComboSpot && SM.quests) {
-                SM.quests.completeSpot(currentComboSpot);
-            }
-
-            if (currentComboSpot && SM.map) {
-                SM.map.removeMarkerForSpot(currentComboSpot);
-            }
-
-            state.currentComboSpot = null;
-            state.currentComboTag = null;
-        } else {
-            SM.ui?.showToast(`语境不匹配：该区域需要 ${currentComboTag} 相关词汇。`, { type: 'warning' });
-            elements.comboLayer.classList.add('hidden');
-            resetSlots();
-        }
-    }
-
-    function initTestData() {
-        const testWords = [
-            { word: { text: "電車", kana: "でんしゃ", zh: "电车" }, pos: "名词", tag: "Transit", tagColor: "#9E9E9E" },
-            { word: { text: "乗る", kana: "のる", zh: "骑/乘" }, pos: "动词", tag: "Transit", tagColor: "#9E9E9E" },
-            { word: { text: "赤い", kana: "あかい", zh: "红色的" }, pos: "形容词", tag: "Nature", tagColor: "#4CAF50" },
-            { word: { text: "花", kana: "はな", zh: "花" }, pos: "名词", tag: "Nature", tagColor: "#4CAF50" },
-            { word: { text: "見つける", kana: "みつける", zh: "发现" }, pos: "动词", tag: "Nature", tagColor: "#4CAF50" }
-        ];
-        testWords.forEach(wordData => addWordToInventory(wordData));
-    }
-
     function init() {
         Object.assign(elements, {
             bagBtn: document.getElementById('bag-btn'),
@@ -246,25 +127,12 @@
             inventoryLayer: document.getElementById('inventory-layer'),
             bagBadge: document.getElementById('bag-badge'),
             wordList: document.getElementById('word-list'),
-            comboLayer: document.getElementById('combo-layer'),
-            comboWordList: document.getElementById('combo-word-list'),
-            slotAdj: document.getElementById('slot-adj'),
-            slotNoun: document.getElementById('slot-noun'),
-            slotVerb: document.getElementById('slot-verb'),
-            btnSubmitCombo: document.getElementById('btn-submit-combo'),
-            btnCloseCombo: document.getElementById('btn-close-combo'),
             wordCardLayer: document.getElementById('word-card-layer'),
             lootWordMain: document.getElementById('loot-word-main'),
             lootExampleText: document.getElementById('loot-example-text'),
             lootExampleZh: document.getElementById('loot-example-zh'),
             btnCollectWord: document.getElementById('btn-collect-word')
         });
-
-        state.currentAdj = null;
-        state.currentNoun = null;
-        state.currentVerb = null;
-        state.currentComboTag = null;
-        state.currentComboSpot = null;
 
         elements.bagBtn.addEventListener('click', () => {
             elements.inventoryLayer.classList.add('open');
@@ -274,15 +142,6 @@
         elements.closeBagBtn.addEventListener('click', () => {
             elements.inventoryLayer.classList.remove('open');
         });
-
-        elements.btnCloseCombo.addEventListener('click', () => {
-            elements.comboLayer.classList.add('hidden');
-            resetSlots();
-            state.currentComboTag = null;
-            state.currentComboSpot = null;
-        });
-
-        elements.btnSubmitCombo.addEventListener('click', submitCombo);
 
         elements.btnCollectWord.addEventListener('click', () => {
             elements.wordCardLayer.classList.add('hidden');
@@ -303,8 +162,6 @@
         escapeHtml,
         renderRubyWord,
         addWordToInventory,
-        showWordDetailCard,
-        queueExtraWordRewards,
-        openComboPanel
+        showWordDetailCard
     };
 })();

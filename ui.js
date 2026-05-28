@@ -36,11 +36,44 @@
         }, duration);
     }
 
+    function showDialog({ title = '提示', message = '', buttonText = '知道了', type = 'warning' } = {}) {
+        const existingDialog = document.querySelector('.game-dialog-layer');
+        if (existingDialog) {
+            existingDialog.remove();
+        }
+
+        const layer = document.createElement('div');
+        layer.className = 'game-dialog-layer';
+        layer.innerHTML = `
+            <div class="game-dialog ${type}" role="dialog" aria-modal="true" aria-labelledby="game-dialog-title">
+                <h2 id="game-dialog-title">${escapeHtml(title)}</h2>
+                <p>${escapeHtml(message)}</p>
+                <button type="button" class="game-dialog-btn">${escapeHtml(buttonText)}</button>
+            </div>
+        `;
+        document.body.appendChild(layer);
+
+        const closeButton = layer.querySelector('.game-dialog-btn');
+        closeButton?.focus();
+        closeButton?.addEventListener('click', () => layer.remove());
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char]));
+    }
+
     window.alert = (message) => {
         showToast(message, { type: 'info', duration: 3200 });
     };
 
     SM.ui = {
-        showToast
+        showToast,
+        showDialog
     };
 })();

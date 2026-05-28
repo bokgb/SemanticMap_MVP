@@ -259,16 +259,6 @@
         }
     }
 
-    function completeSpot(spot) {
-        if (!spot) return;
-
-        questCache[getSpotKey(spot)] = {
-            status: 'completed',
-            completedAt: Date.now()
-        };
-        saveQuestCache();
-    }
-
     function clearQuestCacheAll() {
         const keysToRemove = [];
         for (let index = 0; index < localStorage.length; index++) {
@@ -313,7 +303,6 @@
         getQuestStateForSpot,
         createCompletedMarkerIcon,
         completeQuest,
-        completeSpot,
         clearQuestCacheAll,
         buildCatQuestData
     };

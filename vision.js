@@ -173,7 +173,6 @@
             "tag": "必须从以下选择其一：Food, Nature, Transit, Retail, Health, Item",
             "tagColor": "对应的十六进制颜色",
             "example": { "s": "日文例句", "k": "假名", "z": "中文" },
-            "extra_words": [ {"text": "单词", "kana": "假名", "zh": "翻译", "pos": "词性"} ],
             "is_safe": true/false (流浪猫事件可选；只要是食物或饮料通常填 true),
             "danger_reason": "只有明显不可食用或明显危险时才填写，其他情况留空"
         }
@@ -327,13 +326,28 @@
             document.getElementById('quest-layer').classList.add('hidden');
             state.activeQuest = null;
         } else {
-            if (activeQuest.type === 'NPC') {
-                SM.ui?.showToast(`语境不符：你拍到了 ${aiResult.word.text}，这个任务需要 Food 类物品。`, { type: 'warning', duration: 4200 });
-            } else {
-                SM.ui?.showToast(`语境不符：${aiResult.word.text} 属于 ${aiResult.tag}，这个任务需要 ${activeQuest.requiredTag}。`, { type: 'warning', duration: 4200 });
-            }
+            showWrongObjectDialog(activeQuest, aiResult);
             state.activeQuest = null;
         }
+    }
+
+    function showWrongObjectDialog(activeQuest, aiResult) {
+        if (activeQuest?.type === 'NPC') {
+            SM.ui?.showDialog({
+                title: '拍摄对象不符合任务',
+                message: `你拍到了：${aiResult.word.text}\n这个任务需要食物或饮料类物品。`,
+                buttonText: '知道了',
+                type: 'warning'
+            });
+            return;
+        }
+
+        SM.ui?.showDialog({
+            title: '拍摄对象不符合任务',
+            message: `你拍到了：${aiResult.word.text}\n识别类别：${aiResult.tag}\n这个任务需要：${activeQuest?.requiredTag || '任务指定类别'}`,
+            buttonText: '知道了',
+            type: 'warning'
+        });
     }
 
     function isLooseCatFood(aiResult) {
@@ -429,7 +443,6 @@
 
     function init() {
         Object.assign(elements, {
-            scanBtn: document.getElementById('scan-btn'),
             levelSelector: document.getElementById('level-selector'),
             difficultyHint: document.getElementById('difficulty-hint'),
             levelOnboardingLayer: document.getElementById('level-onboarding-layer'),
@@ -447,9 +460,6 @@
         });
         updateDifficultyHint();
 
-        elements.scanBtn.addEventListener('click', () => {
-            SM.ui?.showToast("请先点击地图上的地点任务，再带着文型目标去拍照。", { type: 'warning' });
-        });
         elements.closeCameraBtn.addEventListener('click', closeCamera);
         elements.captureBtn.addEventListener('click', handleCapture);
     }

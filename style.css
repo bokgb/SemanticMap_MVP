@@ -58,6 +58,68 @@ body, html {
     border-left: 5px solid #1e88e5;
 }
 
+.game-dialog-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 6500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(12, 20, 24, 0.58);
+    backdrop-filter: blur(5px);
+}
+
+.game-dialog {
+    width: min(88vw, 380px);
+    padding: 22px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 46px rgba(0,0,0,0.3);
+    border-top: 7px solid #f9a825;
+}
+
+.game-dialog.error {
+    border-top-color: #e53935;
+}
+
+.game-dialog.info {
+    border-top-color: #1e88e5;
+}
+
+.game-dialog h2 {
+    margin: 0 0 10px;
+    color: #263238;
+    font-size: 22px;
+    line-height: 1.25;
+    letter-spacing: 0;
+}
+
+.game-dialog p {
+    margin: 0 0 18px;
+    color: #455a64;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.55;
+    white-space: pre-line;
+}
+
+.game-dialog-btn {
+    width: 100%;
+    min-height: 46px;
+    border: none;
+    border-radius: 999px;
+    background: #263238;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.game-dialog-btn:active {
+    transform: scale(0.98);
+}
+
 #level-onboarding-layer {
     position: fixed;
     inset: 0;
@@ -336,20 +398,6 @@ body, html {
 h2, p {
     margin: 0 0 10px 0;
 }
-/* 扫描按钮样式 */
-#scan-btn {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    background: #2b2b2b;
-    color: #00ffcc; /* 极客绿 */
-    border: 2px solid #00ffcc;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
 #difficulty-hint {
     margin-top: 8px;
     padding: 8px 10px;
@@ -612,64 +660,6 @@ h2, p {
     font-size: 16px;
     letter-spacing: 2px;
 }
-
-/* --- 语法组合工作台 --- */
-#combo-layer {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 3000;
-    display: flex; justify-content: center; align-items: center;
-}
-
-#combo-layer.hidden { display: none !important; }
-
-.combo-panel {
-    background: white; width: 90%; max-width: 400px;
-    border-radius: 12px; padding: 20px; box-sizing: border-box;
-}
-
-.combo-panel h3 { margin-top: 0; color: #333; }
-.task-rule { color: #e91e63; font-weight: bold; font-size: 14px; }
-
-/* 语法插槽 */
-.slots-container { display: flex; gap: 10px; margin: 20px 0; }
-.slot {
-    flex: 1; border: 2px dashed #ccc; border-radius: 8px;
-    padding: 15px 10px; text-align: center; font-size: 14px;
-    color: #999; background: #fafafa; transition: 0.3s;
-}
-.slot.filled {
-    border-style: solid; border-color: #4CAF50;
-    background: #e8f5e9; color: #333; font-weight: bold; font-size: 18px;
-}
-
-/* 新增：助词的排版样式 */
-.slot-text {
-    display: flex;
-    align-items: center;
-    font-weight: bold;
-    font-size: 18px;
-    color: #666;
-    padding: 0 5px;
-}
-
-/* 备选词库列表（横向滚动） */
-#combo-word-list {
-    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;
-}
-.combo-word-item {
-    flex-shrink: 0; padding: 8px 12px; border: 1px solid #ddd;
-    border-radius: 20px; background: white; cursor: pointer;
-    font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-.combo-word-item.used { opacity: 0.5; pointer-events: none; }
-
-.combo-actions { display: flex; justify-content: space-between; margin-top: 20px; }
-.combo-actions button { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; font-size: 16px; }
-#btn-submit-combo { background: #4CAF50; color: white; width: 65%; opacity: 0.5; }
-#btn-submit-combo:not(:disabled) { opacity: 1; cursor: pointer; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4); }
-#btn-close-combo { background: #eee; color: #666; width: 30%; cursor: pointer; }
 
 /* --- 任务节点图标样式 --- */
 /* 这是给地图做定位的“外壳”，绝对不能加动画！ */
