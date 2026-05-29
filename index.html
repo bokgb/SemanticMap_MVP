@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -43,13 +43,13 @@
         </div>
     </div>
 
-    <button id="locate-btn" class="map-control-btn" type="button" title="回到当前位置" aria-label="回到当前位置">
+    <button id="locate-btn" class="map-control-btn" type="button" title="回到当前位置" aria-label="回到当前位置" data-zh-title="回到当前位置" data-ja-title="現在地へ戻る" data-zh-label="回到当前位置" data-ja-label="現在地へ戻る">
         <span class="locate-icon" aria-hidden="true"></span>
         <span class="locate-label" data-zh="当前位置" data-ja="現在地">当前位置</span>
     </button>
 
     <div id="ui-layer">
-        <div id="ui-toggle" title="收起/展开">
+        <div id="ui-toggle" title="收起/展开" data-zh-title="收起/展开" data-ja-title="折りたたみ/展開">
             <button id="ui-toggle-btn">▲</button>
         </div>
         <button id="lang-toggle-btn" onclick="toggleLanguage()" type="button">JP</button>
@@ -80,13 +80,13 @@
     <div id="quest-layer" class="hidden">
         <div class="quest-panel">
             <div class="quest-header">
-                <span class="location-tag">📍 Lawson 便利店</span>
+                <span class="location-tag" data-zh="📍 地点任务" data-ja="📍 地点タスク">📍 地点任务</span>
                 <button id="btn-close-quest">✖</button>
             </div>
 
             <div class="quest-content">
                 <h3 data-zh="文型语义缺失！" data-ja="文型セマンティクス欠落！">文型语义缺失！</h3>
-                <div class="repair-reward-chip" id="quest-repair-points">修复值 +1</div>
+                <div class="repair-reward-chip" id="quest-repair-points" data-zh="修复值 +1" data-ja="修復値 +1">修复值 +1</div>
                 <div class="sentence-preview">
                     <span class="slot-box" id="quest-slot">?</span>
                     <span class="fixed-text">を たべる</span>
@@ -126,12 +126,12 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="ui.js?v=grammar-32"></script>
-    <script src="quests.js?v=grammar-32"></script>
-    <script src="inventory.js?v=grammar-32"></script>
-    <script src="i18n.js?v=grammar-32"></script>
-    <script src="vision.js?v=grammar-32"></script>
-    <script src="map.js?v=grammar-32"></script>
-    <script src="app.js?v=grammar-32"></script>
+    <script src="ui.js?v=grammar-33"></script>
+    <script src="quests.js?v=grammar-33"></script>
+    <script src="inventory.js?v=grammar-33"></script>
+    <script src="i18n.js?v=grammar-33"></script>
+    <script src="vision.js?v=grammar-33"></script>
+    <script src="map.js?v=grammar-33"></script>
+    <script src="app.js?v=grammar-33"></script>
 </body>
 </html>

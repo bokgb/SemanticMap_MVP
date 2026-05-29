@@ -1,2 +1,5 @@
 osmDataUnCleaned.json
 .DS_Store
+.edge-screenshot-profile/
+screenshots/
+semantic-map-*.png

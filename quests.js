@@ -269,10 +269,7 @@
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
         Object.keys(questCache).forEach(key => delete questCache[key]);
-        const currentLang = state.currentLang || 'zh';
-        SM.ui?.showToast(currentLang === 'ja'
-            ? "進行状況をリセットしました。"
-            : "已重置全部进度，正在重新开始", { type: 'success' });
+        SM.ui?.showToast(SM.i18n?.t?.('resetDone') || "已重置全部进度，正在重新开始", { type: 'success' });
         location.reload();
     }
 

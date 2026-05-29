@@ -24,6 +24,22 @@
         return /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(color) ? color : fallback;
     }
 
+    function tr(key, params = {}) {
+        return SM.i18n?.t?.(key, params) || key;
+    }
+
+    function getLang() {
+        return SM.i18n?.getLang?.() || state.currentLang || 'zh';
+    }
+
+    function translatePos(pos) {
+        const normalized = String(pos || '').trim();
+        if (!normalized || normalized === '名词' || normalized === '名詞' || normalized.toLowerCase() === 'noun') {
+            return tr('noun');
+        }
+        return normalized;
+    }
+
     function normalizeAiResult(result) {
         if (!result || !result.word || !result.word.text) return null;
 
@@ -44,40 +60,66 @@
 
     function renderRubyWord(wordObj) {
         if (!wordObj || !wordObj.text) return "???";
+        const lang = getLang();
         const text = escapeHtml(wordObj.text);
         const kana = escapeHtml(wordObj.kana);
         const zh = escapeHtml(wordObj.zh);
+        const meaning = lang === 'zh' && zh
+            ? ` <span style="font-size:12px; color:#888;">(${zh})</span>`
+            : '';
 
         if (!wordObj.kana || wordObj.text === wordObj.kana) {
-            return `<span>${text}</span> <span style="font-size:12px; color:#888;">(${zh})</span>`;
+            return `<span>${text}</span>${meaning}`;
         }
-        return `<ruby>${text}<rt>${kana}</rt></ruby> <span style="font-size:12px; color:#888;">(${zh})</span>`;
+        return `<ruby>${text}<rt>${kana}</rt></ruby>${meaning}`;
+    }
+
+    function getQuestReview(data) {
+        if (!data?.quest) return [];
+        const review = getLang() === 'ja'
+            ? data.quest.reviewJa || data.quest.review
+            : data.quest.review;
+        return Array.isArray(review) ? review : [];
+    }
+
+    function renderWordBlock(data) {
+        const block = document.createElement('div');
+        block.className = 'word-block';
+        const tagColor = sanitizeColor(data.tagColor);
+        const questReview = getQuestReview(data);
+
+        block.style.borderLeftColor = tagColor;
+        block.innerHTML = `
+            <div class="word-title">${renderRubyWord(data.word)}</div>
+            <div class="word-pos">[ ${escapeHtml(translatePos(data.pos))} ]</div>
+            <div class="word-tag" style="background-color: ${tagColor}">${escapeHtml(data.tag)}</div>
+            ${data.quest ? `
+                <div class="word-quest-meta">${escapeHtml(data.quest.location)} / ${escapeHtml(data.quest.level || '')}</div>
+                <div class="word-sentence">${escapeHtml(data.quest.sentence || '')}</div>
+                ${questReview.length ? `
+                    <div class="grammar-review">
+                        <div class="grammar-review-title">${escapeHtml(tr('grammarReviewTitle'))}</div>
+                        ${questReview.map(item => `<div class="grammar-review-item">${escapeHtml(item)}</div>`).join('')}
+                    </div>
+                ` : ''}
+            ` : ''}
+        `;
+        return block;
+    }
+
+    function renderInventoryList() {
+        if (!elements.wordList) return;
+        elements.wordList.innerHTML = '';
+        [...playerInventory].reverse().forEach(data => {
+            elements.wordList.appendChild(renderWordBlock(data));
+        });
     }
 
     function addWordToInventory(data) {
         if (!data) return;
 
         playerInventory.push(data);
-        const block = document.createElement('div');
-        block.className = 'word-block';
-        const tagColor = sanitizeColor(data.tagColor);
-        block.style.borderLeftColor = tagColor;
-        block.innerHTML = `
-            <div class="word-title">${renderRubyWord(data.word)}</div>
-            <div class="word-pos">[ ${escapeHtml(data.pos)} ]</div>
-            <div class="word-tag" style="background-color: ${tagColor}">${escapeHtml(data.tag)}</div>
-            ${data.quest ? `
-                <div class="word-quest-meta">${escapeHtml(data.quest.location)} / ${escapeHtml(data.quest.level || '')}</div>
-                <div class="word-sentence">${escapeHtml(data.quest.sentence || '')}</div>
-                ${Array.isArray(data.quest.review) && data.quest.review.length ? `
-                    <div class="grammar-review">
-                        <div class="grammar-review-title">语法复盘</div>
-                        ${data.quest.review.map(item => `<div class="grammar-review-item">${escapeHtml(item)}</div>`).join('')}
-                    </div>
-                ` : ''}
-            ` : ''}
-        `;
-        elements.wordList.prepend(block);
+        elements.wordList.prepend(renderWordBlock(data));
 
         collectedWordsCount++;
         if (!elements.inventoryLayer.classList.contains('open')) {
@@ -106,18 +148,36 @@
 
         if (aiData.example) {
             elements.lootExampleText.innerText = aiData.quest?.sentence || aiData.example.s || '';
-            elements.lootExampleZh.innerText = aiData.quest
-                ? [
+            if (aiData.quest) {
+                elements.lootExampleZh.innerText = [
                     aiData.quest.location,
-                    ...(Array.isArray(aiData.quest.review) ? aiData.quest.review : [])
-                ].filter(Boolean).join('\n')
-                : aiData.example.z || '';
+                    ...getQuestReview(aiData)
+                ].filter(Boolean).join('\n');
+            } else {
+                elements.lootExampleZh.innerText = getLang() === 'zh' ? aiData.example.z || '' : '';
+            }
         } else {
-            elements.lootExampleText.innerText = "没有找到合适的例句。";
+            elements.lootExampleText.innerText = tr('noExample');
             elements.lootExampleZh.innerText = "";
         }
 
         elements.wordCardLayer.classList.remove('hidden');
+    }
+
+    function refreshLanguage() {
+        if (pendingWord && elements.lootWordMain) {
+            elements.lootWordMain.innerHTML = renderRubyWord(pendingWord.word);
+            if (pendingWord.example) {
+                elements.lootExampleText.innerText = pendingWord.quest?.sentence || pendingWord.example.s || '';
+                elements.lootExampleZh.innerText = pendingWord.quest
+                    ? [
+                        pendingWord.quest.location,
+                        ...getQuestReview(pendingWord)
+                    ].filter(Boolean).join('\n')
+                    : getLang() === 'zh' ? pendingWord.example.z || '' : '';
+            }
+        }
+        renderInventoryList();
     }
 
     function init() {
@@ -162,6 +222,7 @@
         escapeHtml,
         renderRubyWord,
         addWordToInventory,
-        showWordDetailCard
+        showWordDetailCard,
+        refreshLanguage
     };
 })();

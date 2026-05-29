@@ -31,83 +31,143 @@
         // 修复区按“步行可达的语义场景”组织，而不是行政区。
         {
             id: 'tenroku',
-            name: '天六商店街修复区',
+            name: {
+                zh: '天六商店街修复区',
+                ja: '天六商店街修復エリア'
+            },
             center: [34.7106, 135.5108],
             radius: 480,
             requiredPoints: 8,
-            description: '天神橋筋六丁目周边'
+            description: {
+                zh: '天神橋筋六丁目周边',
+                ja: '天神橋筋六丁目周辺'
+            }
         },
         {
             id: 'ogimachi_park',
-            name: '扇町公园修复区',
+            name: {
+                zh: '扇町公园修复区',
+                ja: '扇町公園修復エリア'
+            },
             center: [34.70413, 135.50915],
             radius: 430,
             requiredPoints: 6,
-            description: '扇町公园与周边生活设施'
+            description: {
+                zh: '扇町公园与周边生活设施',
+                ja: '扇町公園と周辺生活施設'
+            }
         },
         {
             id: 'nakazakicho',
-            name: '中崎町路地修复区',
+            name: {
+                zh: '中崎町路地修复区',
+                ja: '中崎町路地修復エリア'
+            },
             center: [34.7068, 135.5051],
             radius: 430,
             requiredPoints: 7,
-            description: '中崎町站、巷道与小店周边'
+            description: {
+                zh: '中崎町站、巷道与小店周边',
+                ja: '中崎町駅、路地、小店舗周辺'
+            }
         },
         {
             id: 'umeda',
-            name: '梅田地下街修复区',
+            name: {
+                zh: '梅田地下街修复区',
+                ja: '梅田地下街修復エリア'
+            },
             center: [34.7025, 135.4959],
             radius: 560,
             requiredPoints: 12,
-            description: '大阪站、梅田商业与交通节点'
+            description: {
+                zh: '大阪站、梅田商业与交通节点',
+                ja: '大阪駅、梅田商業地、交通結節点'
+            }
         },
         {
             id: 'minamimorimachi',
-            name: '南森町生活修复区',
+            name: {
+                zh: '南森町生活修复区',
+                ja: '南森町生活修復エリア'
+            },
             center: [34.6977, 135.5115],
             radius: 460,
             requiredPoints: 8,
-            description: '南森町、大阪天满宫与生活街区'
+            description: {
+                zh: '南森町、大阪天满宫与生活街区',
+                ja: '南森町、大阪天満宮、生活街区'
+            }
         },
         {
             id: 'kyoto_station',
-            name: '京都駅交通修复区',
+            name: {
+                zh: '京都站交通修复区',
+                ja: '京都駅交通修復エリア'
+            },
             center: [34.9858, 135.7588],
             radius: 540,
             requiredPoints: 10,
-            description: '京都站与八条口周边'
+            description: {
+                zh: '京都站与八条口周边',
+                ja: '京都駅と八条口周辺'
+            }
         },
         {
             id: 'nishiki_market',
-            name: '锦市场商店街修复区',
+            name: {
+                zh: '锦市场商店街修复区',
+                ja: '錦市場商店街修復エリア'
+            },
             center: [35.0050, 135.7648],
             radius: 500,
             requiredPoints: 8,
-            description: '锦市场、四条与商业街周边'
+            description: {
+                zh: '锦市场、四条与商业街周边',
+                ja: '錦市場、四条、商店街周辺'
+            }
         },
         {
             id: 'gion',
-            name: '祇园街路修复区',
+            name: {
+                zh: '祇园街路修复区',
+                ja: '祇園街路修復エリア'
+            },
             center: [35.0037, 135.7750],
             radius: 480,
             requiredPoints: 7,
-            description: '祇园四条与花见小路周边'
+            description: {
+                zh: '祇园四条与花见小路周边',
+                ja: '祇園四条と花見小路周辺'
+            }
         },
         {
             id: 'fushimi_inari',
-            name: '伏见稻荷修复区',
+            name: {
+                zh: '伏见稻荷修复区',
+                ja: '伏見稲荷修復エリア'
+            },
             center: [34.9671, 135.7727],
             radius: 560,
             requiredPoints: 6,
-            description: '伏见稻荷、稻荷站与参道周边'
+            description: {
+                zh: '伏见稻荷、稻荷站与参道周边',
+                ja: '伏見稲荷、稲荷駅、参道周辺'
+            }
         },
         {
             id: 'nijo_castle',
-            name: '二条城周边修复区',
+            name: {
+                zh: '二条城周边修复区',
+                ja: '二条城周辺修復エリア'
+            },
             center: [35.0142, 135.7480],
             radius: 560,
             requiredPoints: 6,
-            description: '二条城、二条站与周边街区'
+            description: {
+                zh: '二条城、二条站与周边街区',
+                ja: '二条城、二条駅、周辺街区'
+            }
         }
     ];
     const AREA_URL_PARAMS = ['area', 'testArea', 'demoArea'];
@@ -130,6 +190,20 @@
             '"': '&quot;',
             "'": '&#39;'
         }[char]));
+    }
+
+    function tr(key, params = {}) {
+        return SM.i18n?.t?.(key, params) || key;
+    }
+
+    function getLangValue(value) {
+        if (!value || typeof value !== 'object') return value || '';
+        const lang = SM.i18n?.getLang?.() || state.currentLang || 'zh';
+        return value[lang] || value.zh || value.ja || '';
+    }
+
+    function getAreaName(area) {
+        return getLangValue(area?.name);
     }
 
     function createCompletedQuestMarker(spot) {
@@ -292,9 +366,14 @@
 
             const points = getAreaRepairPoints(area);
             const record = getAreaRecord(area);
+            const areaName = getAreaName(area);
             const label = record.purified
-                ? `${area.name} 修复完成`
-                : `${area.name} ${Math.min(points, area.requiredPoints)}/${area.requiredPoints}`;
+                ? tr('areaComplete', { area: areaName })
+                : tr('areaProgress', {
+                    area: areaName,
+                    points: Math.min(points, area.requiredPoints),
+                    required: area.requiredPoints
+                });
             layer.setStyle?.({
                 color: record.purified ? '#26a69a' : '#00acc1',
                 fillColor: record.purified ? '#80cbc4' : '#b2ebf2',
@@ -468,16 +547,16 @@
             ? getAreaById(spot.areaId) || getSpotArea(spot) || getSpotArea(state.lastPlayerPosition) || getNearestArea(spot.lat, spot.lng)
             : getSpotArea(spot);
 
-        questTitle.innerText = `${data.rarity}级文型任务`;
+        questTitle.innerText = tr('questTitle', { rarity: data.rarity });
         questTitle.style.color = data.config.color;
         if (repairPointsChip) {
             repairPointsChip.classList.toggle('outside', !isCatQuest && !targetArea);
             repairPointsChip.classList.toggle('special', isCatQuest);
             repairPointsChip.innerText = isCatQuest
-                ? `小猫救援 +${CAT_REPAIR_POINTS}`
+                ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
                 : targetArea
-                    ? `区域修复值 +${repairPoints}`
-                    : '区域外练习：不加修复值';
+                    ? tr('questAreaPoints', { points: repairPoints })
+                    : tr('questOutside');
         }
         preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
 
@@ -508,7 +587,7 @@
 
             const data = await response.json();
             if (!Array.isArray(data)) {
-                throw new Error("spotsData.json 格式不是数组");
+                throw new Error(tr('mapDataInvalid'));
             }
 
             allSpots = data;
@@ -516,7 +595,7 @@
             updateVisibleSpots(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng);
         } catch (error) {
             console.error("加载数据失败", error);
-            statusText.innerText = "地标数据加载失败，请检查 spotsData.json";
+            statusText.innerText = tr('mapDataFailed');
         }
     }
 
@@ -658,7 +737,7 @@
             type: 'npc_cat',
             id: spotKey,
             areaId: targetArea?.id || null,
-            name: "流浪猫",
+            name: tr('catName'),
             emoji: "🐱",
             questTag: "Food"
         };
@@ -719,7 +798,10 @@
 
     function initGeolocation() {
         if (state.forcedDemoArea) {
-            setDemoPosition(`开发测试位置：${state.forcedDemoArea.name}\nURL 参数 area=${state.forcedDemoArea.id}`);
+            setDemoPosition(tr('demoPosition', {
+                area: getAreaName(state.forcedDemoArea),
+                id: state.forcedDemoArea.id
+            }));
             return;
         }
 
@@ -731,7 +813,10 @@
                     setPlayerPosition(lat, lng, 'gps');
                     updateMapBounds(lat, lng);
 
-                    statusText.innerText = `坐标更新成功：\n纬度 ${lat.toFixed(4)}\n经度 ${lng.toFixed(4)}`;
+                    statusText.innerText = tr('gpsUpdated', {
+                        lat: lat.toFixed(4),
+                        lng: lng.toFixed(4)
+                    });
                     if (!hasCenteredOnPlayer) {
                         map.setView([lat, lng], FOCUS_ZOOM);
                         hasCenteredOnPlayer = true;
@@ -743,17 +828,17 @@
                 (error) => {
                     console.warn("定位获取失败，使用默认演示位置:", error);
                     if (state.lastPlayerPosition?.source === 'gps') {
-                        statusText.innerText = "GPS 暂时中断，已保留上次定位";
+                        statusText.innerText = tr('gpsKept');
                         updateVisibleSpots(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng);
                         return;
                     }
 
-                    setDemoPosition("GPS 定位失败，已切换到关西演示位置");
+                    setDemoPosition(tr('gpsFallback'));
                 },
                 { enableHighAccuracy: true, maximumAge: 0 }
             );
         } else {
-            setDemoPosition("你的设备不支持 GPS，已切换到关西演示位置");
+            setDemoPosition(tr('gpsUnsupported'));
         }
     }
 
@@ -816,6 +901,41 @@
         document.getElementById('clear-cache-btn').addEventListener('click', SM.quests.clearQuestCacheAll);
     }
 
+    function refreshLanguage() {
+        updateAreaDisplay();
+
+        if (state.forcedDemoArea && state.lastPlayerPosition?.source === 'demo') {
+            statusText.innerText = tr('demoPosition', {
+                area: getAreaName(state.forcedDemoArea),
+                id: state.forcedDemoArea.id
+            });
+        }
+
+        const questLayer = document.getElementById('quest-layer');
+        if (!state.activeQuest || questLayer?.classList.contains('hidden')) return;
+
+        const questTitle = questLayer.querySelector('.quest-content h3');
+        const repairPointsChip = questLayer.querySelector('#quest-repair-points');
+        const activeQuest = state.activeQuest;
+        const isCatQuest = activeQuest.type === 'NPC';
+        const targetArea = isCatQuest
+            ? getAreaById(activeQuest.targetAreaId) || getSpotArea(activeQuest.spot) || getSpotArea(state.lastPlayerPosition) || getNearestArea(activeQuest.spot?.lat, activeQuest.spot?.lng)
+            : getSpotArea(activeQuest.spot);
+
+        if (questTitle) {
+            questTitle.innerText = tr('questTitle', { rarity: activeQuest.rarity });
+        }
+
+        if (repairPointsChip) {
+            const repairPoints = getRepairPointsForRarity(activeQuest.rarity);
+            repairPointsChip.innerText = isCatQuest
+                ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
+                : targetArea
+                    ? tr('questAreaPoints', { points: repairPoints })
+                    : tr('questOutside');
+        }
+    }
+
     function init() {
         statusText = document.getElementById('status-text');
         const defaultCenterConfig = getDefaultCenterConfig();
@@ -864,6 +984,8 @@
         clearCatEvent,
         spawnTestCat,
         areas: GAME_AREAS,
-        getSpotArea
+        getSpotArea,
+        getAreaName,
+        refreshLanguage
     };
 })();

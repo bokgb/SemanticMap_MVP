@@ -36,19 +36,21 @@
         }, duration);
     }
 
-    function showDialog({ title = '提示', message = '', buttonText = '知道了', type = 'warning' } = {}) {
+    function showDialog({ title, message = '', buttonText, type = 'warning' } = {}) {
         const existingDialog = document.querySelector('.game-dialog-layer');
         if (existingDialog) {
             existingDialog.remove();
         }
 
+        const dialogTitle = title || SM.i18n?.t?.('wrongTitle') || '提示';
+        const dialogButton = buttonText || SM.i18n?.t?.('ok') || '知道了';
         const layer = document.createElement('div');
         layer.className = 'game-dialog-layer';
         layer.innerHTML = `
             <div class="game-dialog ${type}" role="dialog" aria-modal="true" aria-labelledby="game-dialog-title">
-                <h2 id="game-dialog-title">${escapeHtml(title)}</h2>
+                <h2 id="game-dialog-title">${escapeHtml(dialogTitle)}</h2>
                 <p>${escapeHtml(message)}</p>
-                <button type="button" class="game-dialog-btn">${escapeHtml(buttonText)}</button>
+                <button type="button" class="game-dialog-btn">${escapeHtml(dialogButton)}</button>
             </div>
         `;
         document.body.appendChild(layer);

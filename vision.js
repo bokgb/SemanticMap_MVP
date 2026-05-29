@@ -10,13 +10,9 @@
         if (!elements.levelSelector || !elements.difficultyHint) return;
 
         state.currentLevel = elements.levelSelector.value;
-        const hintMap = {
-            N5: '当前难度：N5 - 新手',
-            N3: '当前难度：N3 - 进阶',
-            N1: '当前难度：N1 - 专家'
-        };
-
-        elements.difficultyHint.innerText = hintMap[elements.levelSelector.value] || '当前难度：未知';
+        elements.difficultyHint.innerText = SM.i18n?.t?.(`difficulty.${elements.levelSelector.value}`)
+            || SM.i18n?.t?.('difficulty.unknown')
+            || '当前难度：未知';
         elements.difficultyHint.dataset.level = elements.levelSelector.value;
 
         if (SM.map && state.lastPlayerPosition) {
@@ -59,14 +55,16 @@
                 const level = button.dataset.levelChoice || 'N5';
                 setLevel(level, { persist: true, refresh: true });
                 elements.levelOnboardingLayer.classList.add('hidden');
-                SM.ui?.showToast(`已选择：${button.querySelector('.level-choice-main')?.innerText || level}`, { type: 'success' });
+                SM.ui?.showToast(SM.i18n?.t?.('levelSelected', {
+                    level: button.querySelector('.level-choice-main')?.innerText || level
+                }) || `已选择：${level}`, { type: 'success' });
             });
         });
     }
 
     async function openCamera() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            SM.ui?.showToast("当前浏览器不支持摄像头调用，请使用 HTTPS 或 localhost 环境。", { type: 'error', duration: 4200 });
+            SM.ui?.showToast(SM.i18n?.t?.('cameraUnsupported'), { type: 'error', duration: 4200 });
             return;
         }
 
@@ -80,7 +78,7 @@
         } catch (err) {
             elements.cameraLayer.style.display = 'none';
             state.activeQuest = null;
-            SM.ui?.showToast(`无法调用摄像头：${err.message}`, { type: 'error', duration: 4200 });
+            SM.ui?.showToast(SM.i18n?.t?.('cameraOpenFailed', { message: err.message }), { type: 'error', duration: 4200 });
         }
     }
 
@@ -96,7 +94,7 @@
     function captureFrameAsBase64() {
         const video = elements.cameraFeed;
         if (!video || !video.videoWidth || !video.videoHeight) {
-            throw new Error("摄像头画面尚未准备好，请稍等一秒再拍。");
+            throw new Error(SM.i18n?.t?.('cameraNotReady') || "摄像头画面尚未准备好，请稍等一秒再拍。");
         }
 
         const canvas = document.createElement('canvas');
@@ -114,7 +112,7 @@
         try {
             base64Image = captureFrameAsBase64();
         } catch (error) {
-            SM.ui?.showToast(`无法拍摄当前画面：${error.message}`, { type: 'error', duration: 4200 });
+            SM.ui?.showToast(SM.i18n?.t?.('captureFailed', { message: error.message }), { type: 'error', duration: 4200 });
             return null;
         }
 
@@ -200,17 +198,21 @@
             const data = await response.json();
 
             if (data.error) {
-                SM.ui?.showToast(`AI 识别出错：${data.error.message || "请检查后端日志"}`, { type: 'error', duration: 4200 });
+                SM.ui?.showToast(SM.i18n?.t?.('aiError', {
+                    message: data.error.message || SM.i18n?.t?.('backendLog')
+                }), { type: 'error', duration: 4200 });
                 return null;
             }
 
             if (!response.ok) {
-                throw new Error(`API 拒绝请求: ${data.error?.message || response.status}`);
+                throw new Error(SM.i18n?.t?.('apiRejected', {
+                    message: data.error?.message || response.status
+                }) || `API 拒绝请求: ${data.error?.message || response.status}`);
             }
 
             const resultTextPart = data?.candidates?.[0]?.content?.parts?.find(part => typeof part.text === 'string');
             if (!resultTextPart) {
-                throw new Error("AI 没有返回可解析的文本结果。");
+                throw new Error(SM.i18n?.t?.('aiNoText') || "AI 没有返回可解析的文本结果。");
             }
 
             let resultText = resultTextPart.text;
@@ -220,11 +222,15 @@
             return SM.inventory.normalizeAiResult(aiResult);
         } catch (error) {
             console.error("AI 识别失败:", error);
-            SM.ui?.showToast(`识别失败：${error.message}`, { type: 'error', duration: 4200 });
+            SM.ui?.showToast(SM.i18n?.t?.('aiFailed', { message: error.message }), { type: 'error', duration: 4200 });
 
             return SM.inventory.normalizeAiResult({
-                word: { text: "未知物品（エラー）", kana: "", zh: "识别失败" },
-                pos: "名词",
+                word: {
+                    text: SM.i18n?.t?.('unknownItem') || "未知物品",
+                    kana: "",
+                    zh: SM.i18n?.t?.('recognitionFailed') || "识别失败"
+                },
+                pos: SM.i18n?.t?.('noun') || "名词",
                 tag: "Item",
                 tagColor: "#607D8B",
                 example: { s: "", k: "", z: "" }
@@ -239,7 +245,7 @@
         if (navigator.vibrate) navigator.vibrate(50);
 
         const originalText = elements.captureBtn.innerText;
-        elements.captureBtn.innerText = "解析中...";
+        elements.captureBtn.innerText = SM.i18n?.t?.('parsing') || "解析中...";
         elements.captureBtn.disabled = true;
         elements.closeCameraBtn.disabled = true;
 
@@ -254,7 +260,7 @@
             aiResult = await callRealVisionAI();
         } catch (error) {
             console.error("AI 识别流程异常:", error);
-            SM.ui?.showToast(`识别流程异常：${error.message}`, { type: 'error', duration: 4200 });
+            SM.ui?.showToast(SM.i18n?.t?.('flowError', { message: error.message }), { type: 'error', duration: 4200 });
         } finally {
             if (elements.cameraFeed && typeof elements.cameraFeed.play === 'function' && elements.cameraFeed.srcObject) {
                 elements.cameraFeed.play().catch(() => {});
@@ -278,7 +284,7 @@
 
         const activeQuest = state.activeQuest;
         if (!activeQuest) {
-            SM.ui?.showToast("请先点击地图上的地点文型任务，再开始正式拍照。", { type: 'warning' });
+            SM.ui?.showToast(SM.i18n?.t?.('scanFirst'), { type: 'warning' });
             return;
         }
 
@@ -290,12 +296,13 @@
             if (activeQuest.type === 'NPC') {
                 aiResult.tag = 'Food';
                 const areaResult = SM.map?.recordCatComplete?.(activeQuest);
+                const areaName = SM.map?.getAreaName?.(areaResult?.area) || '';
                 if (areaResult?.justPurified) {
-                    SM.ui?.showToast(`小猫救援 +${areaResult.addedPoints}\n${areaResult.area.name} 净化完成`, { type: 'success', duration: 3600 });
+                    SM.ui?.showToast(`${SM.i18n?.t?.('catRescue')} +${areaResult.addedPoints}\n${areaName} ${SM.i18n?.t?.('purified')}`, { type: 'success', duration: 3600 });
                 } else if (areaResult?.addedPoints) {
-                    SM.ui?.showToast(`小猫救援 +${areaResult.addedPoints}\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
+                    SM.ui?.showToast(`${SM.i18n?.t?.('catRescue')} +${areaResult.addedPoints}\n${areaName} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
                 } else {
-                    SM.ui?.showToast(`喂食成功：猫 に ${aiResult.word.text} を あげる`, { type: 'success' });
+                    SM.ui?.showToast(SM.i18n?.t?.('catFed', { word: aiResult.word.text }), { type: 'success' });
                 }
                 SM.map?.clearCatEvent?.(activeQuest.marker);
             } else if (activeQuest.type === 'POI') {
@@ -303,7 +310,8 @@
                 aiResult.quest = {
                     level: activeQuest.level,
                     grammar: activeQuest.grammar,
-                    review: buildGrammarReview(activeQuest, aiResult.word.text),
+                    review: buildGrammarReview(activeQuest, aiResult.word.text, 'zh'),
+                    reviewJa: buildGrammarReview(activeQuest, aiResult.word.text, 'ja'),
                     sentence: finishedSentence,
                     location: activeQuest.spot?.name || '',
                     spotType: activeQuest.spot?.type || '',
@@ -315,12 +323,13 @@
             SM.quests.completeQuest(activeQuest);
             if (activeQuest.type === 'POI' && SM.map?.recordQuestComplete) {
                 const areaResult = SM.map.recordQuestComplete(activeQuest);
+                const areaName = SM.map?.getAreaName?.(areaResult?.area) || '';
                 if (areaResult?.justPurified) {
-                    SM.ui?.showToast(`区域净化完成！\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
+                    SM.ui?.showToast(`${SM.i18n?.t?.('areaPurified')}\n${areaName} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
                 } else if (areaResult?.addedPoints) {
-                    SM.ui?.showToast(`区域修复 +${areaResult.addedPoints}\n${areaResult.area.name} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success' });
+                    SM.ui?.showToast(`${SM.i18n?.t?.('areaRepair')} +${areaResult.addedPoints}\n${areaName} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success' });
                 } else if (areaResult?.outsideArea) {
-                    SM.ui?.showToast("区域外练习完成：已获得词卡，但不增加区域修复值。", { type: 'info', duration: 3200 });
+                    SM.ui?.showToast(SM.i18n?.t?.('outsidePracticeDone'), { type: 'info', duration: 3200 });
                 }
             }
             document.getElementById('quest-layer').classList.add('hidden');
@@ -334,18 +343,22 @@
     function showWrongObjectDialog(activeQuest, aiResult) {
         if (activeQuest?.type === 'NPC') {
             SM.ui?.showDialog({
-                title: '拍摄对象不符合任务',
-                message: `你拍到了：${aiResult.word.text}\n这个任务需要食物或饮料类物品。`,
-                buttonText: '知道了',
+                title: SM.i18n?.t?.('wrongTitle'),
+                message: SM.i18n?.t?.('wrongCatMessage', { word: aiResult.word.text }),
+                buttonText: SM.i18n?.t?.('ok'),
                 type: 'warning'
             });
             return;
         }
 
         SM.ui?.showDialog({
-            title: '拍摄对象不符合任务',
-            message: `你拍到了：${aiResult.word.text}\n识别类别：${aiResult.tag}\n这个任务需要：${activeQuest?.requiredTag || '任务指定类别'}`,
-            buttonText: '知道了',
+            title: SM.i18n?.t?.('wrongTitle'),
+            message: SM.i18n?.t?.('wrongMessage', {
+                word: aiResult.word.text,
+                tag: aiResult.tag,
+                required: activeQuest?.requiredTag || SM.i18n?.t?.('wrongRequiredFallback')
+            }),
+            buttonText: SM.i18n?.t?.('ok'),
             type: 'warning'
         });
     }
@@ -371,71 +384,72 @@
         return foodWords.some(word => text.includes(word.toLowerCase()));
     }
 
-    function buildGrammarReview(quest, wordText) {
+    function buildGrammarReview(quest, wordText, lang = SM.i18n?.getLang?.() || 'zh') {
         if (!quest) return [];
 
         const text = quest.text || '';
         const review = [];
+        const isJa = lang === 'ja';
 
         if (quest.grammar) {
-            review.push(`文型：${quest.grammar}`);
+            review.push(isJa ? `文型：${quest.grammar}` : `文型：${quest.grammar}`);
         }
         if (text.includes('を')) {
-            review.push(`を：把「${wordText}」标记为动作对象`);
+            review.push(isJa ? `を：「${wordText}」を動作の対象として示す` : `を：把「${wordText}」标记为动作对象`);
         }
         if (text.includes('に')) {
-            review.push('に：表示目标、到达点或存在位置');
+            review.push(isJa ? 'に：目標、到達点、存在場所を示す' : 'に：表示目标、到达点或存在位置');
         }
         if (text.includes('で')) {
-            review.push('で：表示动作发生的场所或手段');
+            review.push(isJa ? 'で：動作が行われる場所や手段を示す' : 'で：表示动作发生的场所或手段');
         }
         if (text.includes('は')) {
-            review.push('は：提示主题，说明这个名词的性质或作用');
+            review.push(isJa ? 'は：主題を提示し、その性質や役割を説明する' : 'は：提示主题，说明这个名词的性质或作用');
         }
         if (text.includes('が')) {
-            review.push('が：标记主语、存在物或被强调的信息');
+            review.push(isJa ? 'が：主語、存在物、強調される情報を示す' : 'が：标记主语、存在物或被强调的信息');
         }
         if (text.includes('ために')) {
-            review.push('ために：表示目的，“为了……”');
+            review.push(isJa ? 'ために：目的を示す' : 'ために：表示目的，“为了……”');
         }
         if (text.includes('てから')) {
-            review.push('てから：表示动作顺序，“做完之后……”');
+            review.push(isJa ? 'てから：動作の順序を示す' : 'てから：表示动作顺序，“做完之后……”');
         }
         if (text.includes('ながら')) {
-            review.push('ながら：表示两个动作同时进行');
+            review.push(isJa ? 'ながら：二つの動作が同時に行われることを示す' : 'ながら：表示两个动作同时进行');
         }
         if (text.includes('ように')) {
-            review.push('ように：表示目的、提醒或避免某种情况');
+            review.push(isJa ? 'ように：目的、注意、回避を示す' : 'ように：表示目的、提醒或避免某种情况');
         }
         if (text.includes('まで')) {
-            review.push('まで：表示持续到某个时间点或事件发生');
+            review.push(isJa ? 'まで：ある時点や出来事までの継続を示す' : 'まで：表示持续到某个时间点或事件发生');
         }
         if (text.includes('ば')) {
-            review.push('ば：表示条件，“如果……”');
+            review.push(isJa ? 'ば：条件を示す' : 'ば：表示条件，“如果……”');
         }
         if (text.includes('かどうか')) {
-            review.push('かどうか：表示“是否……”');
+            review.push(isJa ? 'かどうか：ある事柄が成立するかどうかを示す' : 'かどうか：表示“是否……”');
         }
         if (text.includes('として')) {
-            review.push('として：表示身份、用途或立场，“作为……”');
+            review.push(isJa ? 'として：立場、用途、役割を示す' : 'として：表示身份、用途或立场，“作为……”');
         }
         if (text.includes('うえで')) {
-            review.push('うえで：表示“在……方面 / 为了……时”');
+            review.push(isJa ? 'うえで：ある行為や判断の前提・場面を示す' : 'うえで：表示“在……方面 / 为了……时”');
         }
         if (text.includes('において')) {
-            review.push('において：表示范围或场合，“在……中”');
+            review.push(isJa ? 'において：範囲や場面を示す' : 'において：表示范围或场合，“在……中”');
         }
         if (text.includes('を通して')) {
-            review.push('を通して：表示媒介或经验路径，“通过……”');
+            review.push(isJa ? 'を通して：媒介や経験の経路を示す' : 'を通して：表示媒介或经验路径，“通过……”');
         }
         if (text.includes('に応じて')) {
-            review.push('に応じて：表示根据情况变化，“根据……”');
+            review.push(isJa ? 'に応じて：状況に合わせて変わることを示す' : 'に応じて：表示根据情况变化，“根据……”');
         }
         if (text.includes('観点から')) {
-            review.push('観点から：表示判断角度，“从……观点来看”');
+            review.push(isJa ? '観点から：判断の視点を示す' : '観点から：表示判断角度，“从……观点来看”');
         }
         if (text.includes('頼らず')) {
-            review.push('ず：表示否定连接，“不……”');
+            review.push(isJa ? 'ず：否定の接続を示す' : 'ず：表示否定连接，“不……”');
         }
 
         return [...new Set(review)];
