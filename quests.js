@@ -231,7 +231,7 @@
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
         Object.keys(questCache).forEach(key => delete questCache[key]);
-        SM.ui?.showToast(SM.i18n?.t?.('resetDone') || "已重置全部进度，正在重新开始", { type: 'success' });
+        SM.ui?.showToast(SM.i18n?.t?.('resetDone'), { type: 'success' });
         location.reload();
     }
 

@@ -12,7 +12,7 @@
         state.currentLevel = elements.levelSelector.value;
         elements.difficultyHint.innerText = SM.i18n?.t?.(`difficulty.${elements.levelSelector.value}`)
             || SM.i18n?.t?.('difficulty.unknown')
-            || '当前难度：未知';
+            || '';
         elements.difficultyHint.dataset.level = elements.levelSelector.value;
 
         if (SM.map && state.lastPlayerPosition) {
@@ -57,7 +57,7 @@
                 elements.levelOnboardingLayer.classList.add('hidden');
                 SM.ui?.showToast(SM.i18n?.t?.('levelSelected', {
                     level: button.querySelector('.level-choice-main')?.innerText || level
-                }) || `已选择：${level}`, { type: 'success' });
+                }), { type: 'success' });
             });
         });
     }
@@ -94,7 +94,7 @@
     function captureFrameAsBase64() {
         const video = elements.cameraFeed;
         if (!video || !video.videoWidth || !video.videoHeight) {
-            throw new Error(SM.i18n?.t?.('cameraNotReady') || "摄像头画面尚未准备好，请稍等一秒再拍。");
+            throw new Error(SM.i18n?.t?.('cameraNotReady') || '');
         }
 
         const canvas = document.createElement('canvas');
@@ -212,7 +212,7 @@
 
             const resultTextPart = data?.candidates?.[0]?.content?.parts?.find(part => typeof part.text === 'string');
             if (!resultTextPart) {
-                throw new Error(SM.i18n?.t?.('aiNoText') || "AI 没有返回可解析的文本结果。");
+                throw new Error(SM.i18n?.t?.('aiNoText') || '');
             }
 
             let resultText = resultTextPart.text;
@@ -226,11 +226,11 @@
 
             return SM.inventory.normalizeAiResult({
                 word: {
-                    text: SM.i18n?.t?.('unknownItem') || "未知物品",
+                    text: SM.i18n?.t?.('unknownItem') || "",
                     kana: "",
-                    zh: SM.i18n?.t?.('recognitionFailed') || "识别失败"
+                    zh: SM.i18n?.t?.('recognitionFailed') || ""
                 },
-                pos: SM.i18n?.t?.('noun') || "名词",
+                pos: SM.i18n?.t?.('noun') || "",
                 tag: "Item",
                 tagColor: "#687174",
                 example: { s: "", k: "", z: "" }
@@ -245,7 +245,7 @@
         if (navigator.vibrate) navigator.vibrate(50);
 
         const originalText = elements.captureBtn.innerText;
-        elements.captureBtn.innerText = SM.i18n?.t?.('parsing') || "解析中...";
+        elements.captureBtn.innerText = SM.i18n?.t?.('parsing') || "";
         elements.captureBtn.disabled = true;
         elements.closeCameraBtn.disabled = true;
 

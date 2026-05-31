@@ -34,6 +34,14 @@ body, html {
     z-index: 1; /* 地图在底层 */
 }
 
+#fog-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 650;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+}
+
 #toast-layer {
     position: fixed;
     top: max(14px, env(safe-area-inset-top));
@@ -46,6 +54,112 @@ body, html {
     align-items: stretch;
     gap: 8px;
     pointer-events: none;
+}
+
+#mimi-guide {
+    position: fixed;
+    left: 18px;
+    top: max(16px, env(safe-area-inset-top));
+    z-index: 6200;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    max-width: min(86vw, 430px);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#mimi-guide.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.mimi-avatar {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    background: radial-gradient(circle at 34% 24%, #fff8b8 0%, #f6c744 38%, #e59b35 100%);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.24), 0 0 0 5px rgba(246,199,68,0.18);
+    color: #5f4b2d;
+    font-weight: 900;
+    cursor: pointer;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.mimi-face {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    line-height: 1;
+}
+
+.mimi-speech {
+    position: relative;
+    margin-top: 2px;
+    padding: 10px 12px 11px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 24px var(--shadow-soft);
+    backdrop-filter: blur(10px);
+    min-width: 190px;
+    max-width: 360px;
+}
+
+.mimi-speech::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 18px;
+    width: 12px;
+    height: 12px;
+    transform: rotate(45deg);
+    background: rgba(255,255,255,0.96);
+    border-left: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
+.mimi-name {
+    margin-bottom: 3px;
+    color: var(--accent-dark);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.mimi-text {
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.42;
+    white-space: pre-line;
+}
+
+#mimi-guide.success .mimi-speech {
+    border-left: 5px solid var(--accent);
+}
+
+#mimi-guide.warning .mimi-speech {
+    border-left: 5px solid var(--warning);
+}
+
+#mimi-guide.error .mimi-speech {
+    border-left: 5px solid var(--danger);
+}
+
+#mimi-guide.info .mimi-speech {
+    border-left: 5px solid var(--slate);
 }
 
 .game-toast {
@@ -351,6 +465,34 @@ body, html {
 
 .area-label::before {
     display: none;
+}
+
+.signal-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 900;
+    background: rgba(38, 50, 56, 0.72);
+    border: 2px solid rgba(255, 255, 255, 0.86);
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14), 0 4px 14px rgba(0,0,0,0.24);
+    backdrop-filter: blur(6px);
+    animation: signalPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes signalPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.72;
+    }
+    50% {
+        transform: scale(1.12);
+        opacity: 1;
+    }
 }
 
 @media (max-width: 520px) {

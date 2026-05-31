@@ -1,10 +1,13 @@
 (function () {
     const SM = window.SemanticMap = window.SemanticMap || {};
     const state = SM.state = SM.state || {};
+    const LANG_STORAGE_KEY = 'semantic-map-lang';
 
     const DICT = {
         zh: {
             langToggle: 'JP',
+            mimiName: 'Mimi',
+            mimiFace: 'M',
             bagTitle: '地点词汇卡',
             difficulty: {
                 N5: '当前难度：N5 - 新手',
@@ -55,10 +58,18 @@
             gpsKept: 'GPS 暂时中断，已保留上次定位',
             gpsFallback: 'GPS 定位失败，已切换到关西演示位置',
             gpsUnsupported: '你的设备不支持 GPS，已切换到关西演示位置',
-            resetDone: '已重置全部进度，正在重新开始'
+            resetDone: '已重置全部进度，正在重新开始',
+            weakSignal: '信号还不稳定，再靠近约 {meters} 米就能解锁。',
+            newPlaceFound: '发现新地点：{place}',
+            explorerLevelUp: '探索等级 Lv.{level}！雷达范围扩大到 {radius}m',
+            mimiIdle: '我是 Mimi。附近有语义信号，走近一点看看吧。',
+            dialogFallbackTitle: '提示',
+            dialogFallbackButton: '知道了'
         },
         ja: {
             langToggle: 'ZH',
+            mimiName: 'ミミ',
+            mimiFace: 'ミ',
             bagTitle: '場所語彙カード',
             difficulty: {
                 N5: '現在の難易度：N5 - 初心者',
@@ -109,7 +120,13 @@
             gpsKept: 'GPS が一時的に途切れました。前回位置を保持しています',
             gpsFallback: 'GPS 位置情報を取得できないため、関西デモ位置に切り替えました',
             gpsUnsupported: 'この端末は GPS に対応していないため、関西デモ位置に切り替えました',
-            resetDone: '進行状況をリセットしました。再開します'
+            resetDone: '進行状況をリセットしました。再開します',
+            weakSignal: '信号がまだ弱いです。あと約 {meters}m 近づくと解放されます。',
+            newPlaceFound: '新しい地点を発見：{place}',
+            explorerLevelUp: '探索レベル Lv.{level}！レーダー範囲が {radius}m に拡大しました',
+            mimiIdle: 'ミミだよ。近くに意味信号があるみたい。少し近づいてみよう。',
+            dialogFallbackTitle: '案内',
+            dialogFallbackButton: 'わかりました'
         }
     };
 
@@ -164,17 +181,26 @@
         }
 
         SM.vision?.updateDifficultyHint?.();
+        SM.ui?.refreshLanguage?.();
         SM.map?.refreshLanguage?.();
         SM.inventory?.refreshLanguage?.();
     }
 
     function toggleLanguage() {
         state.currentLang = state.currentLang === 'zh' ? 'ja' : 'zh';
+        localStorage.setItem(LANG_STORAGE_KEY, state.currentLang);
         applyLanguage();
     }
 
     function init() {
-        state.currentLang = state.currentLang || 'zh';
+        const urlLang = new URLSearchParams(window.location.search).get('lang');
+        const savedLang = localStorage.getItem(LANG_STORAGE_KEY);
+        state.currentLang = urlLang === 'ja' || urlLang === 'zh'
+            ? urlLang
+            : savedLang === 'ja' || savedLang === 'zh'
+                ? savedLang
+                : state.currentLang || 'zh';
+        localStorage.setItem(LANG_STORAGE_KEY, state.currentLang);
         window.toggleLanguage = toggleLanguage;
         applyLanguage();
     }

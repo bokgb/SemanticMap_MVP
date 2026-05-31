@@ -2,6 +2,8 @@
     const SM = window.SemanticMap = window.SemanticMap || {};
 
     let toastLayer = null;
+    let guideLayer = null;
+    let guideMessageTimer = null;
 
     function getToastLayer() {
         if (toastLayer) return toastLayer;
@@ -18,7 +20,75 @@
         return toastLayer;
     }
 
+    function getGuideLayer() {
+        if (guideLayer) return guideLayer;
+
+        guideLayer = document.getElementById('mimi-guide');
+        if (!guideLayer) {
+            guideLayer = document.createElement('div');
+            guideLayer.id = 'mimi-guide';
+            guideLayer.innerHTML = `
+                <button class="mimi-avatar" type="button" aria-label="">
+                    <span class="mimi-face" aria-hidden="true"></span>
+                </button>
+                <div class="mimi-speech" role="status" aria-live="polite">
+                    <div class="mimi-name"></div>
+                    <div class="mimi-text"></div>
+                </div>
+            `;
+            document.body.appendChild(guideLayer);
+            refreshLanguage();
+
+            guideLayer.querySelector('.mimi-avatar')?.addEventListener('click', () => {
+                showGuideMessage(SM.i18n?.t?.('mimiIdle') || '', { type: 'info', duration: 3200 });
+            });
+        }
+
+        return guideLayer;
+    }
+
+    function refreshLanguage() {
+        const layer = getGuideLayer();
+        const name = SM.i18n?.t?.('mimiName') || 'Mimi';
+        const face = SM.i18n?.t?.('mimiFace') || 'M';
+
+        const avatar = layer.querySelector('.mimi-avatar');
+        const faceEl = layer.querySelector('.mimi-face');
+        const nameEl = layer.querySelector('.mimi-name');
+
+        avatar?.setAttribute('aria-label', name);
+        if (faceEl) faceEl.textContent = face;
+        if (nameEl) nameEl.textContent = name;
+
+        layer.classList.remove('show');
+        window.clearTimeout(guideMessageTimer);
+    }
+
+    function showGuideMessage(message, options = {}) {
+        const layer = getGuideLayer();
+        const textEl = layer.querySelector('.mimi-text');
+        const type = options.type || 'info';
+        const duration = Number.isFinite(options.duration) ? options.duration : 3200;
+
+        layer.classList.remove('success', 'warning', 'error', 'info', 'show');
+        layer.classList.add(type);
+        if (textEl) {
+            textEl.textContent = String(message || '');
+        }
+
+        window.clearTimeout(guideMessageTimer);
+        window.requestAnimationFrame(() => layer.classList.add('show'));
+        guideMessageTimer = window.setTimeout(() => {
+            layer.classList.remove('show');
+        }, duration);
+    }
+
     function showToast(message, options = {}) {
+        if (!options.plain) {
+            showGuideMessage(message, options);
+            return;
+        }
+
         const layer = getToastLayer();
         const toast = document.createElement('div');
         const type = options.type || 'info';
@@ -42,8 +112,8 @@
             existingDialog.remove();
         }
 
-        const dialogTitle = title || SM.i18n?.t?.('wrongTitle') || '提示';
-        const dialogButton = buttonText || SM.i18n?.t?.('ok') || '知道了';
+        const dialogTitle = title || SM.i18n?.t?.('dialogFallbackTitle') || '';
+        const dialogButton = buttonText || SM.i18n?.t?.('dialogFallbackButton') || '';
         const layer = document.createElement('div');
         layer.className = 'game-dialog-layer';
         layer.innerHTML = `
@@ -76,6 +146,8 @@
 
     SM.ui = {
         showToast,
+        showGuideMessage,
+        refreshLanguage,
         showDialog
     };
 })();
