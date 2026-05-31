@@ -65,6 +65,11 @@
             mimiIdle: '我是 Mimi。附近有语义信号，走近一点看看吧。',
             noSignalHint: '这个范围暂时没有稳定信号。看一下雷达边缘的方向提示吧。',
             noSignalMoveHint: '附近暂时没有稳定信号，往{direction}走约 {meters} 米试试看。',
+            npcTitle: '道の人',
+            npcHelp: 'バッグからカードを渡す',
+            npcSkip: 'またあとで',
+            npcDone: 'ありがとう',
+            npcReward: 'ミミ：いい判断だね。探索経験 +1',
             dialogFallbackTitle: '提示',
             dialogFallbackButton: '知道了'
         },
@@ -129,6 +134,11 @@
             mimiIdle: 'ミミだよ。近くに意味信号があるみたい。少し近づいてみよう。',
             noSignalHint: 'この範囲にはまだ安定した信号がないみたい。レーダー端の方向ヒントを見てみよう。',
             noSignalMoveHint: '近くに安定した信号がありません。{direction}へ約 {meters}m 進んでみましょう。',
+            npcTitle: '道の人',
+            npcHelp: 'バッグからカードを渡す',
+            npcSkip: 'またあとで',
+            npcDone: 'ありがとう',
+            npcReward: 'ミミ：いい判断だね。探索経験 +1',
             dialogFallbackTitle: '案内',
             dialogFallbackButton: 'わかりました'
         }

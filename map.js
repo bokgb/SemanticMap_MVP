@@ -1303,6 +1303,7 @@
         focusOnPlayer,
         recordQuestComplete,
         recordCatComplete,
+        grantExplorerXp: addExplorerXp,
         clearCatEvent,
         spawnTestCat,
         areas: GAME_AREAS,
