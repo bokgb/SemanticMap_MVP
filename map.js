@@ -12,6 +12,8 @@
         { level: 5, xp: 25, scanRadius: 680, unlockRadius: 150, maxVisible: 8 }
     ];
     const MAX_SPOTS_PER_TAG = 2;
+    const MAX_DISTANT_SIGNALS = 4;
+    const MIN_DISTANT_SIGNAL_ANGLE_DEGREES = 32;
     const MIN_ANY_SPOT_DISTANCE_METERS = 135;
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
     const MAP_BOUNDS_RADIUS_METERS = 1200;
@@ -452,14 +454,6 @@
             interactive: false
         }).addTo(radarLayer);
 
-        L.circle(center, {
-            radius: config.unlockRadius,
-            color: '#f6c744',
-            weight: 1,
-            dashArray: '5 5',
-            fillOpacity: 0,
-            interactive: false
-        }).addTo(radarLayer);
     }
 
     function loadAreaProgress() {
@@ -697,12 +691,12 @@
         const playerLatLng = L.latLng(playerLat, playerLng);
         const targetLatLng = L.latLng(targetSpot.lat, targetSpot.lng);
         const distance = playerLatLng.distanceTo(targetLatLng);
-        const ratio = Math.min(0.92, config.scanRadius / Math.max(distance, 1));
+        const ratio = Math.min(0.92, (config.scanRadius * 0.88) / Math.max(distance, 1));
         const signalLat = playerLat + (targetSpot.lat - playerLat) * ratio;
         const signalLng = playerLng + (targetSpot.lng - playerLng) * ratio;
         const icon = L.divIcon({
             className: 'custom-marker distant-signal-marker',
-            html: `<div class="distant-signal-dot" data-spot-type="${escapeAttribute(targetSpot.type)}" data-spot-name="${escapeAttribute(targetSpot.name)}">!</div>`,
+            html: `<div class="distant-signal-dot" data-spot-type="${escapeAttribute(targetSpot.type)}" data-spot-name="${escapeAttribute(targetSpot.name)}">?</div>`,
             iconSize: [34, 34],
             iconAnchor: [17, 17]
         });
@@ -717,9 +711,17 @@
         return marker;
     }
 
+    function getBearingDegrees(fromLat, fromLng, toLat, toLng) {
+        return (Math.atan2(toLng - fromLng, toLat - fromLat) * 180 / Math.PI + 360) % 360;
+    }
+
+    function getAngleDistanceDegrees(angleA, angleB) {
+        const diff = Math.abs(angleA - angleB) % 360;
+        return Math.min(diff, 360 - diff);
+    }
+
     function getDirectionLabel(fromLat, fromLng, toLat, toLng) {
-        const angle = Math.atan2(toLng - fromLng, toLat - fromLat);
-        const degrees = (angle * 180 / Math.PI + 360) % 360;
+        const degrees = getBearingDegrees(fromLat, fromLng, toLat, toLng);
         const lang = SM.i18n?.getLang?.() || 'zh';
         const labels = lang === 'ja'
             ? ['北', '北東', '東', '南東', '南', '南西', '西', '北西']
@@ -727,12 +729,33 @@
         return labels[Math.round(degrees / 45) % 8];
     }
 
-    function getNearestSpotOutsideScan(playerLat, playerLng, config) {
+    function getDistantSpotsOutsideScan(playerLat, playerLng, config) {
         const playerLocation = L.latLng(playerLat, playerLng);
-        return allSpots
+        const selected = [];
+        const selectedAngles = [];
+
+        const candidates = allSpots
             .map(spot => ({ ...spot, distance: playerLocation.distanceTo([spot.lat, spot.lng]) }))
             .filter(spot => spot.distance >= config.scanRadius)
-            .sort((a, b) => a.distance - b.distance)[0] || null;
+            .sort((a, b) => a.distance - b.distance);
+
+        for (const spot of candidates) {
+            if (selected.length >= MAX_DISTANT_SIGNALS) break;
+            const angle = getBearingDegrees(playerLat, playerLng, spot.lat, spot.lng);
+            const isFarEnough = selectedAngles.every(existingAngle => {
+                return getAngleDistanceDegrees(angle, existingAngle) >= MIN_DISTANT_SIGNAL_ANGLE_DEGREES;
+            });
+            if (!isFarEnough) continue;
+
+            selected.push(spot);
+            selectedAngles.push(angle);
+        }
+
+        if (selected.length === 0 && candidates[0]) {
+            selected.push(candidates[0]);
+        }
+
+        return selected;
     }
 
     function createPoiMarker(spot) {
@@ -875,16 +898,18 @@
             .sort((a, b) => a.distance - b.distance);
 
         if (nearbySpots.length === 0) {
-            const nearestSpot = getNearestSpotOutsideScan(playerLat, playerLng, explorerConfig);
-            if (nearestSpot) {
-                dynamicMarkersLayer.addLayer(createDistantSignalMarker(playerLat, playerLng, nearestSpot, explorerConfig));
-                state.visibleSpotsDebug = [{
-                    type: nearestSpot.type,
-                    name: nearestSpot.name,
-                    questTag: nearestSpot.questTag,
+            const distantSpots = getDistantSpotsOutsideScan(playerLat, playerLng, explorerConfig);
+            if (distantSpots.length) {
+                distantSpots.forEach(spot => {
+                    dynamicMarkersLayer.addLayer(createDistantSignalMarker(playerLat, playerLng, spot, explorerConfig));
+                });
+                state.visibleSpotsDebug = distantSpots.map(spot => ({
+                    type: spot.type,
+                    name: spot.name,
+                    questTag: spot.questTag,
                     distantSignal: true,
-                    distance: Math.round(nearestSpot.distance)
-                }];
+                    distance: Math.round(spot.distance)
+                }));
                 SM.ui?.showGuideMessage?.(tr('noSignalHint'), { type: 'info', duration: 3000 });
             }
             return;
@@ -946,8 +971,8 @@
         let discoveredToastShown = false;
 
         selectedSpots.forEach(spot => {
-            const isUnlocked = spot.distance <= explorerConfig.unlockRadius;
-            const marker = isUnlocked ? createPoiMarker(spot) : createSignalMarker(spot, explorerConfig);
+            const isUnlocked = true;
+            const marker = createPoiMarker(spot);
             if (marker) {
                 dynamicMarkersLayer.addLayer(marker);
                 if (isUnlocked && !discoveredToastShown && markSpotDiscovered(spot)) {
@@ -967,7 +992,7 @@
             }
         });
 
-        console.log(`👀 雷达 Lv.${explorerConfig.level}: ${explorerConfig.scanRadius}m / 解锁 ${explorerConfig.unlockRadius}m，生成 ${selectedSpots.length} 个信号`, selectedByTag);
+        console.log(`👀 雷达 Lv.${explorerConfig.level}: ${explorerConfig.scanRadius}m 视野，生成 ${selectedSpots.length} 个信号`, selectedByTag);
     }
 
     function removeMarkerForSpot(spot) {
