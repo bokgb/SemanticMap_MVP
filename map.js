@@ -375,8 +375,8 @@
                     required: area.requiredPoints
                 });
             layer.setStyle?.({
-                color: record.purified ? '#26a69a' : '#00acc1',
-                fillColor: record.purified ? '#80cbc4' : '#b2ebf2',
+                color: record.purified ? '#0f766e' : '#5f7778',
+                fillColor: record.purified ? '#d7e8e4' : '#dfe8e6',
                 fillOpacity: record.purified ? 0.2 : 0.13
             });
             layer.bindTooltip(label, {
@@ -394,9 +394,9 @@
         GAME_AREAS.forEach(area => {
             const circle = L.circle(area.center, {
                 radius: area.radius,
-                color: '#00acc1',
+                color: '#5f7778',
                 weight: 2,
-                fillColor: '#b2ebf2',
+                fillColor: '#dfe8e6',
                 fillOpacity: 0.13,
                 dashArray: '6 6',
                 interactive: false
@@ -498,23 +498,38 @@
         const config = markerQuestData.config
             || SM.quests.RARITY_CONFIG[markerQuestData.rarity]
             || SM.quests.RARITY_CONFIG.N;
-        const size = spot.type === 'npc_cat' ? 36 : Math.round(30 * (config.scale || 1));
+        const size = spot.type === 'npc_cat' ? 36 : 30;
         const spotTypeAttr = escapeAttribute(spot.type);
         const spotNameAttr = escapeAttribute(spot.name);
+        const isSrMarker = markerQuestData.rarity === 'SR';
+        const markerBackground = isSrMarker
+            ? 'radial-gradient(circle at 30% 24%, #fff8b8 0%, #f6d84a 34%, #d69a14 72%, #9c6507 100%)'
+            : config.color;
+        const markerBorder = isSrMarker ? '2px solid #fff4b0' : '2px solid white';
+        const markerShadow = isSrMarker
+            ? '0 0 0 3px rgba(255,255,255,0.7), 0 0 18px rgba(246,199,68,0.95), 0 4px 14px rgba(120,80,0,0.32)'
+            : `0 0 10px ${config.color}`;
+        const markerTextShadow = isSrMarker ? '0 1px 3px rgba(92,57,0,0.72)' : 'none';
+        const sparkleHtml = isSrMarker
+            ? '<span style="position:absolute; top:3px; right:5px; font-size:10px; line-height:1; color:#fff8b8; text-shadow:0 0 5px rgba(255,255,255,0.9);">✦</span>'
+            : '';
 
         let iconHtml = "";
         if (spot.type === 'npc_cat') {
             iconHtml = `<div data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="font-size: 28px; text-align: center; line-height: ${size}px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));">🐱</div>`;
         } else {
             iconHtml = `<div data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="
-                background-color: ${config.color};
+                position: relative;
+                background: ${markerBackground};
                 width: 100%; height: 100%;
                 border-radius: 50%;
-                border: 2px solid white;
+                border: ${markerBorder};
                 display: flex; align-items: center; justify-content: center;
                 color: white; font-weight: bold; font-size: 10px;
-                box-shadow: 0 0 10px ${config.color};">
-                ${markerQuestData.rarity}
+                text-shadow: ${markerTextShadow};
+                box-shadow: ${markerShadow};">
+                <span style="position: relative; z-index: 1;">${markerQuestData.rarity}</span>
+                ${sparkleHtml}
             </div>`;
         }
 

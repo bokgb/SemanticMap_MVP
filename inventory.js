@@ -8,6 +8,14 @@
     const rewardQueue = [];
 
     const elements = {};
+    const TAG_COLORS = {
+        Food: '#6f6a60',
+        Nature: '#4f776f',
+        Transit: '#5c6f7a',
+        Health: '#6d6f7a',
+        Retail: '#687174',
+        Item: '#687174'
+    };
 
     function escapeHtml(value) {
         return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -19,9 +27,13 @@
         }[char]));
     }
 
-    function sanitizeColor(value, fallback = '#607D8B') {
+    function sanitizeColor(value, fallback = '#687174') {
         const color = String(value ?? '').trim();
         return /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(color) ? color : fallback;
+    }
+
+    function getTagColor(tag) {
+        return TAG_COLORS[String(tag || '').trim()] || TAG_COLORS.Item;
     }
 
     function tr(key, params = {}) {
@@ -52,7 +64,7 @@
             },
             pos: result.pos || '名词',
             tag: result.tag || 'Item',
-            tagColor: sanitizeColor(result.tagColor),
+            tagColor: getTagColor(result.tag || 'Item'),
             example: result.example || { s: '', k: '', z: '' },
             extra_words: Array.isArray(result.extra_words) ? result.extra_words : []
         };
@@ -65,7 +77,7 @@
         const kana = escapeHtml(wordObj.kana);
         const zh = escapeHtml(wordObj.zh);
         const meaning = lang === 'zh' && zh
-            ? ` <span style="font-size:12px; color:#888;">(${zh})</span>`
+            ? ` <span style="font-size:12px; color:var(--subtle);">(${zh})</span>`
             : '';
 
         if (!wordObj.kana || wordObj.text === wordObj.kana) {
@@ -85,7 +97,7 @@
     function renderWordBlock(data) {
         const block = document.createElement('div');
         block.className = 'word-block';
-        const tagColor = sanitizeColor(data.tagColor);
+        const tagColor = getTagColor(data.tag);
         const questReview = getQuestReview(data);
 
         block.style.borderLeftColor = tagColor;

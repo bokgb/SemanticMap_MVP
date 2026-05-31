@@ -232,7 +232,7 @@
                 },
                 pos: SM.i18n?.t?.('noun') || "名词",
                 tag: "Item",
-                tagColor: "#607D8B",
+                tagColor: "#687174",
                 example: { s: "", k: "", z: "" }
             });
         }

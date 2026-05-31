@@ -5,6 +5,27 @@ body, html {
     height: 100%;
     overflow: hidden; /* 防止手机端页面整体滑动 */
     font-family: sans-serif;
+    color: var(--ink);
+}
+
+:root {
+    --ink: #263238;
+    --muted: #607076;
+    --subtle: #8b979b;
+    --panel: rgba(255, 255, 255, 0.94);
+    --panel-solid: #ffffff;
+    --panel-soft: #f4f7f6;
+    --line: rgba(38, 50, 56, 0.14);
+    --shadow-soft: rgba(0, 0, 0, 0.16);
+    --accent: #0f766e;
+    --accent-dark: #115e59;
+    --accent-soft: #e3efed;
+    --accent-line: rgba(15, 118, 110, 0.24);
+    --warning: #8a6a3e;
+    --warning-soft: #f0ece3;
+    --danger: #9f3a3a;
+    --danger-soft: #f3e9e8;
+    --slate: #54656b;
 }
 
 #map {
@@ -30,10 +51,10 @@ body, html {
 .game-toast {
     padding: 12px 14px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid rgba(38, 50, 56, 0.12);
-    color: #263238;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    box-shadow: 0 8px 24px var(--shadow-soft);
     font-size: 14px;
     font-weight: 700;
     line-height: 1.4;
@@ -43,19 +64,19 @@ body, html {
 }
 
 .game-toast.success {
-    border-left: 5px solid #26a69a;
+    border-left: 5px solid var(--accent);
 }
 
 .game-toast.warning {
-    border-left: 5px solid #f9a825;
+    border-left: 5px solid var(--warning);
 }
 
 .game-toast.error {
-    border-left: 5px solid #e53935;
+    border-left: 5px solid var(--danger);
 }
 
 .game-toast.info {
-    border-left: 5px solid #1e88e5;
+    border-left: 5px solid var(--slate);
 }
 
 .game-dialog-layer {
@@ -76,20 +97,20 @@ body, html {
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.98);
     box-shadow: 0 18px 46px rgba(0,0,0,0.3);
-    border-top: 7px solid #f9a825;
+    border-top: 7px solid var(--warning);
 }
 
 .game-dialog.error {
-    border-top-color: #e53935;
+    border-top-color: var(--danger);
 }
 
 .game-dialog.info {
-    border-top-color: #1e88e5;
+    border-top-color: var(--slate);
 }
 
 .game-dialog h2 {
     margin: 0 0 10px;
-    color: #263238;
+    color: var(--ink);
     font-size: 22px;
     line-height: 1.25;
     letter-spacing: 0;
@@ -97,7 +118,7 @@ body, html {
 
 .game-dialog p {
     margin: 0 0 18px;
-    color: #455a64;
+    color: var(--muted);
     font-size: 15px;
     font-weight: 700;
     line-height: 1.55;
@@ -109,7 +130,7 @@ body, html {
     min-height: 46px;
     border: none;
     border-radius: 999px;
-    background: #263238;
+    background: var(--ink);
     color: #ffffff;
     font-size: 16px;
     font-weight: 900;
@@ -146,14 +167,14 @@ body, html {
 
 .level-onboarding-kicker {
     margin: 0 0 8px;
-    color: #00897b;
+    color: var(--accent);
     font-size: 13px;
     font-weight: 900;
 }
 
 .level-onboarding-panel h1 {
     margin: 0;
-    color: #1f2d35;
+    color: var(--ink);
     font-size: 28px;
     line-height: 1.18;
     letter-spacing: 0;
@@ -161,7 +182,7 @@ body, html {
 
 .level-onboarding-copy {
     margin: 12px 0 20px;
-    color: #546e7a;
+    color: var(--muted);
     font-size: 14px;
     line-height: 1.5;
 }
@@ -175,10 +196,10 @@ body, html {
     width: 100%;
     min-height: 64px;
     padding: 12px 14px;
-    border: 2px solid rgba(0, 150, 136, 0.18);
+    border: 1px solid var(--accent-line);
     border-radius: 12px;
-    background: #ffffff;
-    color: #263238;
+    background: var(--panel-solid);
+    color: var(--ink);
     text-align: left;
     display: flex;
     align-items: center;
@@ -200,8 +221,8 @@ body, html {
 .level-choice-sub {
     padding: 6px 9px;
     border-radius: 999px;
-    background: #e0f2f1;
-    color: #00796b;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
     font-size: 12px;
     font-weight: 900;
     white-space: nowrap;
@@ -227,10 +248,10 @@ body, html {
     height: 44px;
     padding: 0 14px 0 12px;
     border-radius: 22px;
-    border: 1px solid rgba(38, 50, 56, 0.12);
-    background: rgba(255, 255, 255, 0.94);
-    color: #263238;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    box-shadow: 0 4px 14px var(--shadow-soft);
     font-size: 13px;
     font-weight: 700;
     line-height: 1;
@@ -250,7 +271,7 @@ body, html {
     position: relative;
     width: 18px;
     height: 18px;
-    border: 2px solid #009688;
+    border: 2px solid var(--accent);
     border-radius: 50%;
     box-sizing: border-box;
 }
@@ -259,7 +280,7 @@ body, html {
 .locate-icon::after {
     content: "";
     position: absolute;
-    background: #009688;
+    background: var(--accent);
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
@@ -290,7 +311,7 @@ body, html {
     height: 18px;
     margin: 5px;
     border-radius: 50%;
-    background: #1e88e5;
+    background: var(--accent);
     border: 3px solid white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.28);
     box-sizing: border-box;
@@ -304,28 +325,28 @@ body, html {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(30, 136, 229, 0.18);
+    background: rgba(15, 118, 110, 0.18);
     transform: translate(-50%, -50%);
     z-index: -1;
 }
 
 .player-location-dot.demo {
-    background: #78909c;
+    background: var(--slate);
 }
 
 .player-location-dot.demo::after {
-    background: rgba(120, 144, 156, 0.18);
+    background: rgba(84, 101, 107, 0.18);
 }
 
 .area-label {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(0, 150, 136, 0.28);
+    background: var(--panel);
+    border: 1px solid var(--accent-line);
     border-radius: 999px;
-    color: #00695c;
+    color: var(--accent-dark);
     font-size: 12px;
     font-weight: 800;
     padding: 4px 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .area-label::before {
@@ -344,12 +365,13 @@ body, html {
     bottom: 20px;
     left: 20px;
     right: 20px;
-    background: rgba(255, 255, 255, 0.85); /* 半透明 UI 面板 */
+    background: var(--panel); /* 半透明 UI 面板 */
     backdrop-filter: blur(10px); /* 毛玻璃效果 */
     padding: 15px;
     border-radius: 12px;
     z-index: 1000; /* UI 层覆盖在地图上方 */
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 24px var(--shadow-soft);
     transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1), opacity 0.25s;
 }
 
@@ -362,9 +384,9 @@ body, html {
     height: 28px;
     padding: 0 10px;
     border-radius: 14px;
-    border: 1px solid rgba(0, 150, 136, 0.28);
-    background: rgba(255, 255, 255, 0.72);
-    color: #00796b;
+    border: 1px solid var(--accent-line);
+    background: rgba(255, 255, 255, 0.76);
+    color: var(--accent-dark);
     font-size: 12px;
     font-weight: 800;
     cursor: pointer;
@@ -389,7 +411,7 @@ body, html {
 }
 #ui-toggle-btn {
     width: 46px; height: 28px; border-radius: 8px;
-    border: none; background: rgba(0,0,0,0.65); color: white; cursor: pointer;
+    border: none; background: rgba(38, 50, 56, 0.82); color: white; cursor: pointer;
     font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
@@ -398,22 +420,50 @@ body, html {
 h2, p {
     margin: 0 0 10px 0;
 }
+
+#level-selector {
+    width: 100%;
+    padding: 9px 10px;
+    margin-top: 5px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--panel-solid);
+    color: var(--ink);
+    font-weight: 800;
+}
+
 #difficulty-hint {
     margin-top: 8px;
     padding: 8px 10px;
     border-radius: 8px;
-    background: linear-gradient(135deg, rgba(255, 248, 225, 0.95), rgba(255, 224, 178, 0.95));
-    border: 1px solid rgba(255, 152, 0, 0.35);
-    color: #e65100;
+    background: var(--panel-soft);
+    border: 1px solid var(--line);
+    color: var(--muted);
     font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.2px;
+    letter-spacing: 0;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
 }
 
-#difficulty-hint[data-level="N5"] { background: linear-gradient(135deg, rgba(232, 245, 233, 0.98), rgba(200, 230, 201, 0.98)); color: #2e7d32; border-color: rgba(46, 125, 50, 0.25); }
-#difficulty-hint[data-level="N3"] { background: linear-gradient(135deg, rgba(255, 243, 224, 0.98), rgba(255, 224, 178, 0.98)); color: #ef6c00; border-color: rgba(239, 108, 0, 0.25); }
-#difficulty-hint[data-level="N1"] { background: linear-gradient(135deg, rgba(239, 235, 255, 0.98), rgba(209, 196, 233, 0.98)); color: #4527a0; border-color: rgba(69, 39, 160, 0.25); }
+#difficulty-hint[data-level="N5"],
+#difficulty-hint[data-level="N3"],
+#difficulty-hint[data-level="N1"] {
+    background: var(--panel-soft);
+    color: var(--muted);
+    border-color: var(--line);
+}
+
+#clear-cache-btn {
+    width: 100%;
+    padding: 9px 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(159, 58, 58, 0.28);
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-weight: 800;
+    cursor: pointer;
+}
 
 /* 相机全屏浮层 */
 #camera-layer {
@@ -440,7 +490,7 @@ h2, p {
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     width: 250px; height: 250px;
-    border: 4px dashed rgba(0, 255, 204, 0.8);
+    border: 4px dashed rgba(255, 255, 255, 0.72);
     box-sizing: border-box;
 }
 
@@ -461,8 +511,8 @@ h2, p {
     font-weight: bold;
 }
 
-#capture-btn { background: white; color: black; }
-#close-camera-btn { background: #ff4444; color: white; }
+#capture-btn { background: white; color: var(--ink); }
+#close-camera-btn { background: var(--danger); color: white; }
 
 /* --- 悬浮背包按钮 --- */
 #bag-btn {
@@ -473,8 +523,8 @@ h2, p {
     width: 55px; 
     height: 55px;
     border-radius: 50%;
-    background: white;
-    border: 2px solid #ddd;
+    background: var(--panel);
+    border: 1px solid var(--line);
     font-size: 24px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     cursor: pointer;
@@ -486,7 +536,7 @@ h2, p {
 /* 💥 图标销毁爆炸特效 (Game Feel) */
 @keyframes marker-pop-out {
     0% { transform: scale(1); opacity: 1; }
-    40% { transform: scale(1.6) translateY(-15px); opacity: 0.9; filter: drop-shadow(0 0 15px #ff9800) brightness(1.5); }
+    40% { transform: scale(1.6) translateY(-15px); opacity: 0.9; filter: drop-shadow(0 0 12px rgba(15, 118, 110, 0.45)) brightness(1.18); }
     100% { transform: scale(0) translateY(-30px); opacity: 0; }
 }
 
@@ -500,7 +550,7 @@ h2, p {
     position: absolute; 
     top: -2px; 
     right: -2px;
-    background: #ff4444; 
+    background: var(--danger); 
     color: white; 
     font-size: 12px;
     font-weight: bold; 
@@ -519,11 +569,12 @@ h2, p {
     right: 0;
     width: 280px; 
     height: 100%;
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--panel);
     backdrop-filter: blur(10px);
     z-index: 1001; /* 层级比按钮更高 */
     padding: 20px;
     box-sizing: border-box;
+    border-left: 1px solid var(--line);
     box-shadow: -4px 0 15px rgba(0,0,0,0.1);
     
     /* 核心动画魔法：默认藏在屏幕右侧外面 */
@@ -543,28 +594,28 @@ h2, p {
     align-items: center; 
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--line);
 }
 .inv-header h3 { margin: 0; font-size: 16px; }
-#close-bag-btn { background: none; border: none; font-size: 20px; color: #666; cursor: pointer; }
+#close-bag-btn { background: none; border: none; font-size: 20px; color: var(--muted); cursor: pointer; }
 
 /* 保持你原来的卡牌样式不变 */
-.word-block { background: white; padding: 10px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); animation: popIn 0.3s ease-out; border-left: 4px solid transparent; }
+.word-block { background: var(--panel-solid); padding: 10px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); animation: popIn 0.3s ease-out; border-left: 4px solid transparent; }
 .word-title { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
-.word-pos { font-size: 12px; color: #666; }
+.word-pos { font-size: 12px; color: var(--muted); }
 .word-tag { display: inline-block; font-size: 10px; color: white; padding: 2px 6px; border-radius: 10px; margin-top: 5px; }
 .word-quest-meta {
     margin-top: 8px;
     font-size: 11px;
-    color: #607d8b;
+    color: var(--muted);
     line-height: 1.35;
 }
 .word-sentence {
     margin-top: 6px;
     padding: 7px 8px;
     border-radius: 6px;
-    background: #f4f7fb;
-    color: #263238;
+    background: var(--panel-soft);
+    color: var(--ink);
     font-size: 13px;
     line-height: 1.4;
 }
@@ -572,35 +623,35 @@ h2, p {
     margin-top: 7px;
     padding: 8px;
     border-radius: 6px;
-    background: #fff8e1;
-    border: 1px solid rgba(255, 193, 7, 0.35);
+    background: var(--warning-soft);
+    border: 1px solid rgba(138, 106, 62, 0.22);
 }
 .grammar-review-title {
     font-size: 11px;
     font-weight: 700;
-    color: #8a5a00;
+    color: var(--warning);
     margin-bottom: 4px;
 }
 .grammar-review-item {
     font-size: 11px;
-    color: #5d4037;
+    color: var(--muted);
     line-height: 1.45;
 }
 @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* 生成的词汇块（类似卡牌） */
 .word-block {
-    background: white;
+    background: var(--panel-solid);
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     animation: popIn 0.3s ease-out; /* 简单的弹出动画 */
 }
 
 /* 词汇块内部排版 */
 .word-title { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
-.word-pos { font-size: 12px; color: #666; }
+.word-pos { font-size: 12px; color: var(--muted); }
 .word-tag { 
     display: inline-block; 
     font-size: 10px; 
@@ -693,11 +744,11 @@ h2, p {
     display: flex; justify-content: center; align-items: center;
 }
 .quest-panel {
-    background: white; width: 85%; border-radius: 15px; padding: 20px;
+    background: var(--panel-solid); width: 85%; border-radius: 15px; padding: 20px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 .sentence-preview {
-    background: #f0f0f0; padding: 20px; border-radius: 10px;
+    background: var(--panel-soft); padding: 20px; border-radius: 10px;
     margin: 20px 0; text-align: center; font-size: 24px;
 }
 .repair-reward-chip {
@@ -706,30 +757,30 @@ h2, p {
     min-height: 26px;
     padding: 0 10px;
     border-radius: 999px;
-    background: #e0f2f1;
-    color: #00796b;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
     font-size: 12px;
     font-weight: 800;
-    border: 1px solid rgba(0, 150, 136, 0.22);
+    border: 1px solid var(--accent-line);
 }
 
 .repair-reward-chip.outside {
-    background: #eceff1;
-    color: #546e7a;
-    border-color: rgba(84, 110, 122, 0.25);
+    background: var(--panel-soft);
+    color: var(--slate);
+    border-color: rgba(84, 101, 107, 0.22);
 }
 
 .repair-reward-chip.special {
-    background: #fff3e0;
-    color: #ef6c00;
-    border-color: rgba(239, 108, 0, 0.28);
+    background: var(--warning-soft);
+    color: var(--warning);
+    border-color: rgba(138, 106, 62, 0.24);
 }
 .slot-box {
-    border-bottom: 3px solid #e91e63; color: #e91e63;
+    border-bottom: 3px solid var(--accent); color: var(--accent-dark);
     padding: 0 15px; font-weight: bold;
 }
 #btn-start-scan {
-    width: 100%; padding: 15px; background: #e91e63;
+    width: 100%; padding: 15px; background: var(--accent);
     color: white; border: none; border-radius: 30px;
     font-size: 18px; font-weight: bold;
 }
@@ -747,14 +798,14 @@ h2, p {
 }
 
 #btn-close-quest {
-    background: #f0f0f0;
+    background: var(--panel-soft);
     border: none;
     border-radius: 50%;
     width: 30px;
     height: 30px;
     font-size: 16px;
     cursor: pointer;
-    color: #666;
+    color: var(--muted);
 }
 
 /* --- 便利店任务图标样式 (彻底修复漂移版) --- */
@@ -792,7 +843,7 @@ ruby {
 }
 rt {
     font-size: 10px; 
-    color: #888; 
+    color: var(--subtle); 
     font-weight: normal;
     letter-spacing: 0.5px; 
     transform: translateY(-2px); /* 稍微往上抬一点，避免和汉字挤在一起 */
@@ -807,29 +858,29 @@ rt {
 #word-card-layer.hidden { display: none !important; }
 
 .loot-card {
-    background: white; width: 85%; border-radius: 20px;
+    background: var(--panel-solid); width: 85%; border-radius: 20px;
     padding: 30px 20px; text-align: center;
     box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-    border-top: 8px solid #ff9800; /* 顶部橙色高亮 */
+    border-top: 8px solid var(--warning); /* 顶部高亮 */
 }
 
-.loot-header { font-size: 14px; color: #ff9800; font-weight: bold; margin-bottom: 15px; }
+.loot-header { font-size: 14px; color: var(--warning); font-weight: bold; margin-bottom: 15px; }
 
 .loot-word {
-    background: #fff8e1; padding: 25px 10px; border-radius: 15px;
+    background: var(--warning-soft); padding: 25px 10px; border-radius: 15px;
     margin-bottom: 25px;
 }
-.loot-word ruby { font-size: 32px; color: #333; }
-.loot-word span { display: block; font-size: 16px; color: #666; margin-top: 10px; }
+.loot-word ruby { font-size: 32px; color: var(--ink); }
+.loot-word span { display: block; font-size: 16px; color: var(--muted); margin-top: 10px; }
 
-.loot-example-box { text-align: left; background: #f9f9f9; padding: 15px; border-radius: 12px; margin-bottom: 25px; }
-.ex-label { font-size: 12px; color: #999; font-weight: bold; margin-bottom: 5px; }
-.ex-text { font-size: 16px; color: #333; font-weight: bold; margin-bottom: 5px; }
-.ex-zh { font-size: 14px; color: #666; }
+.loot-example-box { text-align: left; background: var(--panel-soft); padding: 15px; border-radius: 12px; margin-bottom: 25px; }
+.ex-label { font-size: 12px; color: var(--subtle); font-weight: bold; margin-bottom: 5px; }
+.ex-text { font-size: 16px; color: var(--ink); font-weight: bold; margin-bottom: 5px; }
+.ex-zh { font-size: 14px; color: var(--muted); }
 
 .loot-btn {
-    width: 100%; padding: 16px; background: #ff9800; color: white;
+    width: 100%; padding: 16px; background: var(--accent); color: white;
     border: none; border-radius: 30px; font-size: 18px; font-weight: bold;
-    box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+    box-shadow: 0 5px 15px rgba(15, 118, 110, 0.28);
 }
 .loot-btn:active { transform: scale(0.96); }
