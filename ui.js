@@ -29,7 +29,7 @@
             guideLayer.id = 'mimi-guide';
             guideLayer.innerHTML = `
                 <button class="mimi-avatar" type="button" aria-label="">
-                    <span class="mimi-face" aria-hidden="true"></span>
+                    <img class="mimi-face" src="assets/mimi-avatar.png" alt="" aria-hidden="true">
                 </button>
                 <div class="mimi-speech" role="status" aria-live="polite">
                     <div class="mimi-name"></div>
@@ -50,14 +50,11 @@
     function refreshLanguage() {
         const layer = getGuideLayer();
         const name = SM.i18n?.t?.('mimiName') || 'Mimi';
-        const face = SM.i18n?.t?.('mimiFace') || 'M';
 
         const avatar = layer.querySelector('.mimi-avatar');
-        const faceEl = layer.querySelector('.mimi-face');
         const nameEl = layer.querySelector('.mimi-name');
 
         avatar?.setAttribute('aria-label', name);
-        if (faceEl) faceEl.textContent = face;
         if (nameEl) nameEl.textContent = name;
 
         layer.classList.remove('show');

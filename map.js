@@ -184,7 +184,7 @@
     let fogContext = null;
     let areaLayer = null;
     let areaProgress = {};
-    let explorerProgress = { xp: 0, discoveredSpotKeys: [], discoveredSpots: [] };
+    let explorerProgress = { xp: 0, discoveredSpotKeys: [] };
     let allSpots = [];
     let catSpawnTimer = null;
     let activeCatMarker = null;
@@ -211,12 +211,11 @@
             const parsed = rawProgress ? JSON.parse(rawProgress) : {};
             explorerProgress = {
                 xp: Number(parsed?.xp || 0),
-                discoveredSpotKeys: Array.isArray(parsed?.discoveredSpotKeys) ? parsed.discoveredSpotKeys : [],
-                discoveredSpots: Array.isArray(parsed?.discoveredSpots) ? parsed.discoveredSpots : []
+                discoveredSpotKeys: Array.isArray(parsed?.discoveredSpotKeys) ? parsed.discoveredSpotKeys : []
             };
         } catch (error) {
             console.warn('读取探索进度失败，使用空进度。', error);
-            explorerProgress = { xp: 0, discoveredSpotKeys: [], discoveredSpots: [] };
+            explorerProgress = { xp: 0, discoveredSpotKeys: [] };
         }
         state.explorerProgress = explorerProgress;
     }
@@ -265,15 +264,7 @@
         const key = getSpotDiscoveryKey(spot);
         if (!key || explorerProgress.discoveredSpotKeys.includes(key)) return false;
         explorerProgress.discoveredSpotKeys.push(key);
-        explorerProgress.discoveredSpots.push({
-            key,
-            lat: spot.lat,
-            lng: spot.lng,
-            type: spot.type,
-            name: spot.name
-        });
         saveExplorerProgress();
-        drawFog();
         return true;
     }
 
@@ -409,14 +400,6 @@
 
         fogContext.save();
         fogContext.globalCompositeOperation = 'destination-out';
-
-        const discoveredRadiusMeters = Math.max(90, getExplorerConfig().unlockRadius);
-        (explorerProgress.discoveredSpots || []).forEach(spot => {
-            if (spot.lat == null || spot.lng == null) return;
-            const point = map.latLngToContainerPoint([spot.lat, spot.lng]);
-            const radius = metersToPixels(discoveredRadiusMeters, { lat: spot.lat, lng: spot.lng });
-            clearFogCircle(point, radius, 28);
-        });
 
         if (state.lastPlayerPosition) {
             const config = getExplorerConfig();
@@ -710,6 +693,48 @@
         return marker;
     }
 
+    function createDistantSignalMarker(playerLat, playerLng, targetSpot, config) {
+        const playerLatLng = L.latLng(playerLat, playerLng);
+        const targetLatLng = L.latLng(targetSpot.lat, targetSpot.lng);
+        const distance = playerLatLng.distanceTo(targetLatLng);
+        const ratio = Math.min(0.92, config.scanRadius / Math.max(distance, 1));
+        const signalLat = playerLat + (targetSpot.lat - playerLat) * ratio;
+        const signalLng = playerLng + (targetSpot.lng - playerLng) * ratio;
+        const icon = L.divIcon({
+            className: 'custom-marker distant-signal-marker',
+            html: `<div class="distant-signal-dot" data-spot-type="${escapeAttribute(targetSpot.type)}" data-spot-name="${escapeAttribute(targetSpot.name)}">!</div>`,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+        });
+        const marker = L.marker([signalLat, signalLng], { icon });
+        marker.spotData = targetSpot;
+        marker.on('click', () => {
+            SM.ui?.showToast(tr('noSignalMoveHint', {
+                direction: getDirectionLabel(playerLat, playerLng, targetSpot.lat, targetSpot.lng),
+                meters: Math.max(1, Math.round(distance - config.scanRadius))
+            }), { type: 'info', duration: 3400 });
+        });
+        return marker;
+    }
+
+    function getDirectionLabel(fromLat, fromLng, toLat, toLng) {
+        const angle = Math.atan2(toLng - fromLng, toLat - fromLat);
+        const degrees = (angle * 180 / Math.PI + 360) % 360;
+        const lang = SM.i18n?.getLang?.() || 'zh';
+        const labels = lang === 'ja'
+            ? ['北', '北東', '東', '南東', '南', '南西', '西', '北西']
+            : ['北边', '东北边', '东边', '东南边', '南边', '西南边', '西边', '西北边'];
+        return labels[Math.round(degrees / 45) % 8];
+    }
+
+    function getNearestSpotOutsideScan(playerLat, playerLng, config) {
+        const playerLocation = L.latLng(playerLat, playerLng);
+        return allSpots
+            .map(spot => ({ ...spot, distance: playerLocation.distanceTo([spot.lat, spot.lng]) }))
+            .filter(spot => spot.distance >= config.scanRadius)
+            .sort((a, b) => a.distance - b.distance)[0] || null;
+    }
+
     function createPoiMarker(spot) {
         const questState = SM.quests.getQuestStateForSpot(spot);
         if (questState.status === 'completed') {
@@ -848,6 +873,22 @@
             .map(spot => ({ ...spot, distance: playerLocation.distanceTo([spot.lat, spot.lng]) }))
             .filter(spot => spot.distance < explorerConfig.scanRadius)
             .sort((a, b) => a.distance - b.distance);
+
+        if (nearbySpots.length === 0) {
+            const nearestSpot = getNearestSpotOutsideScan(playerLat, playerLng, explorerConfig);
+            if (nearestSpot) {
+                dynamicMarkersLayer.addLayer(createDistantSignalMarker(playerLat, playerLng, nearestSpot, explorerConfig));
+                state.visibleSpotsDebug = [{
+                    type: nearestSpot.type,
+                    name: nearestSpot.name,
+                    questTag: nearestSpot.questTag,
+                    distantSignal: true,
+                    distance: Math.round(nearestSpot.distance)
+                }];
+                SM.ui?.showGuideMessage?.(tr('noSignalHint'), { type: 'info', duration: 3000 });
+            }
+            return;
+        }
 
         const selectedSpots = [];
         const selectedByTag = {};
