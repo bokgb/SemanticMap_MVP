@@ -919,6 +919,7 @@
                 distantSpots.forEach(spot => {
                     dynamicMarkersLayer.addLayer(createDistantSignalMarker(playerLat, playerLng, spot, explorerConfig));
                 });
+                state.visibleSpotKeys = distantSpots.map(spot => getSpotDiscoveryKey(spot)).filter(Boolean);
                 state.visibleSpotsDebug = distantSpots.map(spot => ({
                     type: spot.type,
                     name: spot.name,
@@ -928,11 +929,16 @@
                 }));
                 SM.ui?.showGuideMessage?.(tr('noSignalHint'), { type: 'info', duration: 3000 });
             }
+            if (!distantSpots.length) {
+                state.visibleSpotKeys = [];
+                state.visibleSpotsDebug = [];
+            }
             return;
         }
 
         const selectedSpots = [];
         const selectedByTag = {};
+        const previousVisibleKeys = new Set(state.visibleSpotKeys || []);
 
         function isFarEnoughFromAllSpots(spot) {
             return selectedSpots.every(selected => {
@@ -947,11 +953,11 @@
             });
         }
 
-        function trySelectSpot(spot, { enforceAnyDistance = true, enforceSameTagDistance = true } = {}) {
+        function trySelectSpot(spot, { enforceAnyDistance = true, enforceSameTagDistance = true, ignoreTagLimit = false } = {}) {
             const tag = spot.questTag || spot.type || 'Other';
             selectedByTag[tag] = selectedByTag[tag] || 0;
             if (selectedSpots.length >= explorerConfig.maxVisible) return false;
-            if (selectedByTag[tag] >= MAX_SPOTS_PER_TAG) return false;
+            if (!ignoreTagLimit && selectedByTag[tag] >= MAX_SPOTS_PER_TAG) return false;
             if (selectedSpots.some(selected => selected.lat === spot.lat && selected.lng === spot.lng)) return false;
             if (enforceAnyDistance && !isFarEnoughFromAllSpots(spot)) return false;
             if (enforceSameTagDistance && !isFarEnoughFromSameTag(spot)) return false;
@@ -959,6 +965,28 @@
             selectedSpots.push(spot);
             selectedByTag[tag]++;
             return true;
+        }
+
+        for (const spot of nearbySpots) {
+            if (selectedSpots.length >= explorerConfig.maxVisible) break;
+            if (spot.distance <= explorerConfig.unlockRadius) {
+                trySelectSpot(spot, {
+                    enforceAnyDistance: false,
+                    enforceSameTagDistance: false,
+                    ignoreTagLimit: true
+                });
+            }
+        }
+
+        for (const spot of nearbySpots) {
+            if (selectedSpots.length >= explorerConfig.maxVisible) break;
+            if (previousVisibleKeys.has(getSpotDiscoveryKey(spot))) {
+                trySelectSpot(spot, {
+                    enforceAnyDistance: false,
+                    enforceSameTagDistance: false,
+                    ignoreTagLimit: true
+                });
+            }
         }
 
         for (const spot of nearbySpots) {
@@ -984,6 +1012,7 @@
         }
 
         state.visibleSpotsDebug = [];
+        const currentVisibleKeys = [];
         let discoveredToastShown = false;
 
         selectedSpots.forEach(spot => {
@@ -991,6 +1020,7 @@
             const marker = createPoiMarker(spot);
             if (marker) {
                 dynamicMarkersLayer.addLayer(marker);
+                currentVisibleKeys.push(getSpotDiscoveryKey(spot));
                 if (isUnlocked && !discoveredToastShown && markSpotDiscovered(spot)) {
                     discoveredToastShown = true;
                     SM.ui?.showToast(tr('newPlaceFound', { place: spot.name }), { type: 'info', duration: 2400 });
@@ -1012,6 +1042,7 @@
         getDistantSpotsOutsideScan(playerLat, playerLng, explorerConfig, distantHintCount).forEach(spot => {
             const marker = createDistantSignalMarker(playerLat, playerLng, spot, explorerConfig);
             dynamicMarkersLayer.addLayer(marker);
+            currentVisibleKeys.push(getSpotDiscoveryKey(spot));
             state.visibleSpotsDebug.push({
                 type: spot.type,
                 name: spot.name,
@@ -1020,6 +1051,7 @@
                 distance: Math.round(spot.distance)
             });
         });
+        state.visibleSpotKeys = currentVisibleKeys.filter(Boolean);
 
         console.log(`👀 雷达 Lv.${explorerConfig.level}: ${explorerConfig.scanRadius}m 视野，生成 ${selectedSpots.length} 个信号`, selectedByTag);
     }
