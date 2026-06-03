@@ -505,9 +505,9 @@ body, html {
     color: #ffffff;
     font-size: 15px;
     font-weight: 900;
-    background: rgba(96, 112, 118, 0.56);
-    border: 2px dashed rgba(255, 255, 255, 0.72);
-    box-shadow: 0 0 0 4px rgba(255,255,255,0.1), 0 5px 14px rgba(0,0,0,0.2);
+    background: rgba(183, 121, 31, 0.86);
+    border: 2px dashed rgba(255, 255, 255, 0.92);
+    box-shadow: 0 0 0 4px rgba(255, 210, 120, 0.24), 0 5px 14px rgba(0,0,0,0.3);
     backdrop-filter: blur(5px);
     animation: distantSignalPulse 1.8s ease-in-out infinite;
 }
@@ -515,11 +515,11 @@ body, html {
 @keyframes distantSignalPulse {
     0%, 100% {
         transform: scale(1);
-        opacity: 0.58;
+        opacity: 0.76;
     }
     50% {
         transform: scale(1.08);
-        opacity: 0.88;
+        opacity: 1;
     }
 }
 
