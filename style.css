@@ -450,17 +450,32 @@ body, html {
 
 .area-label {
     background: var(--panel);
-    border: 1px solid var(--accent-line);
-    border-radius: 999px;
-    color: var(--accent-dark);
-    font-size: 12px;
+    border: 1px solid rgba(183, 121, 31, 0.34);
+    border-radius: 7px;
+    color: #8a5a12;
+    font-size: 11px;
     font-weight: 800;
-    padding: 4px 10px;
+    padding: 3px 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    pointer-events: none;
 }
 
 .area-label::before {
     display: none;
+}
+
+.repair-area-circle {
+    filter: drop-shadow(0 0 4px rgba(183, 121, 31, 0.16));
+    pointer-events: none;
+}
+
+.scan-radius-circle {
+    filter: drop-shadow(0 0 8px rgba(15, 118, 110, 0.42));
+    pointer-events: none;
+}
+
+.custom-marker {
+    cursor: pointer;
 }
 
 .signal-dot {

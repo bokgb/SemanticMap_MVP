@@ -43,7 +43,8 @@
                 ja: '立命館OIC修復エリア'
             },
             center: [34.81036015042446, 135.5610787988949],
-            radius: 850,
+            radius: 420,
+            zoom: 17.5,
             requiredPoints: 8,
             description: {
                 zh: '立命馆大学大阪茨木校区与周边生活设施',
@@ -318,14 +319,16 @@
             return {
                 center: [...requestedArea.center],
                 area: requestedArea,
-                forcedDemo: true
+                forcedDemo: true,
+                zoom: requestedArea.zoom || DEFAULT_ZOOM
             };
         }
 
         return {
             center: [...DEFAULT_CENTER],
             area: null,
-            forcedDemo: false
+            forcedDemo: false,
+            zoom: DEFAULT_ZOOM
         };
     }
 
@@ -334,7 +337,7 @@
         statusText.innerText = message;
         setPlayerPosition(center[0], center[1], 'demo');
         updateMapBounds(center[0], center[1]);
-        map.setView(center, DEFAULT_ZOOM);
+        map.setView(center, state.defaultZoom || DEFAULT_ZOOM);
         scheduleRandomCatSpawn();
         updateVisibleSpots(center[0], center[1]);
     }
@@ -459,14 +462,6 @@
         }
 
         radarLayer.clearLayers();
-        L.circle(center, {
-            radius: config.scanRadius,
-            color: '#0f766e',
-            weight: 1,
-            fillColor: '#0f766e',
-            fillOpacity: 0.055,
-            interactive: false
-        }).addTo(radarLayer);
 
     }
 
@@ -567,14 +562,17 @@
                     required: area.requiredPoints
                 });
             layer.setStyle?.({
-                color: record.purified ? '#0f766e' : '#5f7778',
-                fillColor: record.purified ? '#d7e8e4' : '#dfe8e6',
-                fillOpacity: record.purified ? 0.2 : 0.13
+                color: record.purified ? '#0f766e' : '#b7791f',
+                fillColor: record.purified ? '#d7e8e4' : '#f6e7c8',
+                fillOpacity: record.purified ? 0.08 : 0.025
             });
             layer.bindTooltip(label, {
                 permanent: true,
                 direction: 'top',
-                className: 'area-label'
+                className: 'area-label',
+                interactive: false,
+                offset: [0, -28],
+                opacity: 0.9
             });
         });
     }
@@ -583,15 +581,18 @@
         loadAreaProgress();
         areaLayer = L.layerGroup().addTo(map);
 
-        GAME_AREAS.forEach(area => {
+        const visibleAreas = state.forcedDemoArea ? [state.forcedDemoArea] : GAME_AREAS;
+        visibleAreas.forEach(area => {
             const circle = L.circle(area.center, {
                 radius: area.radius,
-                color: '#5f7778',
-                weight: 2,
-                fillColor: '#dfe8e6',
-                fillOpacity: 0.13,
-                dashArray: '6 6',
-                interactive: false
+                color: '#b7791f',
+                weight: 1,
+                fillColor: '#f6e7c8',
+                fillOpacity: 0.025,
+                dashArray: '14 12',
+                interactive: false,
+                pane: 'areaPane',
+                className: 'repair-area-circle'
             });
             circle.areaData = area;
             areaLayer.addLayer(circle);
@@ -1270,6 +1271,7 @@
         const defaultCenterConfig = getDefaultCenterConfig();
         const initialCenter = defaultCenterConfig.center;
         state.defaultCenter = initialCenter;
+        state.defaultZoom = defaultCenterConfig.zoom || DEFAULT_ZOOM;
         state.forcedDemoArea = defaultCenterConfig.forcedDemo ? defaultCenterConfig.area : null;
         state.lastPlayerPosition = { lat: initialCenter[0], lng: initialCenter[1], source: 'initial' };
 
@@ -1280,12 +1282,19 @@
             zoomSnap: 0.5,
             maxBoundsViscosity: 0.9,
             inertiaMaxSpeed: 600
-        }).setView(initialCenter, DEFAULT_ZOOM);
+        }).setView(initialCenter, state.defaultZoom);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(map);
+
+        map.createPane('areaPane');
+        map.getPane('areaPane').style.zIndex = 380;
+        map.getPane('areaPane').style.pointerEvents = 'none';
+        map.createPane('radarPane');
+        map.getPane('radarPane').style.zIndex = 430;
+        map.getPane('radarPane').style.pointerEvents = 'none';
 
         dynamicMarkersLayer = L.layerGroup().addTo(map);
         radarLayer = L.layerGroup().addTo(map);
