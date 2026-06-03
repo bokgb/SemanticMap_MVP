@@ -37,6 +37,20 @@
     const GAME_AREAS = [
         // 修复区按“步行可达的语义场景”组织，而不是行政区。
         {
+            id: 'ritsumeikan_oic',
+            name: {
+                zh: '立命馆 OIC 修复区',
+                ja: '立命館OIC修復エリア'
+            },
+            center: [34.81036015042446, 135.5610787988949],
+            radius: 850,
+            requiredPoints: 8,
+            description: {
+                zh: '立命馆大学大阪茨木校区与周边生活设施',
+                ja: '立命館大学大阪いばらきキャンパスと周辺生活施設'
+            }
+        },
+        {
             id: 'tenroku',
             name: {
                 zh: '天六商店街修复区',
