@@ -706,16 +706,17 @@
         const playerLatLng = L.latLng(playerLat, playerLng);
         const targetLatLng = L.latLng(targetSpot.lat, targetSpot.lng);
         const distance = playerLatLng.distanceTo(targetLatLng);
-        const ratio = Math.min(0.92, (config.scanRadius * 0.88) / Math.max(distance, 1));
-        const signalLat = playerLat + (targetSpot.lat - playerLat) * ratio;
-        const signalLng = playerLng + (targetSpot.lng - playerLng) * ratio;
         const icon = L.divIcon({
             className: 'custom-marker distant-signal-marker',
             html: `<div class="distant-signal-dot" data-spot-type="${escapeAttribute(targetSpot.type)}" data-spot-name="${escapeAttribute(targetSpot.name)}">?</div>`,
-            iconSize: [34, 34],
-            iconAnchor: [17, 17]
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
         });
-        const marker = L.marker([signalLat, signalLng], { icon });
+        const marker = L.marker([targetSpot.lat, targetSpot.lng], {
+            icon,
+            opacity: 0.78,
+            zIndexOffset: -80
+        });
         marker.spotData = targetSpot;
         marker.on('click', () => {
             SM.ui?.showToast(tr('noSignalMoveHint', {
@@ -744,7 +745,7 @@
         return labels[Math.round(degrees / 45) % 8];
     }
 
-    function getDistantSpotsOutsideScan(playerLat, playerLng, config) {
+    function getDistantSpotsOutsideScan(playerLat, playerLng, config, limit = MAX_DISTANT_SIGNALS) {
         const playerLocation = L.latLng(playerLat, playerLng);
         const selected = [];
         const selectedAngles = [];
@@ -755,7 +756,7 @@
             .sort((a, b) => a.distance - b.distance);
 
         for (const spot of candidates) {
-            if (selected.length >= MAX_DISTANT_SIGNALS) break;
+            if (selected.length >= limit) break;
             const angle = getBearingDegrees(playerLat, playerLng, spot.lat, spot.lng);
             const isFarEnough = selectedAngles.every(existingAngle => {
                 return getAngleDistanceDegrees(angle, existingAngle) >= MIN_DISTANT_SIGNAL_ANGLE_DEGREES;
@@ -1005,6 +1006,19 @@
                     y: Math.round(point.y)
                 });
             }
+        });
+
+        const distantHintCount = selectedSpots.length >= minimumVisible ? 2 : 3;
+        getDistantSpotsOutsideScan(playerLat, playerLng, explorerConfig, distantHintCount).forEach(spot => {
+            const marker = createDistantSignalMarker(playerLat, playerLng, spot, explorerConfig);
+            dynamicMarkersLayer.addLayer(marker);
+            state.visibleSpotsDebug.push({
+                type: spot.type,
+                name: spot.name,
+                questTag: spot.questTag,
+                distantSignal: true,
+                distance: Math.round(spot.distance)
+            });
         });
 
         console.log(`👀 雷达 Lv.${explorerConfig.level}: ${explorerConfig.scanRadius}m 视野，生成 ${selectedSpots.length} 个信号`, selectedByTag);
