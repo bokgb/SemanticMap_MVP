@@ -419,7 +419,7 @@ body, html {
     position: relative;
     width: 18px;
     height: 18px;
-    margin: 5px;
+    margin: 9px;
     border-radius: 50%;
     background: var(--accent);
     border: 3px solid white;
@@ -440,12 +440,34 @@ body, html {
     z-index: -1;
 }
 
+.player-heading-arrow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 34px;
+    background: var(--accent);
+    clip-path: polygon(50% 0, 100% 58%, 66% 58%, 66% 100%, 34% 100%, 34% 58%, 0 58%);
+    transform-origin: 50% 50%;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,0.92)) drop-shadow(0 2px 5px rgba(0,0,0,0.32));
+    z-index: 0;
+    opacity: 0.96;
+}
+
+.player-location-dot.has-heading {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.28), 0 0 0 2px rgba(255,255,255,0.7);
+}
+
 .player-location-dot.demo {
     background: var(--slate);
 }
 
 .player-location-dot.demo::after {
     background: rgba(84, 101, 107, 0.18);
+}
+
+.player-location-dot.demo .player-heading-arrow {
+    background: var(--slate);
 }
 
 .area-label {

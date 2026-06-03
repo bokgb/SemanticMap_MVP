@@ -313,6 +313,12 @@
         return GAME_AREAS.find(area => area.id === areaId) || null;
     }
 
+    function getRequestedDemoHeading() {
+        if (!state.devMode) return null;
+        const params = new URLSearchParams(window.location.search);
+        return normalizeHeading(params.get('heading') ?? params.get('demoHeading'));
+    }
+
     function getDefaultCenterConfig() {
         const requestedArea = getRequestedDemoArea();
         if (requestedArea) {
@@ -320,7 +326,8 @@
                 center: [...requestedArea.center],
                 area: requestedArea,
                 forcedDemo: true,
-                zoom: requestedArea.zoom || DEFAULT_ZOOM
+                zoom: requestedArea.zoom || DEFAULT_ZOOM,
+                heading: getRequestedDemoHeading()
             };
         }
 
@@ -328,27 +335,46 @@
             center: [...DEFAULT_CENTER],
             area: null,
             forcedDemo: false,
-            zoom: DEFAULT_ZOOM
+            zoom: DEFAULT_ZOOM,
+            heading: getRequestedDemoHeading()
         };
     }
 
     function setDemoPosition(message) {
         const center = state.defaultCenter || DEFAULT_CENTER;
         statusText.innerText = message;
-        setPlayerPosition(center[0], center[1], 'demo');
+        setPlayerPosition(center[0], center[1], 'demo', state.defaultHeading);
         updateMapBounds(center[0], center[1]);
         map.setView(center, state.defaultZoom || DEFAULT_ZOOM);
         scheduleRandomCatSpawn();
         updateVisibleSpots(center[0], center[1]);
     }
 
-    function createPlayerMarkerIcon(source = 'gps') {
+    function normalizeHeading(value) {
+        const heading = Number(value);
+        if (!Number.isFinite(heading) || heading < 0) return null;
+        return ((heading % 360) + 360) % 360;
+    }
+
+    function inferHeadingFromMovement(previousPosition, lat, lng) {
+        if (!previousPosition || previousPosition.source !== 'gps') return null;
+        const distance = L.latLng(previousPosition.lat, previousPosition.lng).distanceTo([lat, lng]);
+        if (distance < 4) return null;
+        return getBearingDegrees(previousPosition.lat, previousPosition.lng, lat, lng);
+    }
+
+    function createPlayerMarkerIcon(source = 'gps', heading = null) {
         const demoClass = source === 'gps' ? '' : ' demo';
+        const normalizedHeading = normalizeHeading(heading);
+        const headingClass = normalizedHeading == null ? '' : ' has-heading';
+        const headingArrow = normalizedHeading == null
+            ? ''
+            : `<span class="player-heading-arrow" style="transform: translate(-50%, -50%) rotate(${normalizedHeading.toFixed(1)}deg);"></span>`;
         return L.divIcon({
             className: 'player-position-marker',
-            html: `<div class="player-location-dot${demoClass}"></div>`,
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
+            html: `<div class="player-location-dot${demoClass}${headingClass}">${headingArrow}</div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
         });
     }
 
@@ -431,12 +457,24 @@
         fogContext.restore();
     }
 
-    function setPlayerPosition(lat, lng, source = 'gps') {
-        state.lastPlayerPosition = { lat, lng, source };
+    function setPlayerPosition(lat, lng, source = 'gps', heading = null) {
+        const previousPosition = state.lastPlayerPosition;
+        const reportedHeading = normalizeHeading(heading);
+        const movementHeading = reportedHeading == null
+            ? inferHeadingFromMovement(previousPosition, lat, lng)
+            : null;
+        const playerHeading = reportedHeading != null
+            ? reportedHeading
+            : source === 'gps'
+                ? movementHeading ?? state.playerHeading ?? null
+                : null;
+
+        state.playerHeading = playerHeading;
+        state.lastPlayerPosition = { lat, lng, source, heading: playerHeading };
 
         if (!playerMarker) {
             playerMarker = L.marker([lat, lng], {
-                icon: createPlayerMarkerIcon(source),
+                icon: createPlayerMarkerIcon(source, playerHeading),
                 keyboard: false,
                 interactive: false,
                 zIndexOffset: 1000
@@ -447,7 +485,7 @@
         }
 
         playerMarker.setLatLng([lat, lng]);
-        playerMarker.setIcon(createPlayerMarkerIcon(source));
+        playerMarker.setIcon(createPlayerMarkerIcon(source, playerHeading));
         updateRadarDisplay();
         drawFog();
     }
@@ -1186,7 +1224,7 @@
                 (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    setPlayerPosition(lat, lng, 'gps');
+                    setPlayerPosition(lat, lng, 'gps', position.coords.heading);
                     updateMapBounds(lat, lng);
 
                     statusText.innerText = tr('gpsUpdated', {
@@ -1318,6 +1356,7 @@
         const initialCenter = defaultCenterConfig.center;
         state.defaultCenter = initialCenter;
         state.defaultZoom = defaultCenterConfig.zoom || DEFAULT_ZOOM;
+        state.defaultHeading = defaultCenterConfig.heading;
         state.forcedDemoArea = defaultCenterConfig.forcedDemo ? defaultCenterConfig.area : null;
         state.lastPlayerPosition = { lat: initialCenter[0], lng: initialCenter[1], source: 'initial' };
 
