@@ -561,6 +561,22 @@ body, html {
         min-width: 104px;
         height: 42px;
     }
+
+    #mimi-guide {
+        left: 14px;
+        right: 96px;
+        max-width: none;
+    }
+
+    .mimi-speech {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        padding: 9px 11px 10px;
+        box-sizing: border-box;
+    }
+
 }
 
 #ui-layer {
@@ -643,6 +659,7 @@ h2, p {
     z-index: 1550;
     margin: 0;
     padding: 8px 14px 9px;
+    box-sizing: border-box;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.94);
     border: 1px solid var(--line);
@@ -778,7 +795,7 @@ h2, p {
 
 /* --- 悬浮背包按钮 --- */
 #bag-btn {
-    position: absolute;
+    position: fixed;
     top: max(64px, calc(env(safe-area-inset-top) + 64px));
     right: 20px;
     z-index: 1000;
@@ -793,6 +810,13 @@ h2, p {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+@media (max-width: 520px) {
+    #bag-btn {
+        right: 28px;
+        z-index: 6300;
+    }
 }
 
 /* 💥 图标销毁爆炸特效 (Game Feel) */
