@@ -851,21 +851,25 @@ h2, p {
 
 /* --- 侧滑背包面板 --- */
 #inventory-layer {
-    position: absolute;
-    top: 0; 
-    right: 0;
-    width: 280px; 
-    height: 100%;
+    position: fixed;
+    top: max(150px, calc(env(safe-area-inset-top) + 150px));
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom) + 96px);
+    width: min(300px, calc(100vw - 32px));
+    height: auto;
+    max-height: calc(100vh - 250px);
     background: var(--panel);
     backdrop-filter: blur(10px);
     z-index: 1001; /* 层级比按钮更高 */
-    padding: 20px;
+    padding: 14px;
+    z-index: 6100;
     box-sizing: border-box;
-    border-left: 1px solid var(--line);
-    box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: -8px 0 24px rgba(0,0,0,0.16);
     
     /* 核心动画魔法：默认藏在屏幕右侧外面 */
-    transform: translateX(100%); 
+    transform: translateX(calc(100% + 28px)); 
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
 }
@@ -878,18 +882,18 @@ h2, p {
 @media (max-width: 520px) {
     #inventory-layer {
         position: fixed;
-        top: max(162px, calc(env(safe-area-inset-top) + 162px));
+        top: max(184px, calc(env(safe-area-inset-top) + 184px));
         left: auto;
-        right: 0;
+        right: 18px;
         bottom: calc(env(safe-area-inset-bottom) + 118px);
-        width: min(58vw, 240px);
+        width: min(56vw, 230px);
         height: auto;
-        max-height: none;
+        max-height: calc(100vh - 310px);
         padding: 14px;
         border-left: 1px solid var(--line);
         border: 1px solid var(--line);
-        border-radius: 18px 0 0 18px;
-        box-shadow: -10px 0 28px rgba(0,0,0,0.18);
+        border-radius: 16px;
+        box-shadow: -8px 0 24px rgba(0,0,0,0.18);
         transform: translateX(calc(100% + 28px));
     }
 
