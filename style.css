@@ -59,7 +59,7 @@ body, html {
 #mimi-guide {
     position: fixed;
     left: 18px;
-    top: max(64px, calc(env(safe-area-inset-top) + 64px));
+    top: max(84px, calc(env(safe-area-inset-top) + 84px));
     z-index: 6200;
     display: flex;
     align-items: flex-start;
@@ -796,7 +796,7 @@ h2, p {
 /* --- 悬浮背包按钮 --- */
 #bag-btn {
     position: fixed;
-    top: max(64px, calc(env(safe-area-inset-top) + 64px));
+    top: max(84px, calc(env(safe-area-inset-top) + 84px));
     right: 20px;
     z-index: 1000;
     width: 55px; 
@@ -814,6 +814,7 @@ h2, p {
 
 @media (max-width: 520px) {
     #bag-btn {
+        top: max(108px, calc(env(safe-area-inset-top) + 108px));
         right: 28px;
         z-index: 6300;
     }
@@ -877,7 +878,7 @@ h2, p {
 @media (max-width: 520px) {
     #inventory-layer {
         position: fixed;
-        top: max(142px, calc(env(safe-area-inset-top) + 142px));
+        top: max(162px, calc(env(safe-area-inset-top) + 162px));
         left: auto;
         right: 0;
         bottom: calc(env(safe-area-inset-bottom) + 118px);
