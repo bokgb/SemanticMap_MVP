@@ -51,8 +51,8 @@
                 ja: '立命館OIC修復エリア'
             },
             center: [34.81036015042446, 135.5610787988949],
-            radius: 280,
-            zoom: 16.8,
+            radius: 420,
+            zoom: 16,
             requiredPoints: 8,
             description: {
                 zh: '立命馆大学大阪茨木校区与周边生活设施',
@@ -60,33 +60,18 @@
             }
         },
         {
-            id: 'oic_world_garden',
-            name: {
-                zh: 'OIC 花园散步修复区',
-                ja: 'OICガーデン散歩修復エリア'
-            },
-            center: [34.81065, 135.56245],
-            radius: 260,
-            zoom: 18,
-            requiredPoints: 8,
-            description: {
-                zh: '岩倉公园、WORLD GARDEN 与校园东侧步行空间',
-                ja: '岩倉公園、WORLD GARDEN、キャンパス東側の歩行空間'
-            }
-        },
-        {
             id: 'ibarakishi_station_west',
             name: {
-                zh: '茨木站前西口修复区',
-                ja: '茨木駅前西口修復エリア'
+                zh: '茨木站修复区',
+                ja: '茨木駅修復エリア'
             },
-            center: [34.81505, 135.56208],
-            radius: 300,
-            zoom: 17.5,
+            center: [34.81525, 135.56220],
+            radius: 360,
+            zoom: 17,
             requiredPoints: 8,
             description: {
-                zh: 'JR 茨木站西侧、车站设施与通勤动线',
-                ja: 'JR茨木駅西側、駅施設と通勤動線'
+                zh: 'JR 茨木站周边、车站设施与通勤动线',
+                ja: 'JR茨木駅周辺、駅施設と通勤動線'
             }
         },
         {
@@ -105,18 +90,18 @@
             }
         },
         {
-            id: 'oic_library_cafe',
+            id: 'minami_ibaraki_station',
             name: {
-                zh: 'OIC 图书馆咖啡修复区',
-                ja: 'OICライブラリーカフェ修復エリア'
+                zh: '南茨木站修复区',
+                ja: '南茨木駅修復エリア'
             },
-            center: [34.80905, 135.56072],
-            radius: 240,
-            zoom: 18,
+            center: [34.80255, 135.56535],
+            radius: 360,
+            zoom: 17,
             requiredPoints: 8,
             description: {
-                zh: 'OIC 校园南侧、图书馆与休息空间附近',
-                ja: 'OICキャンパス南側、図書館と休憩スペース周辺'
+                zh: '阪急与大阪单轨南茨木站周边',
+                ja: '阪急・大阪モノレール南茨木駅周辺'
             }
         },
         {
@@ -262,10 +247,9 @@
     ];
     const OIC_DEMO_AREA_IDS = new Set([
         'ritsumeikan_oic',
-        'oic_world_garden',
         'ibarakishi_station_west',
         'aeon_ibaraki',
-        'oic_library_cafe'
+        'minami_ibaraki_station'
     ]);
     const AREA_URL_PARAMS = ['area', 'testArea', 'demoArea'];
     let map = null;
