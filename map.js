@@ -2,7 +2,8 @@
     const SM = window.SemanticMap = window.SemanticMap || {};
     const state = SM.state = SM.state || {};
 
-    const DEFAULT_CENTER = [34.7106, 135.5108];
+    const DEFAULT_CENTER = [34.81036015042446, 135.5610787988949];
+    const DEFAULT_DEMO_AREA_ID = 'ritsumeikan_oic';
     const EXPLORER_PROGRESS_STORAGE_KEY = 'semantic-map-explorer-progress-v1';
     const EXPLORER_LEVELS = [
         { level: 1, xp: 0, scanRadius: 180, unlockRadius: 60, maxVisible: 4, distantHints: 2 },
@@ -461,6 +462,17 @@
                 area: requestedArea,
                 forcedDemo: true,
                 zoom: requestedArea.zoom || DEFAULT_ZOOM,
+                heading: getRequestedDemoHeading()
+            };
+        }
+
+        const defaultDemoArea = state.devMode ? getAreaById(DEFAULT_DEMO_AREA_ID) : null;
+        if (defaultDemoArea) {
+            return {
+                center: [...defaultDemoArea.center],
+                area: defaultDemoArea,
+                forcedDemo: true,
+                zoom: defaultDemoArea.zoom || DEFAULT_ZOOM,
                 heading: getRequestedDemoHeading()
             };
         }
