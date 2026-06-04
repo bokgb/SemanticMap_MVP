@@ -417,7 +417,7 @@
         });
 
         elements.bagBtn.addEventListener('click', () => {
-            elements.inventoryLayer.classList.add('open');
+            elements.inventoryLayer.classList.toggle('open');
             elements.bagBadge.style.display = 'none';
         });
 
