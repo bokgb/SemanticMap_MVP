@@ -810,6 +810,13 @@ h2, p {
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+#bag-btn.inventory-open {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.92);
 }
 
 @media (max-width: 520px) {
@@ -852,17 +859,17 @@ h2, p {
 /* --- 侧滑背包面板 --- */
 #inventory-layer {
     position: fixed;
-    top: max(150px, calc(env(safe-area-inset-top) + 150px));
-    right: 16px;
-    bottom: calc(env(safe-area-inset-bottom) + 96px);
-    width: min(300px, calc(100vw - 32px));
+    top: max(132px, calc(env(safe-area-inset-top) + 132px));
+    right: 24px;
+    bottom: calc(env(safe-area-inset-bottom) + 74px);
+    width: min(320px, calc(100vw - 48px));
     height: auto;
     max-height: calc(100vh - 250px);
     background: var(--panel);
     backdrop-filter: blur(10px);
     z-index: 1001; /* 层级比按钮更高 */
     padding: 14px;
-    z-index: 6100;
+    z-index: 6400;
     box-sizing: border-box;
     border: 1px solid var(--line);
     border-radius: 16px;
@@ -882,13 +889,13 @@ h2, p {
 @media (max-width: 520px) {
     #inventory-layer {
         position: fixed;
-        top: max(184px, calc(env(safe-area-inset-top) + 184px));
+        top: max(168px, calc(env(safe-area-inset-top) + 168px));
         left: auto;
-        right: 18px;
-        bottom: calc(env(safe-area-inset-bottom) + 118px);
-        width: min(56vw, 230px);
+        right: 24px;
+        bottom: calc(env(safe-area-inset-bottom) + 72px);
+        width: min(70vw, 300px);
         height: auto;
-        max-height: calc(100vh - 310px);
+        max-height: calc(100vh - 250px);
         padding: 14px;
         border-left: 1px solid var(--line);
         border: 1px solid var(--line);
@@ -930,6 +937,7 @@ h2, p {
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
+    margin-right: 8px;
 }
 
 /* 保持你原来的卡牌样式不变 */

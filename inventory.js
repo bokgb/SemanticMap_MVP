@@ -200,6 +200,11 @@
         }
     }
 
+    function setInventoryOpen(open) {
+        elements.inventoryLayer.classList.toggle('open', open);
+        elements.bagBtn.classList.toggle('inventory-open', open);
+    }
+
     function showWordDetailCard(aiData) {
         if (!aiData) return;
 
@@ -422,7 +427,7 @@
 
         elements.bagBtn.addEventListener('click', event => {
             event.stopPropagation();
-            elements.inventoryLayer.classList.toggle('open');
+            setInventoryOpen(!elements.inventoryLayer.classList.contains('open'));
             elements.bagBadge.style.display = 'none';
         });
 
@@ -431,11 +436,11 @@
         });
 
         elements.closeBagBtn.addEventListener('click', () => {
-            elements.inventoryLayer.classList.remove('open');
+            setInventoryOpen(false);
         });
 
         document.addEventListener('click', () => {
-            elements.inventoryLayer.classList.remove('open');
+            setInventoryOpen(false);
         });
 
         elements.btnCollectWord.addEventListener('click', () => {
