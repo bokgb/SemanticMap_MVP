@@ -367,6 +367,10 @@
                 level: afterConfig.level,
                 radius: afterConfig.scanRadius
             }), { type: 'success', duration: 3400 });
+            SM.ui?.showTutorial?.('levelup', {
+                titleKey: 'tutorialLevelTitle',
+                messageKey: 'tutorialLevelBody'
+            });
         }
     }
 
@@ -1069,6 +1073,10 @@
 
         document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
         questLayer.classList.remove('hidden');
+        SM.ui?.showTutorial?.('firstQuest', {
+            titleKey: 'tutorialQuestTitle',
+            messageKey: 'tutorialQuestBody'
+        });
     }
 
     async function loadOSMData() {
@@ -1554,6 +1562,12 @@
         window.setTimeout(() => {
             SM.ui?.showGuideMessage?.(tr('mimiIdle'), { type: 'info', duration: 4200 });
         }, 900);
+        window.setTimeout(() => {
+            SM.ui?.showTutorial?.('intro', {
+                titleKey: 'tutorialIntroTitle',
+                messageKey: 'tutorialIntroBody'
+            });
+        }, 1500);
     }
 
     SM.map = {

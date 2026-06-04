@@ -3,7 +3,9 @@
 
     let toastLayer = null;
     let guideLayer = null;
+    let tutorialLayer = null;
     let guideMessageTimer = null;
+    const TUTORIAL_STORAGE_PREFIX = 'semantic-map-tutorial-v1-';
 
     function getToastLayer() {
         if (toastLayer) return toastLayer;
@@ -127,6 +129,80 @@
         closeButton?.addEventListener('click', () => layer.remove());
     }
 
+    function getTutorialLayer() {
+        if (tutorialLayer) return tutorialLayer;
+
+        tutorialLayer = document.createElement('div');
+        tutorialLayer.id = 'tutorial-coach';
+        tutorialLayer.setAttribute('role', 'dialog');
+        tutorialLayer.setAttribute('aria-live', 'polite');
+        tutorialLayer.innerHTML = `
+            <div class="tutorial-coach-card">
+                <div class="tutorial-coach-eyebrow"></div>
+                <h2 class="tutorial-coach-title"></h2>
+                <p class="tutorial-coach-message"></p>
+                <button class="tutorial-coach-btn" type="button"></button>
+            </div>
+        `;
+        document.body.appendChild(tutorialLayer);
+
+        tutorialLayer.querySelector('.tutorial-coach-btn')?.addEventListener('click', () => {
+            const key = tutorialLayer.dataset.tutorialKey;
+            if (key) {
+                try {
+                    localStorage.setItem(`${TUTORIAL_STORAGE_PREFIX}${key}`, '1');
+                } catch (error) {
+                    console.warn('Failed to save tutorial state.', error);
+                }
+            }
+            tutorialLayer.classList.remove('show');
+        });
+
+        return tutorialLayer;
+    }
+
+    function hasSeenTutorial(key) {
+        try {
+            return localStorage.getItem(`${TUTORIAL_STORAGE_PREFIX}${key}`) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function showTutorial(key, { title, message, titleKey, messageKey, buttonKey = 'tutorialOk' } = {}) {
+        if (!key || hasSeenTutorial(key)) return;
+
+        const levelOnboardingLayer = document.getElementById('level-onboarding-layer');
+        if (levelOnboardingLayer && !levelOnboardingLayer.classList.contains('hidden')) {
+            window.setTimeout(() => showTutorial(key, { title, message, titleKey, messageKey, buttonKey }), 700);
+            return;
+        }
+
+        const layer = getTutorialLayer();
+        const eyebrowEl = layer.querySelector('.tutorial-coach-eyebrow');
+        const titleEl = layer.querySelector('.tutorial-coach-title');
+        const messageEl = layer.querySelector('.tutorial-coach-message');
+        const buttonEl = layer.querySelector('.tutorial-coach-btn');
+
+        layer.dataset.tutorialKey = key;
+        if (eyebrowEl) eyebrowEl.textContent = SM.i18n?.t?.('tutorialEyebrow') || '';
+        if (titleEl) titleEl.textContent = title || SM.i18n?.t?.(titleKey) || '';
+        if (messageEl) messageEl.textContent = message || SM.i18n?.t?.(messageKey) || '';
+        if (buttonEl) buttonEl.textContent = SM.i18n?.t?.(buttonKey) || 'OK';
+
+        window.requestAnimationFrame(() => layer.classList.add('show'));
+    }
+
+    function resetTutorials() {
+        try {
+            Object.keys(localStorage)
+                .filter(key => key.startsWith(TUTORIAL_STORAGE_PREFIX))
+                .forEach(key => localStorage.removeItem(key));
+        } catch (error) {
+            console.warn('Failed to reset tutorial state.', error);
+        }
+    }
+
     function escapeHtml(value) {
         return String(value ?? '').replace(/[&<>"']/g, char => ({
             '&': '&amp;',
@@ -144,6 +220,8 @@
     SM.ui = {
         showToast,
         showGuideMessage,
+        showTutorial,
+        resetTutorials,
         refreshLanguage,
         showDialog
     };

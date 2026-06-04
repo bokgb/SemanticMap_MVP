@@ -190,6 +190,10 @@
             elements.bagBadge.innerText = collectedWordsCount;
         }
 
+        SM.ui?.showTutorial?.('inventory', {
+            titleKey: 'tutorialInventoryTitle',
+            messageKey: 'tutorialInventoryBody'
+        });
         maybeTriggerNpcEvent(data);
     }
 

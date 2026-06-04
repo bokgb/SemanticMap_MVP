@@ -189,6 +189,78 @@ body, html {
     border-left: 5px solid var(--slate);
 }
 
+#tutorial-coach {
+    position: fixed;
+    left: 18px;
+    right: 18px;
+    bottom: max(154px, calc(env(safe-area-inset-bottom) + 154px));
+    z-index: 7000;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#tutorial-coach.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.tutorial-coach-card {
+    width: min(100%, 360px);
+    padding: 14px 15px 13px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid var(--line);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+    backdrop-filter: blur(12px);
+}
+
+.tutorial-coach-eyebrow {
+    margin-bottom: 4px;
+    color: var(--accent-dark);
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.tutorial-coach-title {
+    margin: 0 0 6px;
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.25;
+}
+
+.tutorial-coach-message {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.tutorial-coach-btn {
+    width: 100%;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+@media (max-width: 520px) {
+    #tutorial-coach {
+        left: 14px;
+        right: 14px;
+        bottom: max(188px, calc(env(safe-area-inset-bottom) + 188px));
+    }
+}
+
 .game-dialog-layer {
     position: fixed;
     inset: 0;
