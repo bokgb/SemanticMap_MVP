@@ -59,7 +59,7 @@ body, html {
 #mimi-guide {
     position: fixed;
     left: 18px;
-    top: max(16px, env(safe-area-inset-top));
+    top: max(64px, calc(env(safe-area-inset-top) + 64px));
     z-index: 6200;
     display: flex;
     align-items: flex-start;
@@ -636,12 +636,22 @@ h2, p {
 }
 
 .player-progress-panel {
-    margin: 10px 0 8px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    background: rgba(244, 247, 246, 0.92);
+    position: fixed;
+    top: max(0px, env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+    z-index: 1550;
+    margin: 0;
+    padding: 8px 14px 9px;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.94);
     border: 1px solid var(--line);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
 }
 
 .player-progress-top {
@@ -654,13 +664,18 @@ h2, p {
     font-weight: 900;
 }
 
+#player-level-label,
+#player-coins-label {
+    flex: 0 0 auto;
+}
+
 #player-coins-label {
     color: #8a5a12;
 }
 
 .player-exp-bar {
     height: 7px;
-    margin-top: 8px;
+    margin-top: 6px;
     overflow: hidden;
     border-radius: 999px;
     background: rgba(38, 50, 56, 0.12);
@@ -675,10 +690,11 @@ h2, p {
 }
 
 .player-exp-label {
-    margin-top: 5px;
+    flex: 1 1 auto;
     color: var(--muted);
     font-size: 11px;
     font-weight: 800;
+    text-align: center;
 }
 
 #difficulty-hint {
@@ -766,7 +782,7 @@ h2, p {
 /* --- 悬浮背包按钮 --- */
 #bag-btn {
     position: absolute;
-    top: 20px;
+    top: max(64px, calc(env(safe-area-inset-top) + 64px));
     right: 20px;
     z-index: 1000;
     width: 55px; 
