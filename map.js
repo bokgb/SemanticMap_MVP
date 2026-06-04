@@ -50,12 +50,72 @@
                 ja: '立命館OIC修復エリア'
             },
             center: [34.81036015042446, 135.5610787988949],
-            radius: 420,
-            zoom: 17.5,
+            radius: 280,
+            zoom: 16.8,
             requiredPoints: 8,
             description: {
                 zh: '立命馆大学大阪茨木校区与周边生活设施',
                 ja: '立命館大学大阪いばらきキャンパスと周辺生活施設'
+            }
+        },
+        {
+            id: 'oic_world_garden',
+            name: {
+                zh: 'OIC 花园散步修复区',
+                ja: 'OICガーデン散歩修復エリア'
+            },
+            center: [34.81065, 135.56245],
+            radius: 260,
+            zoom: 18,
+            requiredPoints: 8,
+            description: {
+                zh: '岩倉公园、WORLD GARDEN 与校园东侧步行空间',
+                ja: '岩倉公園、WORLD GARDEN、キャンパス東側の歩行空間'
+            }
+        },
+        {
+            id: 'ibarakishi_station_west',
+            name: {
+                zh: '茨木站前西口修复区',
+                ja: '茨木駅前西口修復エリア'
+            },
+            center: [34.81505, 135.56208],
+            radius: 300,
+            zoom: 17.5,
+            requiredPoints: 8,
+            description: {
+                zh: 'JR 茨木站西侧、车站设施与通勤动线',
+                ja: 'JR茨木駅西側、駅施設と通勤動線'
+            }
+        },
+        {
+            id: 'aeon_ibaraki',
+            name: {
+                zh: 'AEON 茨木生活修复区',
+                ja: 'イオン茨木生活修復エリア'
+            },
+            center: [34.81255, 135.55845],
+            radius: 300,
+            zoom: 17.5,
+            requiredPoints: 8,
+            description: {
+                zh: 'AEON MALL 茨木、商店与日常消费场景',
+                ja: 'イオンモール茨木、店と日常の買い物場面'
+            }
+        },
+        {
+            id: 'oic_library_cafe',
+            name: {
+                zh: 'OIC 图书馆咖啡修复区',
+                ja: 'OICライブラリーカフェ修復エリア'
+            },
+            center: [34.80905, 135.56072],
+            radius: 240,
+            zoom: 18,
+            requiredPoints: 8,
+            description: {
+                zh: 'OIC 校园南侧、图书馆与休息空间附近',
+                ja: 'OICキャンパス南側、図書館と休憩スペース周辺'
             }
         },
         {
@@ -199,6 +259,13 @@
             }
         }
     ];
+    const OIC_DEMO_AREA_IDS = new Set([
+        'ritsumeikan_oic',
+        'oic_world_garden',
+        'ibarakishi_station_west',
+        'aeon_ibaraki',
+        'oic_library_cafe'
+    ]);
     const AREA_URL_PARAMS = ['area', 'testArea', 'demoArea'];
     let map = null;
     let playerMarker = null;
@@ -686,7 +753,9 @@
         loadAreaProgress();
         areaLayer = L.layerGroup().addTo(map);
 
-        const visibleAreas = state.forcedDemoArea ? [state.forcedDemoArea] : GAME_AREAS;
+        const visibleAreas = state.forcedDemoArea?.id === 'ritsumeikan_oic'
+            ? GAME_AREAS.filter(area => OIC_DEMO_AREA_IDS.has(area.id))
+            : state.forcedDemoArea ? [state.forcedDemoArea] : GAME_AREAS;
         visibleAreas.forEach(area => {
             const circle = L.circle(area.center, {
                 radius: area.radius,
