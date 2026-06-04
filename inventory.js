@@ -169,6 +169,10 @@
     function renderInventoryList() {
         if (!elements.wordList) return;
         elements.wordList.innerHTML = '';
+        if (!playerInventory.length) {
+            elements.wordList.innerHTML = `<div class="inventory-empty">${escapeHtml(tr('inventoryEmpty'))}</div>`;
+            return;
+        }
         [...playerInventory].reverse().forEach(data => {
             elements.wordList.appendChild(renderWordBlock(data));
         });
@@ -416,12 +420,21 @@
             btnCollectWord: document.getElementById('btn-collect-word')
         });
 
-        elements.bagBtn.addEventListener('click', () => {
+        elements.bagBtn.addEventListener('click', event => {
+            event.stopPropagation();
             elements.inventoryLayer.classList.toggle('open');
             elements.bagBadge.style.display = 'none';
         });
 
+        elements.inventoryLayer.addEventListener('click', event => {
+            event.stopPropagation();
+        });
+
         elements.closeBagBtn.addEventListener('click', () => {
+            elements.inventoryLayer.classList.remove('open');
+        });
+
+        document.addEventListener('click', () => {
             elements.inventoryLayer.classList.remove('open');
         });
 

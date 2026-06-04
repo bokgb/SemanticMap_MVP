@@ -9,6 +9,7 @@
             mimiName: 'Mimi',
             mimiFace: 'M',
             bagTitle: '地点词汇卡',
+            inventoryEmpty: '还没有词卡。完成附近任务后，词卡会收进这里。',
             difficulty: {
                 N5: '当前难度：N5 - 新手',
                 N3: '当前难度：N3 - 进阶',
@@ -81,6 +82,7 @@
             mimiName: 'ミミ',
             mimiFace: 'ミ',
             bagTitle: '場所語彙カード',
+            inventoryEmpty: 'まだ語彙カードがありません。近くのタスクを完了すると、ここに入ります。',
             difficulty: {
                 N5: '現在の難易度：N5 - 初心者',
                 N3: '現在の難易度：N3 - 中級',
