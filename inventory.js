@@ -393,7 +393,7 @@
         if (activeNpcEvent.scenario.matcher(card)) {
             activeNpcEvent.completed = true;
             activeNpcEvent.selectedWrong = false;
-            SM.map?.grantExplorerXp?.(1);
+            SM.map?.grantExplorerReward?.({ type: 'npc' });
             SM.ui?.showGuideMessage?.(tr('npcReward'), { type: 'success', duration: 2800 });
         } else {
             activeNpcEvent.selectedWrong = true;

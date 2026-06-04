@@ -48,6 +48,17 @@
         <span class="locate-label" data-zh="当前位置" data-ja="現在地">当前位置</span>
     </button>
 
+    <div id="player-progress-panel" class="player-progress-panel" aria-live="polite">
+        <div class="player-progress-top">
+            <span id="player-level-label">Lv.1</span>
+            <span id="player-coins-label">0 金币</span>
+        </div>
+        <div class="player-exp-bar" aria-hidden="true">
+            <div id="player-exp-fill"></div>
+        </div>
+        <div id="player-exp-label" class="player-exp-label">EXP 0/50</div>
+    </div>
+
     <div id="ui-layer">
         <div id="ui-toggle" title="收起/展开" data-zh-title="收起/展开" data-ja-title="折りたたみ/展開">
             <button id="ui-toggle-btn">▲</button>

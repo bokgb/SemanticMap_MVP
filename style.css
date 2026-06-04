@@ -635,6 +635,59 @@ h2, p {
     font-weight: 800;
 }
 
+.player-progress-panel {
+    position: fixed;
+    top: max(92px, calc(env(safe-area-inset-top) + 92px));
+    right: 16px;
+    z-index: 1600;
+    width: min(44vw, 168px);
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(244, 247, 246, 0.92);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+}
+
+.player-progress-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+#player-coins-label {
+    color: #8a5a12;
+}
+
+.player-exp-bar {
+    height: 7px;
+    margin-top: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(38, 50, 56, 0.12);
+}
+
+#player-exp-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent), #f6c744);
+    transition: width 0.25s ease;
+}
+
+.player-exp-label {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
 #difficulty-hint {
     margin-top: 8px;
     padding: 8px 10px;

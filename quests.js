@@ -48,7 +48,7 @@
                 { rarity: 'R', weight: 0.35, text: "[ ? ] の近くで休むことにしました。", req: "Nature", grammar: "N の近くで", instruction: "公园里适合靠近休息的自然物或设施。", reward: 1 },
                 { rarity: 'R', weight: 0.25, text: "赤い [ ? ] が咲いているので、写真を撮りました。", req: "Nature", grammar: "ので", instruction: "红色或鲜艳的花、叶子等。", reward: 1 },
                 { rarity: 'SR', weight: 0.015, text: "[ ? ] を見つけたら、友だちに教えます。", req: "Nature", grammar: "Vたら", instruction: "公园里发现会想告诉朋友的自然物。", reward: 1 },
-                { rarity: 'R', weight: 0.2, text: "[ ? ] のそばを通るたびに、季節を感じます。", req: "Nature", grammar: "Vるたびに", instruction: "能感到季节变化的自然物。", reward: 1 },
+                { rarity: 'R', weight: 0.2, text: "季節の [ ? ] を撮ります。", req: "Nature", grammar: "N の N を Vます", instruction: "能体现季节的花、叶子、树木或自然物。", reward: 1 },
                 { rarity: 'R', weight: 0.2, text: "[ ? ] が見えるように、少し近づきます。", req: "Nature", grammar: "Vるように", instruction: "需要靠近才能看清的自然物或景观。", reward: 1 }
             ],
             station: [

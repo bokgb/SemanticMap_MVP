@@ -5,12 +5,19 @@
     const DEFAULT_CENTER = [34.7106, 135.5108];
     const EXPLORER_PROGRESS_STORAGE_KEY = 'semantic-map-explorer-progress-v1';
     const EXPLORER_LEVELS = [
-        { level: 1, xp: 0, scanRadius: 180, unlockRadius: 70, maxVisible: 4 },
-        { level: 2, xp: 3, scanRadius: 260, unlockRadius: 90, maxVisible: 5 },
-        { level: 3, xp: 8, scanRadius: 360, unlockRadius: 110, maxVisible: 6 },
-        { level: 4, xp: 15, scanRadius: 500, unlockRadius: 130, maxVisible: 7 },
-        { level: 5, xp: 25, scanRadius: 680, unlockRadius: 150, maxVisible: 8 }
+        { level: 1, xp: 0, scanRadius: 180, unlockRadius: 60, maxVisible: 4, distantHints: 2 },
+        { level: 2, xp: 50, scanRadius: 240, unlockRadius: 70, maxVisible: 5, distantHints: 2 },
+        { level: 3, xp: 120, scanRadius: 300, unlockRadius: 80, maxVisible: 6, distantHints: 3 },
+        { level: 4, xp: 220, scanRadius: 380, unlockRadius: 90, maxVisible: 7, distantHints: 3 },
+        { level: 5, xp: 360, scanRadius: 480, unlockRadius: 100, maxVisible: 8, distantHints: 4 }
     ];
+    const QUEST_REWARDS = {
+        N: { xp: 10, coins: 5 },
+        R: { xp: 20, coins: 10 },
+        SR: { xp: 40, coins: 20 },
+        SSR: { xp: 60, coins: 30 },
+        npc: { xp: 30, coins: 15 }
+    };
     const MAX_SPOTS_PER_TAG = 2;
     const MAX_DISTANT_SIGNALS = 4;
     const MIN_DISTANT_SIGNAL_ANGLE_DEGREES = 32;
@@ -201,7 +208,7 @@
     let fogContext = null;
     let areaLayer = null;
     let areaProgress = {};
-    let explorerProgress = { xp: 0, discoveredSpotKeys: [] };
+    let explorerProgress = { xp: 0, coins: 0, discoveredSpotKeys: [] };
     let allSpots = [];
     let catSpawnTimer = null;
     let activeCatMarker = null;
@@ -228,11 +235,12 @@
             const parsed = rawProgress ? JSON.parse(rawProgress) : {};
             explorerProgress = {
                 xp: Number(parsed?.xp || 0),
+                coins: Number(parsed?.coins || 0),
                 discoveredSpotKeys: Array.isArray(parsed?.discoveredSpotKeys) ? parsed.discoveredSpotKeys : []
             };
         } catch (error) {
             console.warn('读取探索进度失败，使用空进度。', error);
-            explorerProgress = { xp: 0, discoveredSpotKeys: [] };
+            explorerProgress = { xp: 0, coins: 0, discoveredSpotKeys: [] };
         }
         state.explorerProgress = explorerProgress;
     }
@@ -256,13 +264,51 @@
         return config;
     }
 
-    function addExplorerXp(points = 1) {
+    function getNextExplorerConfig() {
+        const currentLevel = getExplorerConfig().level;
+        return EXPLORER_LEVELS.find(levelConfig => levelConfig.level > currentLevel) || null;
+    }
+
+    function updatePlayerProgressDisplay() {
+        const levelLabel = document.getElementById('player-level-label');
+        const coinsLabel = document.getElementById('player-coins-label');
+        const expLabel = document.getElementById('player-exp-label');
+        const expFill = document.getElementById('player-exp-fill');
+        if (!levelLabel || !coinsLabel || !expLabel || !expFill) return;
+
+        const config = getExplorerConfig();
+        const nextConfig = getNextExplorerConfig();
+        const xp = Number(explorerProgress.xp || 0);
+        const coins = Number(explorerProgress.coins || 0);
+        const currentLevelXp = config.xp;
+        const nextLevelXp = nextConfig?.xp ?? currentLevelXp;
+        const levelSpan = Math.max(1, nextLevelXp - currentLevelXp);
+        const progress = nextConfig ? Math.max(0, Math.min(1, (xp - currentLevelXp) / levelSpan)) : 1;
+
+        levelLabel.innerText = `Lv.${config.level}`;
+        coinsLabel.innerText = `${coins} ${tr('coinsLabel')}`;
+        expLabel.innerText = nextConfig
+            ? `EXP ${xp - currentLevelXp}/${levelSpan}`
+            : tr('maxLevelLabel');
+        expFill.style.width = `${Math.round(progress * 100)}%`;
+    }
+
+    function addExplorerReward({ xp = 0, coins = 0, showToast = false } = {}) {
         const beforeLevel = getExplorerConfig().level;
-        explorerProgress.xp = Number(explorerProgress.xp || 0) + points;
+        explorerProgress.xp = Number(explorerProgress.xp || 0) + Number(xp || 0);
+        explorerProgress.coins = Number(explorerProgress.coins || 0) + Number(coins || 0);
         const afterConfig = getExplorerConfig();
         saveExplorerProgress();
+        updatePlayerProgressDisplay();
         updateRadarDisplay();
         drawFog();
+
+        if (showToast && (xp || coins)) {
+            SM.ui?.showToast(tr('questRewardToast', {
+                xp: Number(xp || 0),
+                coins: Number(coins || 0)
+            }), { type: 'success', duration: 2400 });
+        }
 
         if (afterConfig.level > beforeLevel) {
             SM.ui?.showToast(tr('explorerLevelUp', {
@@ -270,6 +316,27 @@
                 radius: afterConfig.scanRadius
             }), { type: 'success', duration: 3400 });
         }
+    }
+
+    function addExplorerXp(points = 1) {
+        addExplorerReward({ xp: points, coins: 0 });
+    }
+
+    function grantExplorerReward(reward = {}) {
+        const normalizedReward = typeof reward === 'string'
+            ? QUEST_REWARDS[reward]
+            : reward.type
+                ? QUEST_REWARDS[reward.type]
+                : reward;
+        addExplorerReward({
+            xp: Number(normalizedReward?.xp || 0),
+            coins: Number(normalizedReward?.coins || 0),
+            showToast: true
+        });
+    }
+
+    function getQuestReward(rarity) {
+        return QUEST_REWARDS[rarity] || QUEST_REWARDS.N;
     }
 
     function getSpotDiscoveryKey(spot) {
@@ -679,12 +746,15 @@
     function recordQuestComplete(questOrSpot) {
         const spot = questOrSpot?.spot || questOrSpot;
         const rarity = questOrSpot?.rarity || questOrSpot?.questData?.rarity || 'N';
+        const questReward = getQuestReward(rarity);
         const area = getSpotArea(spot);
         if (!area || !SM.quests) {
-            addExplorerXp(1);
+            addExplorerReward({ ...questReward, showToast: true });
             return {
                 area: null,
                 rarity,
+                xp: questReward.xp,
+                coins: questReward.coins,
                 addedPoints: 0,
                 earnedPoints: 0,
                 outsideArea: true
@@ -693,7 +763,9 @@
 
         const earnedPoints = getRepairPointsForRarity(rarity);
         const result = applyAreaRepair(area, questOrSpot, earnedPoints);
-        addExplorerXp(result?.addedPoints ? 1 : 0);
+        if (result?.addedPoints) {
+            addExplorerReward({ ...questReward, showToast: true });
+        }
         return result;
     }
 
@@ -720,7 +792,9 @@
             ...applyAreaRepair(area, questOrSpot, CAT_REPAIR_POINTS, rewardKey),
             isCat: true
         };
-        addExplorerXp(result?.addedPoints ? 2 : 0);
+        if (result?.addedPoints) {
+            addExplorerReward({ ...QUEST_REWARDS.npc, showToast: true });
+        }
         return result;
     }
 
@@ -819,6 +893,13 @@
         }
 
         const markerQuestData = questState.questData;
+        const explorerConfig = getExplorerConfig();
+        const distanceToPlayer = Number(spot.distance ?? (
+            state.lastPlayerPosition
+                ? L.latLng(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng).distanceTo([spot.lat, spot.lng])
+                : Infinity
+        ));
+        const isInteractable = distanceToPlayer <= explorerConfig.unlockRadius;
         const config = markerQuestData.config
             || SM.quests.RARITY_CONFIG[markerQuestData.rarity]
             || SM.quests.RARITY_CONFIG.N;
@@ -834,6 +915,7 @@
             ? '0 0 0 3px rgba(255,255,255,0.7), 0 0 18px rgba(246,199,68,0.95), 0 4px 14px rgba(120,80,0,0.32)'
             : `0 0 10px ${config.color}`;
         const markerTextShadow = isSrMarker ? '0 1px 3px rgba(92,57,0,0.72)' : 'none';
+        const markerOpacity = isInteractable ? '1' : '0.62';
         const sparkleHtml = isSrMarker
             ? '<span style="position:absolute; top:3px; right:5px; font-size:10px; line-height:1; color:#fff8b8; text-shadow:0 0 5px rgba(255,255,255,0.9);">✦</span>'
             : '';
@@ -851,7 +933,8 @@
                 display: flex; align-items: center; justify-content: center;
                 color: white; font-weight: bold; font-size: 10px;
                 text-shadow: ${markerTextShadow};
-                box-shadow: ${markerShadow};">
+                box-shadow: ${markerShadow};
+                opacity: ${markerOpacity};">
                 <span style="position: relative; z-index: 1;">${markerQuestData.rarity}</span>
                 ${sparkleHtml}
             </div>`;
@@ -869,6 +952,12 @@
         marker.questData = markerQuestData;
 
         marker.on('click', () => {
+            if (!isInteractable) {
+                SM.ui?.showToast(tr('weakSignal', {
+                    meters: Math.max(1, Math.ceil(distanceToPlayer - explorerConfig.unlockRadius))
+                }), { type: 'info', duration: 2600 });
+                return;
+            }
             openQuestUI(marker.questData, spot, marker);
         });
 
@@ -1076,7 +1165,7 @@
             }
         });
 
-        const distantHintCount = selectedSpots.length >= minimumVisible ? 2 : 3;
+        const distantHintCount = explorerConfig.distantHints || MAX_DISTANT_SIGNALS;
         getDistantSpotsOutsideScan(playerLat, playerLng, explorerConfig, distantHintCount).forEach(spot => {
             const marker = createDistantSignalMarker(playerLat, playerLng, spot, explorerConfig);
             dynamicMarkersLayer.addLayer(marker);
@@ -1317,6 +1406,7 @@
 
     function refreshLanguage() {
         updateAreaDisplay();
+        updatePlayerProgressDisplay();
 
         if (state.forcedDemoArea && state.lastPlayerPosition?.source === 'demo') {
             statusText.innerText = tr('demoPosition', {
@@ -1384,6 +1474,7 @@
         dynamicMarkersLayer = L.layerGroup().addTo(map);
         radarLayer = L.layerGroup().addTo(map);
         loadExplorerProgress();
+        updatePlayerProgressDisplay();
         initFogCanvas();
         updateRadarDisplay();
         initAreas();
@@ -1412,6 +1503,7 @@
         recordQuestComplete,
         recordCatComplete,
         grantExplorerXp: addExplorerXp,
+        grantExplorerReward,
         clearCatEvent,
         spawnTestCat,
         areas: GAME_AREAS,
