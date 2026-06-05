@@ -25,6 +25,9 @@
     const MIN_ANY_SPOT_DISTANCE_METERS = 135;
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
     const MAP_BOUNDS_RADIUS_METERS = 1200;
+    const TUTORIAL_PEN_SPOT_ID = 'tutorial_pen_practice';
+    const TUTORIAL_PEN_COMPLETE_KEY = 'semantic-map-tutorial-pen-complete-v1';
+    const TUTORIAL_PEN_OFFSET_METERS = 26;
     const DEFAULT_ZOOM = 17;
     const FOCUS_ZOOM = 17;
     const AREA_PROGRESS_STORAGE_KEY = 'semantic-map-area-progress-v3';
@@ -955,6 +958,51 @@
         return selected;
     }
 
+    function hasCompletedTutorialPenQuest() {
+        try {
+            return localStorage.getItem(TUTORIAL_PEN_COMPLETE_KEY) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function getOffsetPosition(lat, lng, northMeters, eastMeters) {
+        const latOffset = northMeters / 111320;
+        const lngScale = Math.max(0.2, Math.cos(lat * Math.PI / 180));
+        const lngOffset = eastMeters / (111320 * lngScale);
+        return { lat: lat + latOffset, lng: lng + lngOffset };
+    }
+
+    function getTutorialPenSpot(playerLat, playerLng) {
+        if (hasCompletedTutorialPenQuest()) return null;
+
+        const position = getOffsetPosition(playerLat, playerLng, TUTORIAL_PEN_OFFSET_METERS, TUTORIAL_PEN_OFFSET_METERS * 0.45);
+        return {
+            id: TUTORIAL_PEN_SPOT_ID,
+            lat: position.lat,
+            lng: position.lng,
+            distance: L.latLng(playerLat, playerLng).distanceTo([position.lat, position.lng]),
+            type: 'tutorial_pen',
+            questTag: 'Item',
+            emoji: 'P',
+            name: tr('tutorialPracticeSpotName'),
+            questData: {
+                rarity: 'N',
+                text: '[ ? ] を持っています。',
+                grammar: 'N を持っています',
+                instruction: tr('tutorialPracticeInstruction'),
+                level: state.currentLevel || 'N5',
+                requiredTag: 'Item',
+                rewardCount: 1,
+                config: {
+                    color: '#0f766e',
+                    label: 'Practice',
+                    scale: 1
+                }
+            }
+        };
+    }
+
     function createPoiMarker(spot) {
         const questState = SM.quests.getQuestStateForSpot(spot);
         if (questState.status === 'completed') {
@@ -972,18 +1020,23 @@
         const config = markerQuestData.config
             || SM.quests.RARITY_CONFIG[markerQuestData.rarity]
             || SM.quests.RARITY_CONFIG.N;
-        const size = spot.type === 'npc_cat' ? 36 : 30;
+        const isTutorialMarker = spot.type === 'tutorial_pen';
+        const size = spot.type === 'npc_cat' ? 36 : isTutorialMarker ? 34 : 30;
         const spotTypeAttr = escapeAttribute(spot.type);
         const spotNameAttr = escapeAttribute(spot.name);
         const isSrMarker = markerQuestData.rarity === 'SR';
-        const markerBackground = isSrMarker
+        const markerBackground = isTutorialMarker
+            ? 'radial-gradient(circle at 32% 24%, #d1fff7 0%, #21b7a2 38%, #0f766e 100%)'
+            : isSrMarker
             ? 'radial-gradient(circle at 30% 24%, #fff8b8 0%, #f6d84a 34%, #d69a14 72%, #9c6507 100%)'
             : config.color;
-        const markerBorder = isSrMarker ? '2px solid #fff4b0' : '2px solid white';
-        const markerShadow = isSrMarker
+        const markerBorder = isTutorialMarker ? '2px solid #e6fffb' : isSrMarker ? '2px solid #fff4b0' : '2px solid white';
+        const markerShadow = isTutorialMarker
+            ? '0 0 0 3px rgba(255,255,255,0.7), 0 0 18px rgba(15,118,110,0.88), 0 4px 14px rgba(8,75,68,0.28)'
+            : isSrMarker
             ? '0 0 0 3px rgba(255,255,255,0.7), 0 0 18px rgba(246,199,68,0.95), 0 4px 14px rgba(120,80,0,0.32)'
             : `0 0 10px ${config.color}`;
-        const markerTextShadow = isSrMarker ? '0 1px 3px rgba(92,57,0,0.72)' : 'none';
+        const markerTextShadow = isSrMarker || isTutorialMarker ? '0 1px 3px rgba(0,0,0,0.35)' : 'none';
         const markerOpacity = isInteractable ? '1' : '0.62';
         const sparkleHtml = isSrMarker
             ? '<span style="position:absolute; top:3px; right:5px; font-size:10px; line-height:1; color:#fff8b8; text-shadow:0 0 5px rgba(255,255,255,0.9);">✦</span>'
@@ -1004,7 +1057,7 @@
                 text-shadow: ${markerTextShadow};
                 box-shadow: ${markerShadow};
                 opacity: ${markerOpacity};">
-                <span style="position: relative; z-index: 1;">${markerQuestData.rarity}</span>
+                <span style="position: relative; z-index: 1;">${isTutorialMarker ? 'P' : markerQuestData.rarity}</span>
                 ${sparkleHtml}
             </div>`;
         }
@@ -1040,17 +1093,22 @@
         const preview = questLayer.querySelector('.sentence-preview');
         const repairPoints = getRepairPointsForRarity(data.rarity);
         const isCatQuest = spot.type === 'npc_cat';
+        const isTutorialQuest = spot.type === 'tutorial_pen';
         const targetArea = isCatQuest
             ? getAreaById(spot.areaId) || getSpotArea(spot) || getSpotArea(state.lastPlayerPosition) || getNearestArea(spot.lat, spot.lng)
+            : isTutorialQuest
+                ? null
             : getSpotArea(spot);
 
         questTitle.innerText = tr('questTitle', { rarity: data.rarity });
         questTitle.style.color = data.config.color;
         if (repairPointsChip) {
-            repairPointsChip.classList.toggle('outside', !isCatQuest && !targetArea);
-            repairPointsChip.classList.toggle('special', isCatQuest);
+            repairPointsChip.classList.toggle('outside', isTutorialQuest || (!isCatQuest && !targetArea));
+            repairPointsChip.classList.toggle('special', isCatQuest || isTutorialQuest);
             repairPointsChip.innerText = isCatQuest
                 ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
+                : isTutorialQuest
+                    ? tr('questTutorialPractice')
                 : targetArea
                     ? tr('questAreaPoints', { points: repairPoints })
                     : tr('questOutside');
@@ -1058,7 +1116,7 @@
         preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
 
         state.activeQuest = {
-            type: spot.type === 'npc_cat' ? 'NPC' : 'POI',
+            type: spot.type === 'npc_cat' ? 'NPC' : spot.type === 'tutorial_pen' ? 'TUTORIAL' : 'POI',
             rarity: data.rarity,
             text: data.text,
             grammar: data.grammar,
@@ -1112,6 +1170,10 @@
             .map(spot => ({ ...spot, distance: playerLocation.distanceTo([spot.lat, spot.lng]) }))
             .filter(spot => spot.distance < explorerConfig.scanRadius)
             .sort((a, b) => a.distance - b.distance);
+        const tutorialSpot = getTutorialPenSpot(playerLat, playerLng);
+        if (tutorialSpot) {
+            nearbySpots.splice(0, nearbySpots.length, tutorialSpot);
+        }
 
         if (nearbySpots.length === 0) {
             const distantSpots = getDistantSpotsOutsideScan(playerLat, playerLng, explorerConfig);
@@ -1495,8 +1557,11 @@
         const repairPointsChip = questLayer.querySelector('#quest-repair-points');
         const activeQuest = state.activeQuest;
         const isCatQuest = activeQuest.type === 'NPC';
+        const isTutorialQuest = activeQuest.type === 'TUTORIAL';
         const targetArea = isCatQuest
             ? getAreaById(activeQuest.targetAreaId) || getSpotArea(activeQuest.spot) || getSpotArea(state.lastPlayerPosition) || getNearestArea(activeQuest.spot?.lat, activeQuest.spot?.lng)
+            : isTutorialQuest
+                ? null
             : getSpotArea(activeQuest.spot);
 
         if (questTitle) {
@@ -1507,6 +1572,8 @@
             const repairPoints = getRepairPointsForRarity(activeQuest.rarity);
             repairPointsChip.innerText = isCatQuest
                 ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
+                : isTutorialQuest
+                    ? tr('questTutorialPractice')
                 : targetArea
                     ? tr('questAreaPoints', { points: repairPoints })
                     : tr('questOutside');

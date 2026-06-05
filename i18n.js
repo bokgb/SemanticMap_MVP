@@ -20,6 +20,8 @@
             tutorialInventoryBody: '你在现实地点收集到的词会保存在这里。之后 NPC 任务也会用到这些词卡。',
             tutorialLevelTitle: '升级会扩大视野',
             tutorialLevelBody: '等级提高后，可感知范围和可发现的信号会增加，地图会慢慢变得更开阔。',
+            tutorialPracticeSpotName: 'Mimi 的练习信号',
+            tutorialPracticeInstruction: '拍一支笔。',
             difficulty: {
                 N5: '当前难度：N5 - 新手',
                 N3: '当前难度：N3 - 进阶',
@@ -62,6 +64,7 @@
             questTitle: '{rarity}级文型任务',
             questCatPoints: '小猫救援 +{points}',
             questAreaPoints: '区域修复值 +{points}',
+            questTutorialPractice: '练习任务：不增加修复值',
             questOutside: '区域外练习：不加修复值',
             catName: '流浪猫',
             demoPosition: '开发测试位置：{area}\nURL 参数 area={id}',
@@ -103,6 +106,8 @@
             tutorialInventoryBody: '現実の場所で集めた語彙はここに保存されます。あとでNPCタスクでも使います。',
             tutorialLevelTitle: 'レベルアップで視野が広がる',
             tutorialLevelBody: 'レベルが上がると、感じ取れる範囲と見つかる信号が増えて、地図が少しずつ開けます。',
+            tutorialPracticeSpotName: 'ミミの練習信号',
+            tutorialPracticeInstruction: 'ペンを撮ってください。',
             difficulty: {
                 N5: '現在の難易度：N5 - 初心者',
                 N3: '現在の難易度：N3 - 中級',
@@ -145,6 +150,7 @@
             questTitle: '{rarity}級文型タスク',
             questCatPoints: '猫救助 +{points}',
             questAreaPoints: 'エリア修復値 +{points}',
+            questTutorialPractice: '練習タスク：修復値なし',
             questOutside: 'エリア外練習：修復値なし',
             catName: '迷い猫',
             demoPosition: '開発テスト位置：{area}\nURL パラメータ area={id}',

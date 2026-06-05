@@ -197,6 +197,10 @@
             return { status: 'active', questData: cache };
         }
 
+        if (spot.questData) {
+            return { status: 'active', questData: spot.questData };
+        }
+
         const levelTemplates = QUEST_TEMPLATES[getCurrentLevel()] || QUEST_TEMPLATES.N5;
         const templates = levelTemplates[spot.type] || levelTemplates.convenience;
         const questData = buildQuestDataForSpot(spot, pickWeightedTemplate(templates));

@@ -289,8 +289,11 @@
         }
 
         const isCatQuest = activeQuest.type === 'NPC';
+        const isTutorialQuest = activeQuest.type === 'TUTORIAL';
         const isCatFoodLike = isCatQuest && isLooseCatFood(aiResult);
-        const isQuestMatch = aiResult.tag === activeQuest.requiredTag || isCatFoodLike;
+        const isQuestMatch = isTutorialQuest
+            ? isTutorialPenLike(aiResult)
+            : aiResult.tag === activeQuest.requiredTag || isCatFoodLike;
 
         if (isQuestMatch) {
             if (activeQuest.type === 'NPC') {
@@ -305,7 +308,7 @@
                     SM.ui?.showToast(SM.i18n?.t?.('catFed', { word: aiResult.word.text }), { type: 'success' });
                 }
                 SM.map?.clearCatEvent?.(activeQuest.marker);
-            } else if (activeQuest.type === 'POI') {
+            } else if (activeQuest.type === 'POI' || activeQuest.type === 'TUTORIAL') {
                 const finishedSentence = activeQuest.text.replace('[ ? ]', `[ ${aiResult.word.text} ]`);
                 aiResult.quest = {
                     level: activeQuest.level,
@@ -321,6 +324,13 @@
 
             SM.inventory.showWordDetailCard(aiResult);
             SM.quests.completeQuest(activeQuest);
+            if (activeQuest.type === 'TUTORIAL') {
+                try {
+                    localStorage.setItem('semantic-map-tutorial-pen-complete-v1', '1');
+                } catch (error) {
+                    console.warn('Failed to save tutorial quest state.', error);
+                }
+            }
             if (activeQuest.type === 'POI' && SM.map?.recordQuestComplete) {
                 const areaResult = SM.map.recordQuestComplete(activeQuest);
                 const areaName = SM.map?.getAreaName?.(areaResult?.area) || '';
@@ -382,6 +392,28 @@
         ];
 
         return foodWords.some(word => text.includes(word.toLowerCase()));
+    }
+
+    function isTutorialPenLike(aiResult) {
+        const text = `${aiResult?.word?.text || ''} ${aiResult?.word?.kana || ''} ${aiResult?.word?.zh || ''}`.toLowerCase();
+        return [
+            'ペン',
+            'ぺん',
+            'ボールペン',
+            'シャープペン',
+            '鉛筆',
+            'えんぴつ',
+            '筆記具',
+            '筆',
+            'pen',
+            'pencil',
+            '笔',
+            '鉛筆',
+            '铅笔',
+            '圆珠笔',
+            '原子筆',
+            '鋼筆'
+        ].some(word => text.includes(word.toLowerCase()));
     }
 
     function buildGrammarReview(quest, wordText, lang = SM.i18n?.getLang?.() || 'zh') {
