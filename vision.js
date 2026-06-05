@@ -356,7 +356,7 @@
             SM.ui?.showDialog({
                 title: SM.i18n?.t?.('wrongTitle'),
                 message: SM.i18n?.t?.('wrongCatMessage', { word: aiResult.word.text }),
-                buttonText: SM.i18n?.t?.('ok'),
+                buttonText: SM.i18n?.t?.('tryAgain'),
                 type: 'warning'
             });
             return;
@@ -364,12 +364,8 @@
 
         SM.ui?.showDialog({
             title: SM.i18n?.t?.('wrongTitle'),
-            message: SM.i18n?.t?.('wrongMessage', {
-                word: aiResult.word.text,
-                tag: aiResult.tag,
-                required: activeQuest?.requiredTag || SM.i18n?.t?.('wrongRequiredFallback')
-            }),
-            buttonText: SM.i18n?.t?.('ok'),
+            message: SM.i18n?.t?.('wrongMessage', { word: aiResult.word.text }),
+            buttonText: SM.i18n?.t?.('tryAgain'),
             type: 'warning'
         });
     }
