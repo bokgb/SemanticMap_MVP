@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     }
 
     // 2. 组装请求 URL（注意：这里必须用键盘左上角的反引号 `，不能用单引号！）
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
     try {

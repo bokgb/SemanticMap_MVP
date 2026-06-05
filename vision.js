@@ -94,13 +94,15 @@
             throw new Error(SM.i18n?.t?.('cameraNotReady') || '');
         }
 
+        const maxSide = 768;
+        const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+        canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+        const dataURL = canvas.toDataURL('image/jpeg', 0.68);
         return dataURL.split(',')[1];
     }
 
@@ -181,7 +183,9 @@
                 ]
             }],
             generationConfig: {
-                response_mime_type: "application/json"
+                response_mime_type: "application/json",
+                temperature: 0.2,
+                maxOutputTokens: 512
             }
         };
 
