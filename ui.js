@@ -82,6 +82,12 @@
         }, duration);
     }
 
+    function hideGuideMessage() {
+        const layer = getGuideLayer();
+        layer.classList.remove('show');
+        window.clearTimeout(guideMessageTimer);
+    }
+
     function showToast(message, options = {}) {
         if (!options.plain) {
             showGuideMessage(message, options);
@@ -220,6 +226,7 @@
     SM.ui = {
         showToast,
         showGuideMessage,
+        hideGuideMessage,
         showTutorial,
         resetTutorials,
         refreshLanguage,

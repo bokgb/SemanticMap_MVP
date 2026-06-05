@@ -871,7 +871,6 @@
     }
 
     function createSignalMarker(spot, config) {
-        const distanceToUnlock = Math.max(1, Math.ceil((spot.distance || 0) - config.unlockRadius));
         const icon = L.divIcon({
             className: 'custom-marker signal-marker',
             html: `<div class="signal-dot" data-spot-type="${escapeAttribute(spot.type)}" data-spot-name="${escapeAttribute(spot.name)}">?</div>`,
@@ -880,16 +879,11 @@
         });
         const marker = L.marker([spot.lat, spot.lng], { icon });
         marker.spotData = spot;
-        marker.on('click', () => {
-            SM.ui?.showToast(tr('weakSignal', { meters: distanceToUnlock }), { type: 'info', duration: 2600 });
-        });
+        marker.on('click', () => {});
         return marker;
     }
 
     function createDistantSignalMarker(playerLat, playerLng, targetSpot, config) {
-        const playerLatLng = L.latLng(playerLat, playerLng);
-        const targetLatLng = L.latLng(targetSpot.lat, targetSpot.lng);
-        const distance = playerLatLng.distanceTo(targetLatLng);
         const icon = L.divIcon({
             className: 'custom-marker distant-signal-marker',
             html: `<div class="distant-signal-dot" data-spot-type="${escapeAttribute(targetSpot.type)}" data-spot-name="${escapeAttribute(targetSpot.name)}">?</div>`,
@@ -902,12 +896,7 @@
             zIndexOffset: -80
         });
         marker.spotData = targetSpot;
-        marker.on('click', () => {
-            SM.ui?.showToast(tr('noSignalMoveHint', {
-                direction: getDirectionLabel(playerLat, playerLng, targetSpot.lat, targetSpot.lng),
-                meters: Math.max(1, Math.round(distance - config.scanRadius))
-            }), { type: 'info', duration: 3400 });
-        });
+        marker.on('click', () => {});
         return marker;
     }
 
@@ -1075,9 +1064,6 @@
 
         marker.on('click', () => {
             if (!isInteractable) {
-                SM.ui?.showToast(tr('weakSignal', {
-                    meters: Math.max(1, Math.ceil(distanceToPlayer - explorerConfig.unlockRadius))
-                }), { type: 'info', duration: 2600 });
                 return;
             }
             openQuestUI(marker.questData, spot, marker);
@@ -1103,13 +1089,14 @@
         questTitle.innerText = tr('questTitle', { rarity: data.rarity });
         questTitle.style.color = data.config.color;
         if (repairPointsChip) {
-            repairPointsChip.classList.toggle('outside', isTutorialQuest || (!isCatQuest && !targetArea));
+            repairPointsChip.hidden = isTutorialQuest;
+            repairPointsChip.classList.toggle('outside', !isTutorialQuest && !isCatQuest && !targetArea);
             repairPointsChip.classList.toggle('special', isCatQuest || isTutorialQuest);
-            repairPointsChip.innerText = isCatQuest
-                ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
-                : isTutorialQuest
-                    ? tr('questTutorialPractice')
-                : targetArea
+            repairPointsChip.innerText = isTutorialQuest
+                ? ''
+                : isCatQuest
+                    ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
+                    : targetArea
                     ? tr('questAreaPoints', { points: repairPoints })
                     : tr('questOutside');
         }
@@ -1130,11 +1117,14 @@
         };
 
         document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
+        SM.ui?.hideGuideMessage?.();
         questLayer.classList.remove('hidden');
-        SM.ui?.showTutorial?.('firstQuest', {
-            titleKey: 'tutorialQuestTitle',
-            messageKey: 'tutorialQuestBody'
-        });
+        if (isTutorialQuest) {
+            SM.ui?.showTutorial?.('firstQuest', {
+                titleKey: 'tutorialQuestTitle',
+                messageKey: 'tutorialQuestBody'
+            });
+        }
     }
 
     async function loadOSMData() {
@@ -1189,7 +1179,6 @@
                     distantSignal: true,
                     distance: Math.round(spot.distance)
                 }));
-                SM.ui?.showGuideMessage?.(tr('noSignalHint'), { type: 'info', duration: 3000 });
             }
             if (!distantSpots.length) {
                 state.visibleSpotKeys = [];
@@ -1570,11 +1559,12 @@
 
         if (repairPointsChip) {
             const repairPoints = getRepairPointsForRarity(activeQuest.rarity);
-            repairPointsChip.innerText = isCatQuest
-                ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
-                : isTutorialQuest
-                    ? tr('questTutorialPractice')
-                : targetArea
+            repairPointsChip.hidden = isTutorialQuest;
+            repairPointsChip.innerText = isTutorialQuest
+                ? ''
+                : isCatQuest
+                    ? tr('questCatPoints', { points: CAT_REPAIR_POINTS })
+                    : targetArea
                     ? tr('questAreaPoints', { points: repairPoints })
                     : tr('questOutside');
         }
@@ -1626,9 +1616,6 @@
         updateFloatingControlPositions();
         initGeolocation();
         loadOSMData();
-        window.setTimeout(() => {
-            SM.ui?.showGuideMessage?.(tr('mimiIdle'), { type: 'info', duration: 4200 });
-        }, 900);
         window.setTimeout(() => {
             SM.ui?.showTutorial?.('intro', {
                 titleKey: 'tutorialIntroTitle',
