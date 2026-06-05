@@ -190,10 +190,7 @@
             elements.bagBadge.innerText = collectedWordsCount;
         }
 
-        SM.ui?.showTutorial?.('inventory', {
-            titleKey: 'tutorialInventoryTitle',
-            messageKey: 'tutorialInventoryBody'
-        });
+        SM.ui?.showGuideMessage?.(tr('mimiInventoryTip'), { type: 'success', duration: 3600 });
         maybeTriggerNpcEvent(data);
     }
 

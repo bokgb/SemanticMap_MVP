@@ -366,14 +366,10 @@
         }
 
         if (afterConfig.level > beforeLevel) {
-            SM.ui?.showToast(tr('explorerLevelUp', {
+            SM.ui?.showGuideMessage?.(tr('mimiLevelTip', {
                 level: afterConfig.level,
                 radius: afterConfig.scanRadius
             }), { type: 'success', duration: 3400 });
-            SM.ui?.showTutorial?.('levelup', {
-                titleKey: 'tutorialLevelTitle',
-                messageKey: 'tutorialLevelBody'
-            });
         }
     }
 
@@ -1117,13 +1113,11 @@
         };
 
         document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
-        SM.ui?.hideGuideMessage?.();
         questLayer.classList.remove('hidden');
         if (isTutorialQuest) {
-            SM.ui?.showTutorial?.('firstQuest', {
-                titleKey: 'tutorialQuestTitle',
-                messageKey: 'tutorialQuestBody'
-            });
+            SM.ui?.showGuideMessage?.(tr('mimiTutorialQuest'), { type: 'info', duration: 5200 });
+        } else {
+            SM.ui?.hideGuideMessage?.();
         }
     }
 
@@ -1617,11 +1611,10 @@
         initGeolocation();
         loadOSMData();
         window.setTimeout(() => {
-            SM.ui?.showTutorial?.('intro', {
-                titleKey: 'tutorialIntroTitle',
-                messageKey: 'tutorialIntroBody'
-            });
-        }, 1500);
+            if (!hasCompletedTutorialPenQuest()) {
+                SM.ui?.showGuideMessage?.(tr('mimiTutorialIntro'), { type: 'info', duration: 5200 });
+            }
+        }, 1300);
     }
 
     SM.map = {

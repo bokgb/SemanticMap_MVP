@@ -22,6 +22,10 @@
             tutorialLevelBody: '等级提高后，可感知范围和可发现的信号会增加，地图会慢慢变得更开阔。',
             tutorialPracticeSpotName: 'Mimi 的练习信号',
             tutorialPracticeInstruction: '拍一支笔。',
+            mimiTutorialIntro: '我发现一个小信号。先点 P。',
+            mimiTutorialQuest: '很好。拍一支笔，让句子亮起来。',
+            mimiInventoryTip: '词卡收好啦。以后会用到。',
+            mimiLevelTip: 'Lv.{level}。视野变大一点。',
             difficulty: {
                 N5: '当前难度：N5 - 新手',
                 N3: '当前难度：N3 - 进阶',
@@ -108,6 +112,10 @@
             tutorialLevelBody: 'レベルが上がると、感じ取れる範囲と見つかる信号が増えて、地図が少しずつ開けます。',
             tutorialPracticeSpotName: 'ミミの練習信号',
             tutorialPracticeInstruction: 'ペンを撮ってください。',
+            mimiTutorialIntro: '小さな信号だよ。まず P をタップ。',
+            mimiTutorialQuest: 'いいね。ペンを撮って文に入れよう。',
+            mimiInventoryTip: 'カードをしまったよ。あとで使える。',
+            mimiLevelTip: 'Lv.{level}。視野が少し広がったよ。',
             difficulty: {
                 N5: '現在の難易度：N5 - 初心者',
                 N3: '現在の難易度：N3 - 中級',
