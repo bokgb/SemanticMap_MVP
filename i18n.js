@@ -255,7 +255,7 @@
             ? urlLang
             : savedLang === 'ja' || savedLang === 'zh'
                 ? savedLang
-                : state.currentLang || 'zh';
+                : state.currentLang || 'ja';
         localStorage.setItem(LANG_STORAGE_KEY, state.currentLang);
         window.toggleLanguage = toggleLanguage;
         applyLanguage();

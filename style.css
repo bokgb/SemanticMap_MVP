@@ -331,6 +331,7 @@ body, html {
     align-items: center;
     justify-content: center;
     padding: 24px;
+    box-sizing: border-box;
     background: rgba(13, 31, 39, 0.62);
     backdrop-filter: blur(6px);
 }
@@ -342,6 +343,7 @@ body, html {
 .level-onboarding-panel {
     width: min(92vw, 420px);
     padding: 24px;
+    box-sizing: border-box;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 16px 42px rgba(0,0,0,0.28);
@@ -408,6 +410,38 @@ body, html {
     font-size: 12px;
     font-weight: 900;
     white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+    #level-onboarding-layer {
+        padding: 18px;
+    }
+
+    .level-onboarding-panel {
+        width: 100%;
+        padding: 20px;
+        border-radius: 16px;
+    }
+
+    .level-onboarding-panel h1 {
+        font-size: 25px;
+    }
+
+    .level-choice-btn {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .level-choice-main {
+        font-size: 17px;
+    }
+
+    .level-choice-sub {
+        max-width: 100%;
+        font-size: 11px;
+    }
 }
 
 @keyframes toast-in {

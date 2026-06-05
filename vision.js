@@ -55,9 +55,6 @@
                 const level = button.dataset.levelChoice || 'N5';
                 setLevel(level, { persist: true, refresh: true });
                 elements.levelOnboardingLayer.classList.add('hidden');
-                SM.ui?.showToast(SM.i18n?.t?.('levelSelected', {
-                    level: button.querySelector('.level-choice-main')?.innerText || level
-                }), { type: 'success' });
             });
         });
     }

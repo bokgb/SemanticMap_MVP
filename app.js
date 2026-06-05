@@ -4,7 +4,7 @@
 
     state.devMode = new URLSearchParams(window.location.search).get('dev') === '1'
         || localStorage.getItem('semantic-map-dev-mode') === '1';
-    state.currentLang = 'zh';
+    state.currentLang = 'ja';
     state.activeQuest = null;
 
     function init() {

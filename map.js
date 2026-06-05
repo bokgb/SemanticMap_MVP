@@ -1142,6 +1142,22 @@
         }
     }
 
+    function showMimiIntroAfterLevelChoice() {
+        if (hasCompletedTutorialPenQuest()) return;
+
+        if (isLevelOnboardingOpen()) {
+            window.setTimeout(showMimiIntroAfterLevelChoice, 700);
+            return;
+        }
+
+        SM.ui?.showGuideMessage?.(tr('mimiTutorialIntro'), { type: 'info', duration: 5200 });
+    }
+
+    function isLevelOnboardingOpen() {
+        const levelLayer = document.getElementById('level-onboarding-layer');
+        return Boolean(levelLayer && !levelLayer.classList.contains('hidden'));
+    }
+
     function updateVisibleSpots(playerLat, playerLng) {
         if (allSpots.length === 0 || playerLat == null || playerLng == null) return;
 
@@ -1266,7 +1282,7 @@
             if (marker) {
                 dynamicMarkersLayer.addLayer(marker);
                 currentVisibleKeys.push(getSpotDiscoveryKey(spot));
-                if (isUnlocked && !discoveredToastShown && markSpotDiscovered(spot)) {
+                if (isUnlocked && !isLevelOnboardingOpen() && !discoveredToastShown && spot.type !== 'tutorial_pen' && markSpotDiscovered(spot)) {
                     discoveredToastShown = true;
                     SM.ui?.showToast(tr('newPlaceFound', { place: spot.name }), { type: 'info', duration: 2400 });
                 }
@@ -1610,11 +1626,7 @@
         updateFloatingControlPositions();
         initGeolocation();
         loadOSMData();
-        window.setTimeout(() => {
-            if (!hasCompletedTutorialPenQuest()) {
-                SM.ui?.showGuideMessage?.(tr('mimiTutorialIntro'), { type: 'info', duration: 5200 });
-            }
-        }, 1300);
+        window.setTimeout(showMimiIntroAfterLevelChoice, 1300);
     }
 
     SM.map = {
