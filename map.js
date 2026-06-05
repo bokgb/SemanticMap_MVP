@@ -1001,7 +1001,7 @@
                 ? L.latLng(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng).distanceTo([spot.lat, spot.lng])
                 : Infinity
         ));
-        const isInteractable = distanceToPlayer <= explorerConfig.unlockRadius;
+        const isInteractable = distanceToPlayer <= explorerConfig.scanRadius;
         const config = markerQuestData.config
             || SM.quests.RARITY_CONFIG[markerQuestData.rarity]
             || SM.quests.RARITY_CONFIG.N;
