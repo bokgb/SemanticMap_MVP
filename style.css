@@ -972,12 +972,12 @@ h2, p {
 /* --- 侧滑背包面板 --- */
 #inventory-layer {
     position: fixed;
-    top: max(126px, calc(env(safe-area-inset-top) + 126px));
+    top: max(86px, calc(env(safe-area-inset-top) + 86px));
     right: 18px;
     bottom: calc(env(safe-area-inset-bottom) + 58px);
     width: min(380px, calc(100vw - 36px));
     height: auto;
-    max-height: calc(100vh - 190px);
+    max-height: calc(100vh - 150px);
     background: var(--panel);
     backdrop-filter: blur(10px);
     z-index: 1001; /* 层级比按钮更高 */
@@ -1002,13 +1002,13 @@ h2, p {
 @media (max-width: 520px) {
     #inventory-layer {
         position: fixed;
-        top: max(124px, calc(env(safe-area-inset-top) + 124px));
+        top: max(86px, calc(env(safe-area-inset-top) + 86px));
         left: auto;
         right: 16px;
         bottom: calc(env(safe-area-inset-bottom) + 58px);
         width: min(84vw, 360px);
         height: auto;
-        max-height: calc(100vh - 190px);
+        max-height: calc(100vh - 150px);
         padding: 14px;
         border-left: 1px solid var(--line);
         border: 1px solid var(--line);
