@@ -27,6 +27,7 @@
     const MAP_BOUNDS_RADIUS_METERS = 1200;
     const TUTORIAL_PEN_SPOT_ID = 'tutorial_pen_practice';
     const TUTORIAL_PEN_COMPLETE_KEY = 'semantic-map-tutorial-pen-complete-v1';
+    const TUTORIAL_PEN_SEEN_KEY = 'semantic-map-tutorial-pen-seen-v1';
     const TUTORIAL_PEN_OFFSET_METERS = 26;
     const DEFAULT_ZOOM = 17;
     const FOCUS_ZOOM = 17;
@@ -951,6 +952,23 @@
         }
     }
 
+    function hasSeenTutorialPenQuest() {
+        try {
+            return localStorage.getItem(TUTORIAL_PEN_SEEN_KEY) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function markTutorialPenSeen() {
+        state.tutorialPenActiveThisSession = true;
+        try {
+            localStorage.setItem(TUTORIAL_PEN_SEEN_KEY, '1');
+        } catch (error) {
+            console.warn('Failed to save tutorial pen seen state.', error);
+        }
+    }
+
     function getOffsetPosition(lat, lng, northMeters, eastMeters) {
         const latOffset = northMeters / 111320;
         const lngScale = Math.max(0.2, Math.cos(lat * Math.PI / 180));
@@ -960,6 +978,7 @@
 
     function getTutorialPenSpot(playerLat, playerLng) {
         if (hasCompletedTutorialPenQuest()) return null;
+        if (hasSeenTutorialPenQuest() && !state.tutorialPenActiveThisSession) return null;
 
         const position = getOffsetPosition(playerLat, playerLng, TUTORIAL_PEN_OFFSET_METERS, TUTORIAL_PEN_OFFSET_METERS * 0.45);
         return {
@@ -1144,12 +1163,14 @@
 
     function showMimiIntroAfterLevelChoice() {
         if (hasCompletedTutorialPenQuest()) return;
+        if (hasSeenTutorialPenQuest() && !state.tutorialPenActiveThisSession) return;
 
         if (isLevelOnboardingOpen()) {
             window.setTimeout(showMimiIntroAfterLevelChoice, 700);
             return;
         }
 
+        markTutorialPenSeen();
         SM.ui?.showGuideMessage?.(tr('mimiTutorialIntro'), { type: 'info', duration: 5200 });
     }
 

@@ -638,11 +638,11 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 900;
-    background: rgba(183, 121, 31, 0.86);
-    border: 2px dashed rgba(255, 255, 255, 0.92);
-    box-shadow: 0 0 0 4px rgba(255, 210, 120, 0.24), 0 5px 14px rgba(0,0,0,0.3);
+    background: rgba(214, 147, 30, 0.96);
+    border: 3px solid rgba(255, 255, 255, 0.96);
+    box-shadow: 0 0 0 5px rgba(255, 224, 150, 0.38), 0 0 18px rgba(255, 190, 70, 0.72), 0 5px 16px rgba(0,0,0,0.36);
     backdrop-filter: blur(5px);
     animation: distantSignalPulse 1.8s ease-in-out infinite;
 }
