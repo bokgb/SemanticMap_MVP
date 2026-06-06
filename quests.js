@@ -45,11 +45,15 @@
                 { rarity: 'R', weight: 0.2, text: "[ ? ] を選ぶかどうか迷っています。", req: "Food", grammar: "かどうか", instruction: "购买时会犹豫选择的食品或饮料。", reward: 1 }
             ],
             park: [
-                { rarity: 'R', weight: 0.35, text: "[ ? ] の近くで休むことにしました。", req: "Nature", grammar: "N の近くで", instruction: "公园里适合靠近休息的自然物或设施。", reward: 1 },
-                { rarity: 'R', weight: 0.25, text: "赤い [ ? ] が咲いているので、写真を撮りました。", req: "Nature", grammar: "ので", instruction: "红色或鲜艳的花、叶子等。", reward: 1 },
-                { rarity: 'SR', weight: 0.015, text: "[ ? ] を見つけたら、友だちに教えます。", req: "Nature", grammar: "Vたら", instruction: "公园里发现会想告诉朋友的自然物。", reward: 1 },
-                { rarity: 'R', weight: 0.2, text: "季節の [ ? ] を撮ります。", req: "Nature", grammar: "N の N を Vます", instruction: "能体现季节的花、叶子、树木或自然物。", reward: 1 },
-                { rarity: 'R', weight: 0.2, text: "[ ? ] が見えるように、少し近づきます。", req: "Nature", grammar: "Vるように", instruction: "需要靠近才能看清的自然物或景观。", reward: 1 }
+                { rarity: 'R', weight: 0.28, text: "[ ? ] の近くで休むことにしました。", req: "Nature", grammar: "N の近くで", instruction: "公园里适合靠近休息的自然物或设施。", reward: 1 },
+                { rarity: 'R', weight: 0.24, text: "赤い [ ? ] が咲いているので、少し立ち止まりました。", req: "Nature", grammar: "ので", instruction: "红色或鲜艳的花、叶子等。", reward: 1 },
+                { rarity: 'SR', weight: 0.03, text: "[ ? ] を見つけたら、友だちに教えます。", req: "Nature", grammar: "Vたら", instruction: "公园里发现会想告诉朋友的东西。", reward: 1 },
+                { rarity: 'R', weight: 0.24, text: "季節の [ ? ] を見つけます。", req: "Nature", grammar: "N の N を Vます", instruction: "能体现季节的花、叶子、树木或物品。", reward: 1 },
+                { rarity: 'R', weight: 0.22, text: "[ ? ] が見えるように、少し近づきます。", req: "Nature", grammar: "Vるように", instruction: "需要靠近才能看清的自然物、设施或景观。", reward: 1 },
+                { rarity: 'R', weight: 0.22, text: "緑の [ ? ] を見つけます。", req: "Nature", grammar: "イ形容詞 + N を Vます", instruction: "绿色或有绿意的东西。", reward: 1 },
+                { rarity: 'R', weight: 0.18, text: "小さい [ ? ] を探しています。", req: "Nature", grammar: "イ形容詞 + N を Vています", instruction: "小而容易观察到的东西。", reward: 1 },
+                { rarity: 'R', weight: 0.18, text: "静かな [ ? ] で少し休みます。", req: "Nature", grammar: "ナ形容詞 + N で Vます", instruction: "安静、适合停留或休息的地方。", reward: 1 },
+                { rarity: 'R', weight: 0.16, text: "[ ? ] のそばを通って、学校へ戻ります。", req: "Nature", grammar: "N のそばを通って", instruction: "公园里或学校周边可以经过的参照物。", reward: 1 }
             ],
             station: [
                 { rarity: 'R', weight: 0.35, text: "[ ? ] に乗る前に、時刻表を確認します。", req: "Transit", grammar: "Vる前に", instruction: "乘坐前需要关注的交通工具。", reward: 1 },

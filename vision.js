@@ -139,6 +139,7 @@
         拍摄条件：${activeQuest.instruction || '能填入空格的现实物体'}
 
         请判断图片中的主要物体是否适合填入目标文型的 [ ? ]。如果不适合，也返回识别出的词，但 tag 应反映真实语义类别。
+        普通地点任务请优先判断“把这个名词填进句子后是否通顺、符合现场逻辑”。不要因为 tag 不是目标语义标签就判失败。
         `
             : `
         【练习扫描】
@@ -176,6 +177,8 @@
             "tag": "必须从以下选择其一：Food, Nature, Transit, Retail, Health, Item",
             "tagColor": "对应的十六进制颜色",
             "example": { "s": "日文例句", "k": "假名", "z": "中文" },
+            "fits_sentence": true/false (普通地点任务必须填写；只要填进目标文型后句子通顺且符合现场逻辑，就填 true),
+            "fit_reason": "一句很短的理由",
             "is_safe": true/false (流浪猫事件可选；只要是食物或饮料通常填 true),
             "danger_reason": "只有明显不可食用或明显危险时才填写，其他情况留空"
         }
@@ -298,9 +301,12 @@
         const isCatQuest = activeQuest.type === 'NPC';
         const isTutorialQuest = activeQuest.type === 'TUTORIAL';
         const isCatFoodLike = isCatQuest && isLooseCatFood(aiResult);
+        const fitsSentence = aiResult.fits_sentence !== false;
         const isQuestMatch = isTutorialQuest
             ? isTutorialPenLike(aiResult)
-            : aiResult.tag === activeQuest.requiredTag || isCatFoodLike;
+            : isCatQuest
+                ? aiResult.tag === activeQuest.requiredTag || isCatFoodLike
+                : fitsSentence;
 
         if (isQuestMatch) {
             if (activeQuest.type === 'NPC') {
