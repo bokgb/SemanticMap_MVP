@@ -1133,6 +1133,7 @@
         };
 
         document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
+        SM.ui?.setBagHudHidden?.(true, 'quest-panel');
         questLayer.classList.remove('hidden');
         if (isTutorialQuest) {
             SM.ui?.showGuideMessage?.(tr('mimiTutorialQuest'), { type: 'info', duration: 5200 });
@@ -1567,6 +1568,7 @@
         document.getElementById('btn-close-quest').addEventListener('click', () => {
             state.activeQuest = null;
             document.getElementById('quest-layer').classList.add('hidden');
+            SM.ui?.setBagHudHidden?.(false, 'quest-panel');
         });
 
         document.getElementById('btn-start-scan').addEventListener('click', () => {
@@ -1580,6 +1582,7 @@
             }
 
             document.getElementById('quest-layer').classList.add('hidden');
+            SM.ui?.setBagHudHidden?.(false, 'quest-panel');
             SM.vision.openCamera();
         });
 

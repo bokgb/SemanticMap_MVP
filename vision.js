@@ -48,6 +48,9 @@
 
         if (!savedLevel) {
             elements.levelOnboardingLayer.classList.remove('hidden');
+            SM.ui?.setBagHudHidden?.(true, 'level-onboarding');
+        } else {
+            SM.ui?.setBagHudHidden?.(false, 'level-onboarding');
         }
 
         elements.levelChoiceButtons.forEach(button => {
@@ -55,6 +58,7 @@
                 const level = button.dataset.levelChoice || 'N5';
                 setLevel(level, { persist: true, refresh: true });
                 elements.levelOnboardingLayer.classList.add('hidden');
+                SM.ui?.setBagHudHidden?.(false, 'level-onboarding');
             });
         });
     }

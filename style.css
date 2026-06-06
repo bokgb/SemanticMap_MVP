@@ -340,6 +340,7 @@ body, html {
     display: none !important;
 }
 
+body.bag-hud-hidden #bag-btn,
 body:has(#level-onboarding-layer:not(.hidden)) #bag-btn,
 body:has(#quest-layer:not(.hidden)) #bag-btn {
     opacity: 0;

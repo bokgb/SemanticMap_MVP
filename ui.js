@@ -5,6 +5,7 @@
     let guideLayer = null;
     let tutorialLayer = null;
     let guideMessageTimer = null;
+    const bagHudHideReasons = new Set();
     const TUTORIAL_STORAGE_PREFIX = 'semantic-map-tutorial-v1-';
 
     function getToastLayer() {
@@ -86,6 +87,15 @@
         const layer = getGuideLayer();
         layer.classList.remove('show');
         window.clearTimeout(guideMessageTimer);
+    }
+
+    function setBagHudHidden(hidden, reason = 'default') {
+        if (hidden) {
+            bagHudHideReasons.add(reason);
+        } else {
+            bagHudHideReasons.delete(reason);
+        }
+        document.body.classList.toggle('bag-hud-hidden', bagHudHideReasons.size > 0);
     }
 
     function showToast(message, options = {}) {
@@ -227,6 +237,7 @@
         showToast,
         showGuideMessage,
         hideGuideMessage,
+        setBagHudHidden,
         showTutorial,
         resetTutorials,
         refreshLanguage,

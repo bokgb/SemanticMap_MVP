@@ -212,7 +212,9 @@
         const nextReward = rewardQueue.shift();
         if (nextReward) {
             showWordDetailCard(nextReward);
+            return;
         }
+        SM.ui?.setBagHudHidden?.(false, 'word-card');
     }
 
     function setInventoryOpen(open) {
@@ -229,6 +231,7 @@
         }
 
         pendingWord = aiData;
+        SM.ui?.setBagHudHidden?.(true, 'word-card');
         elements.lootWordMain.innerHTML = renderRubyWord(aiData.word);
 
         if (aiData.example) {
