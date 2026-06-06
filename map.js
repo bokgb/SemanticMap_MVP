@@ -22,6 +22,7 @@
     const MAX_SPOTS_PER_TAG = 2;
     const MAX_DISTANT_SIGNALS = 4;
     const MIN_DISTANT_SIGNAL_ANGLE_DEGREES = 32;
+    const MAX_DISTANT_SIGNAL_DISTANCE_METERS = 1200;
     const MIN_ANY_SPOT_DISTANCE_METERS = 135;
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
     const MAP_BOUNDS_RADIUS_METERS = 1200;
@@ -922,26 +923,48 @@
         const selectedAngles = [];
 
         const candidates = allSpots
-            .map(spot => ({ ...spot, distance: playerLocation.distanceTo([spot.lat, spot.lng]) }))
-            .filter(spot => spot.distance >= config.scanRadius)
+            .map(spot => ({
+                ...spot,
+                distance: playerLocation.distanceTo([spot.lat, spot.lng]),
+                discoveryKey: getSpotDiscoveryKey(spot)
+            }))
+            .filter(spot => {
+                return spot.distance >= config.scanRadius
+                    && spot.distance <= MAX_DISTANT_SIGNAL_DISTANCE_METERS
+                    && spot.discoveryKey;
+            })
             .sort((a, b) => a.distance - b.distance);
+        const candidatesByKey = new Map(candidates.map(spot => [spot.discoveryKey, spot]));
+        const lockedKeys = Array.isArray(state.lockedDistantSignalKeys) ? state.lockedDistantSignalKeys : [];
 
-        for (const spot of candidates) {
-            if (selected.length >= limit) break;
+        function addCandidate(spot, { enforceAngle = true } = {}) {
+            if (!spot || selected.length >= limit) return false;
+            if (selected.some(selectedSpot => selectedSpot.discoveryKey === spot.discoveryKey)) return false;
             const angle = getBearingDegrees(playerLat, playerLng, spot.lat, spot.lng);
-            const isFarEnough = selectedAngles.every(existingAngle => {
+            const isFarEnough = !enforceAngle || selectedAngles.every(existingAngle => {
                 return getAngleDistanceDegrees(angle, existingAngle) >= MIN_DISTANT_SIGNAL_ANGLE_DEGREES;
             });
-            if (!isFarEnough) continue;
+            if (!isFarEnough) return false;
 
             selected.push(spot);
             selectedAngles.push(angle);
+            return true;
+        }
+
+        lockedKeys.forEach(key => {
+            addCandidate(candidatesByKey.get(key), { enforceAngle: false });
+        });
+
+        for (const spot of candidates) {
+            if (selected.length >= limit) break;
+            addCandidate(spot, { enforceAngle: true });
         }
 
         if (selected.length === 0 && candidates[0]) {
             selected.push(candidates[0]);
         }
 
+        state.lockedDistantSignalKeys = selected.map(spot => spot.discoveryKey).filter(Boolean);
         return selected;
     }
 
@@ -1240,6 +1263,7 @@
         const selectedSpots = [];
         const selectedByTag = {};
         const previousVisibleKeys = new Set(state.visibleSpotKeys || []);
+        const lockedDistantKeys = new Set(state.lockedDistantSignalKeys || []);
 
         function isFarEnoughFromAllSpots(spot) {
             return selectedSpots.every(selected => {
@@ -1282,6 +1306,17 @@
         for (const spot of nearbySpots) {
             if (selectedSpots.length >= explorerConfig.maxVisible) break;
             if (previousVisibleKeys.has(getSpotDiscoveryKey(spot))) {
+                trySelectSpot(spot, {
+                    enforceAnyDistance: false,
+                    enforceSameTagDistance: false,
+                    ignoreTagLimit: true
+                });
+            }
+        }
+
+        for (const spot of nearbySpots) {
+            if (selectedSpots.length >= explorerConfig.maxVisible) break;
+            if (lockedDistantKeys.has(getSpotDiscoveryKey(spot))) {
                 trySelectSpot(spot, {
                     enforceAnyDistance: false,
                     enforceSameTagDistance: false,
