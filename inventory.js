@@ -82,16 +82,30 @@
         return normalized;
     }
 
+    function compactWord(word) {
+        const text = String(word?.text || '').trim();
+        const kana = String(word?.kana || '').trim();
+        const zh = String(word?.zh || '').trim();
+        const combined = `${text} ${kana} ${zh}`.toLowerCase();
+
+        if (/ホワイトボード|white\s*board|白板|マーカー|marker|马克笔|麥克筆/.test(combined)) {
+            return { text: 'マーカー', kana: 'まーかー', zh: zh || '马克笔' };
+        }
+
+        if (/ボールペン|シャープペン|サインペン|ペン|pen|钢笔|鋼筆|圆珠笔|原子筆/.test(combined)) {
+            return { text: 'ペン', kana: 'ぺん', zh: zh || '笔' };
+        }
+
+        return { text, kana, zh };
+    }
+
     function normalizeAiResult(result) {
         if (!result || !result.word || !result.word.text) return null;
+        const compactedWord = compactWord(result.word);
 
         return {
             ...result,
-            word: {
-                text: String(result.word.text || ''),
-                kana: String(result.word.kana || ''),
-                zh: String(result.word.zh || '')
-            },
+            word: compactedWord,
             pos: result.pos || '名词',
             tag: result.tag || 'Item',
             tagColor: getTagColor(result.tag || 'Item'),
