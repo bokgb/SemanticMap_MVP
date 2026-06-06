@@ -25,6 +25,7 @@
     const MIN_ANY_SPOT_DISTANCE_METERS = 135;
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
     const MAP_BOUNDS_RADIUS_METERS = 1200;
+    const MIN_SCAN_START_RADIUS_METERS = 90;
     const TUTORIAL_PEN_SPOT_ID = 'tutorial_pen_practice';
     const TUTORIAL_PEN_COMPLETE_KEY = 'semantic-map-tutorial-pen-complete-v1';
     const TUTORIAL_PEN_SEEN_KEY = 'semantic-map-tutorial-pen-seen-v1';
@@ -1140,6 +1141,23 @@
         }
     }
 
+    function getScanStartCheck(quest = state.activeQuest) {
+        if (!quest?.spot || !state.lastPlayerPosition) {
+            return { ok: true, meters: 0 };
+        }
+
+        const radius = Math.max(getExplorerConfig().unlockRadius, MIN_SCAN_START_RADIUS_METERS);
+        const distance = L.latLng(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng)
+            .distanceTo([quest.spot.lat, quest.spot.lng]);
+
+        return {
+            ok: distance <= radius,
+            meters: Math.max(1, Math.ceil(distance - radius)),
+            distance,
+            radius
+        };
+    }
+
     async function loadOSMData() {
         try {
             const response = await fetch('spotsData.json');
@@ -1552,6 +1570,15 @@
         });
 
         document.getElementById('btn-start-scan').addEventListener('click', () => {
+            const scanCheck = getScanStartCheck(state.activeQuest);
+            if (!scanCheck.ok) {
+                SM.ui?.showGuideMessage?.(tr('moveCloserToScan', { meters: scanCheck.meters }), {
+                    type: 'warning',
+                    duration: 3200
+                });
+                return;
+            }
+
             document.getElementById('quest-layer').classList.add('hidden');
             SM.vision.openCamera();
         });
