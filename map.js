@@ -26,7 +26,7 @@
     const MIN_ANY_SPOT_DISTANCE_METERS = 135;
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
     const MAP_BOUNDS_RADIUS_METERS = 1200;
-    const MIN_SCAN_START_RADIUS_METERS = 90;
+    const SCAN_START_RADIUS_METERS = 150;
     const TUTORIAL_PEN_SPOT_ID = 'tutorial_pen_practice';
     const TUTORIAL_PEN_COMPLETE_KEY = 'semantic-map-tutorial-pen-complete-v1';
     const TUTORIAL_PEN_SEEN_KEY = 'semantic-map-tutorial-pen-seen-v1';
@@ -1170,7 +1170,7 @@
             return { ok: true, meters: 0 };
         }
 
-        const radius = Math.max(getExplorerConfig().unlockRadius, MIN_SCAN_START_RADIUS_METERS);
+        const radius = SCAN_START_RADIUS_METERS;
         const distance = L.latLng(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng)
             .distanceTo([quest.spot.lat, quest.spot.lng]);
 
