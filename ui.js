@@ -216,6 +216,30 @@
         }, duration);
     }
 
+    function showRewardPopup(message, reward = {}) {
+        const existingPopup = document.querySelector('.reward-popup');
+        if (existingPopup) existingPopup.remove();
+
+        const layer = document.createElement('div');
+        layer.className = 'reward-popup';
+        layer.setAttribute('role', 'status');
+        layer.setAttribute('aria-live', 'polite');
+        layer.innerHTML = `
+            <div class="reward-popup-title">CLEAR</div>
+            <div class="reward-popup-main">${escapeHtml(message)}</div>
+            <div class="reward-popup-chips">
+                <span>EXP +${escapeHtml(reward.xp || 0)}</span>
+                <span>${escapeHtml(SM.i18n?.t?.('coinsLabel') || '')} +${escapeHtml(reward.coins || 0)}</span>
+            </div>
+        `;
+        document.body.appendChild(layer);
+
+        window.setTimeout(() => {
+            layer.classList.add('leaving');
+            window.setTimeout(() => layer.remove(), 260);
+        }, 1900);
+    }
+
     function showDialog({ title, message = '', buttonText, type = 'warning' } = {}) {
         const existingDialog = document.querySelector('.game-dialog-layer');
         if (existingDialog) {
@@ -330,6 +354,7 @@
 
     SM.ui = {
         showToast,
+        showRewardPopup,
         showGuideMessage,
         showGuideSequence,
         hideGuideMessage,

@@ -264,6 +264,7 @@
     let radarLayer = null;
     let fogCanvas = null;
     let fogContext = null;
+    let fogAnimationTimer = null;
     let areaLayer = null;
     let areaProgress = {};
     let explorerProgress = { xp: 0, coins: 0, discoveredSpotKeys: [] };
@@ -362,10 +363,10 @@
         drawFog();
 
         if (showToast && (xp || coins)) {
-            SM.ui?.showToast(tr('questRewardToast', {
+            SM.ui?.showRewardPopup?.(tr('questRewardToast', {
                 xp: Number(xp || 0),
                 coins: Number(coins || 0)
-            }), { type: 'success', duration: 2400 });
+            }), { xp: Number(xp || 0), coins: Number(coins || 0) });
         }
 
         if (afterConfig.level > beforeLevel) {
@@ -525,6 +526,9 @@
         fogContext = fogCanvas.getContext('2d');
         window.addEventListener('resize', drawFog);
         map.on('move zoom resize', drawFog);
+        if (!fogAnimationTimer) {
+            fogAnimationTimer = window.setInterval(drawFog, 900);
+        }
         drawFog();
     }
 
@@ -558,6 +562,70 @@
         fogContext.fill();
     }
 
+    function drawScanGrid(width, height) {
+        if (!fogContext) return;
+
+        fogContext.save();
+        fogContext.globalAlpha = 0.28;
+        fogContext.strokeStyle = 'rgba(77, 215, 196, 0.11)';
+        fogContext.lineWidth = 1;
+
+        const gridSize = 36;
+        const phase = Math.floor(Date.now() / 90) % gridSize;
+        for (let x = -phase; x < width; x += gridSize) {
+            fogContext.beginPath();
+            fogContext.moveTo(x, 0);
+            fogContext.lineTo(x, height);
+            fogContext.stroke();
+        }
+        for (let y = phase; y < height; y += gridSize) {
+            fogContext.beginPath();
+            fogContext.moveTo(0, y);
+            fogContext.lineTo(width, y);
+            fogContext.stroke();
+        }
+
+        fogContext.restore();
+    }
+
+    function drawScanVignette(width, height) {
+        if (!fogContext) return;
+
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.hypot(width, height) * 0.62;
+        const gradient = fogContext.createRadialGradient(centerX, centerY, radius * 0.18, centerX, centerY, radius);
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(0.66, 'rgba(0,0,0,0.12)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+
+        fogContext.fillStyle = gradient;
+        fogContext.fillRect(0, 0, width, height);
+    }
+
+    function drawVisionGlow(point, radius) {
+        if (!fogContext || !point) return;
+
+        fogContext.save();
+        fogContext.globalCompositeOperation = 'lighter';
+        const glow = fogContext.createRadialGradient(point.x, point.y, Math.max(1, radius * 0.72), point.x, point.y, radius * 1.08);
+        glow.addColorStop(0, 'rgba(42, 230, 205, 0)');
+        glow.addColorStop(0.72, 'rgba(42, 230, 205, 0.14)');
+        glow.addColorStop(1, 'rgba(42, 230, 205, 0)');
+        fogContext.fillStyle = glow;
+        fogContext.beginPath();
+        fogContext.arc(point.x, point.y, radius * 1.08, 0, Math.PI * 2);
+        fogContext.fill();
+
+        fogContext.strokeStyle = 'rgba(103, 255, 231, 0.28)';
+        fogContext.lineWidth = 2;
+        fogContext.setLineDash([10, 12]);
+        fogContext.beginPath();
+        fogContext.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        fogContext.stroke();
+        fogContext.restore();
+    }
+
     function drawFog() {
         if (!fogCanvas || !fogContext || !map) return;
 
@@ -576,21 +644,30 @@
 
         fogContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
         fogContext.clearRect(0, 0, width, height);
-        fogContext.fillStyle = 'rgba(9, 18, 22, 0.58)';
+        fogContext.fillStyle = 'rgba(5, 16, 18, 0.66)';
         fogContext.fillRect(0, 0, width, height);
+        drawScanGrid(width, height);
+        drawScanVignette(width, height);
 
         fogContext.save();
         fogContext.globalCompositeOperation = 'destination-out';
 
+        let visionPoint = null;
+        let visionRadius = 0;
         if (state.lastPlayerPosition) {
             const config = getExplorerConfig();
             const latLng = { lat: state.lastPlayerPosition.lat, lng: state.lastPlayerPosition.lng };
             const point = map.latLngToContainerPoint([latLng.lat, latLng.lng]);
             const radius = metersToPixels(config.scanRadius, latLng);
+            visionPoint = point;
+            visionRadius = radius;
             clearFogCircle(point, radius, 34);
         }
 
         fogContext.restore();
+        if (visionPoint && visionRadius) {
+            drawVisionGlow(visionPoint, visionRadius);
+        }
     }
 
     function setPlayerPosition(lat, lng, source = 'gps', heading = null) {
@@ -1074,7 +1151,7 @@
         if (spot.type === 'npc_cat') {
             iconHtml = `<div data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="font-size: 28px; text-align: center; line-height: ${size}px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));">🐱</div>`;
         } else {
-            iconHtml = `<div class="${isTutorialMarker ? 'tutorial-pen-core' : ''}" data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="
+            iconHtml = `<div class="${isTutorialMarker ? 'tutorial-pen-core' : 'quest-marker-core'}" data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="
                 position: relative;
                 background: ${markerBackground};
                 width: 100%; height: 100%;

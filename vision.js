@@ -339,6 +339,7 @@
             SM.inventory.showWordDetailCard(aiResult);
             SM.quests.completeQuest(activeQuest);
             if (activeQuest.type === 'TUTORIAL') {
+                SM.map?.grantExplorerReward?.({ type: activeQuest.rarity || 'N' });
                 try {
                     localStorage.setItem('semantic-map-tutorial-pen-complete-v1', '1');
                 } catch (error) {
