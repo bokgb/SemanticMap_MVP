@@ -120,18 +120,20 @@ body, html {
 }
 
 #mimi-guide.sequence {
-    left: 18px;
-    right: 18px;
-    top: auto;
-    bottom: max(20px, calc(env(safe-area-inset-bottom) + 20px));
+    inset: 0;
     z-index: 7100;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: center;
     max-width: none;
-    transform: translateY(12px);
+    padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background: rgba(14, 25, 30, 0.34);
+    pointer-events: auto;
+    transform: scale(0.98);
 }
 
 #mimi-guide.sequence.show {
-    transform: translateY(0);
+    transform: scale(1);
 }
 
 #mimi-guide.sequence .mimi-avatar {
@@ -145,12 +147,13 @@ body, html {
 }
 
 #mimi-guide.sequence .mimi-speech {
-    flex: 1 1 auto;
-    width: auto;
-    max-width: none;
+    flex: 0 1 460px;
+    width: min(72vw, 460px);
+    max-width: 460px;
     min-width: 0;
-    padding: 14px 16px 16px;
-    border-radius: 14px;
+    padding: 18px 20px 20px;
+    border-radius: 16px;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
 }
 
 #mimi-guide.sequence .mimi-name {
@@ -753,9 +756,8 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     }
 
     #mimi-guide.sequence {
-        left: 14px;
-        right: 14px;
-        bottom: max(18px, calc(env(safe-area-inset-bottom) + 18px));
+        inset: 0;
+        padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
     }
 
     #mimi-guide.sequence .mimi-avatar {
@@ -770,6 +772,12 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 
     #mimi-guide.sequence .mimi-text {
         font-size: 16px;
+    }
+
+    #mimi-guide.sequence .mimi-speech {
+        width: auto;
+        max-width: none;
+        padding: 15px 16px 17px;
     }
 
     .mimi-speech {
