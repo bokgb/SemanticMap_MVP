@@ -57,6 +57,7 @@
             button.addEventListener('click', () => {
                 const level = button.dataset.levelChoice || 'N5';
                 setLevel(level, { persist: true, refresh: true });
+                SM.ui?.setTutorialCurtain?.(true);
                 elements.levelOnboardingLayer.classList.add('hidden');
                 SM.ui?.setBagHudHidden?.(false, 'level-onboarding');
             });

@@ -83,6 +83,7 @@
         const duration = Number.isFinite(options.duration) ? options.duration : 3200;
 
         guideSequence = null;
+        setTutorialCurtain(false);
         layer.classList.remove('success', 'warning', 'error', 'info', 'show');
         layer.classList.remove('sequence', 'reveal');
         layer.classList.add(type);
@@ -105,7 +106,12 @@
         layer.classList.remove('show');
         layer.classList.remove('sequence', 'reveal');
         guideSequence = null;
+        setTutorialCurtain(false);
         window.clearTimeout(guideMessageTimer);
+    }
+
+    function setTutorialCurtain(visible) {
+        document.body.classList.toggle('tutorial-curtain', Boolean(visible));
     }
 
     function showGuideSequence(messages, options = {}) {
@@ -124,6 +130,7 @@
         window.clearTimeout(guideMessageTimer);
         layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal');
         layer.classList.add(guideSequence.type, 'sequence');
+        setTutorialCurtain(false);
         renderGuideSequenceLine();
         window.requestAnimationFrame(() => layer.classList.add('show'));
     }
@@ -326,6 +333,7 @@
         showGuideMessage,
         showGuideSequence,
         hideGuideMessage,
+        setTutorialCurtain,
         setBagHudHidden,
         showTutorial,
         resetTutorials,

@@ -48,6 +48,15 @@ body, html {
     mix-blend-mode: multiply;
 }
 
+body.tutorial-curtain::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 6090;
+    background: #020508;
+    pointer-events: auto;
+}
+
 #toast-layer {
     position: fixed;
     top: max(14px, env(safe-area-inset-top));
