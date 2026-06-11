@@ -1116,6 +1116,7 @@
         const questTitle = questLayer.querySelector('.quest-content h3');
         const repairPointsChip = questLayer.querySelector('#quest-repair-points');
         const preview = questLayer.querySelector('.sentence-preview');
+        const startScanButton = document.getElementById('btn-start-scan');
         const repairPoints = getRepairPointsForRarity(data.rarity);
         const isCatQuest = spot.type === 'npc_cat';
         const isTutorialQuest = spot.type === 'tutorial_pen';
@@ -1125,7 +1126,7 @@
                 ? null
             : getSpotArea(spot);
 
-        questTitle.innerText = tr('questTitle', { rarity: data.rarity });
+        questTitle.innerText = isTutorialQuest ? tr('tutorialQuestTitle') : tr('questTitle', { rarity: data.rarity });
         questTitle.style.color = data.config.color;
         if (repairPointsChip) {
             repairPointsChip.hidden = isTutorialQuest;
@@ -1140,6 +1141,20 @@
                     : tr('questOutside');
         }
         preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
+        let hint = questLayer.querySelector('.quest-tutorial-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'quest-tutorial-hint';
+            preview.insertAdjacentElement('afterend', hint);
+        }
+        hint.hidden = !isTutorialQuest;
+        hint.innerText = isTutorialQuest ? tr('tutorialQuestHint') : '';
+        if (startScanButton) {
+            if (!startScanButton.dataset.defaultText) {
+                startScanButton.dataset.defaultText = startScanButton.innerText;
+            }
+            startScanButton.innerText = isTutorialQuest ? tr('tutorialScanButton') : startScanButton.dataset.defaultText;
+        }
 
         state.activeQuest = {
             type: spot.type === 'npc_cat' ? 'NPC' : spot.type === 'tutorial_pen' ? 'TUTORIAL' : 'POI',

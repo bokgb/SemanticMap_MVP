@@ -1416,6 +1416,23 @@ h2, p {
     background: var(--panel-soft); padding: 20px; border-radius: 10px;
     margin: 20px 0; text-align: center; font-size: 24px;
 }
+
+.quest-tutorial-hint {
+    margin: -8px 0 18px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    color: var(--accent-dark);
+    font-size: 15px;
+    font-weight: 900;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.quest-tutorial-hint[hidden] {
+    display: none;
+}
 .repair-reward-chip {
     display: inline-flex;
     align-items: center;
