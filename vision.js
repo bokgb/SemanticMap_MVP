@@ -304,7 +304,7 @@
         const isCatFoodLike = isCatQuest && isLooseCatFood(aiResult);
         const fitsSentence = aiResult.fits_sentence !== false;
         const isQuestMatch = isTutorialQuest
-            ? isTutorialPenLike(aiResult)
+            ? hasRecognizedTutorialObject(aiResult)
             : isCatQuest
                 ? aiResult.tag === activeQuest.requiredTag || isCatFoodLike
                 : fitsSentence;
@@ -404,26 +404,24 @@
         return foodWords.some(word => text.includes(word.toLowerCase()));
     }
 
-    function isTutorialPenLike(aiResult) {
-        const text = `${aiResult?.word?.text || ''} ${aiResult?.word?.kana || ''} ${aiResult?.word?.zh || ''}`.toLowerCase();
-        return [
-            'ペン',
-            'ぺん',
-            'ボールペン',
-            'シャープペン',
-            '鉛筆',
-            'えんぴつ',
-            '筆記具',
-            '筆',
-            'pen',
-            'pencil',
-            '笔',
-            '鉛筆',
-            '铅笔',
-            '圆珠笔',
-            '原子筆',
-            '鋼筆'
-        ].some(word => text.includes(word.toLowerCase()));
+    function hasRecognizedTutorialObject(aiResult) {
+        const wordText = String(aiResult?.word?.text || '').trim();
+        const wordZh = String(aiResult?.word?.zh || '').trim();
+        const combined = `${wordText} ${wordZh}`.toLowerCase();
+        if (!wordText) return false;
+
+        const invalidWords = [
+            'unknown',
+            'unknown item',
+            'recognition failed',
+            '不明',
+            '未知',
+            '识别失败',
+            '認識失敗',
+            '不明な物体'
+        ];
+
+        return !invalidWords.some(word => combined.includes(word.toLowerCase()));
     }
 
     function buildGrammarReview(quest, wordText, lang = SM.i18n?.getLang?.() || 'zh') {
