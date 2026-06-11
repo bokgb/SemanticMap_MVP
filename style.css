@@ -344,6 +344,29 @@ body.tutorial-curtain::before {
     animation: rewardPopOut 0.24s ease-in forwards;
 }
 
+.celebration-burst {
+    position: fixed;
+    left: 50%;
+    top: 31%;
+    z-index: 7550;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.celebration-burst span {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 12px var(--c);
+    opacity: 0;
+    animation: celebrationParticle 0.96s cubic-bezier(.15, .82, .24, 1) var(--d) forwards;
+}
+
 .reward-popup-title {
     color: var(--accent-dark);
     font-size: 12px;
@@ -385,6 +408,24 @@ body.tutorial-curtain::before {
     to {
         opacity: 0;
         transform: translate(-50%, -12px) scale(0.96);
+    }
+}
+
+@keyframes celebrationParticle {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.2);
+    }
+    14% {
+        opacity: 1;
+    }
+    72% {
+        opacity: 1;
+        transform: translate(calc(var(--x) * 0.86), calc(var(--y) * 0.86)) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--x), calc(var(--y) + 24px)) scale(0.38);
     }
 }
 

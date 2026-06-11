@@ -219,6 +219,7 @@
     function showRewardPopup(message, reward = {}) {
         const existingPopup = document.querySelector('.reward-popup');
         if (existingPopup) existingPopup.remove();
+        showCelebrationBurst();
 
         const layer = document.createElement('div');
         layer.className = 'reward-popup';
@@ -238,6 +239,29 @@
             layer.classList.add('leaving');
             window.setTimeout(() => layer.remove(), 260);
         }, 1900);
+    }
+
+    function showCelebrationBurst() {
+        const existingBurst = document.querySelector('.celebration-burst');
+        if (existingBurst) existingBurst.remove();
+
+        const layer = document.createElement('div');
+        layer.className = 'celebration-burst';
+        const colors = ['#2ee6cc', '#ffd166', '#ff6b6b', '#7dd3fc', '#a78bfa', '#ffffff'];
+
+        for (let index = 0; index < 34; index += 1) {
+            const particle = document.createElement('span');
+            const angle = (Math.PI * 2 * index) / 34 + (Math.random() - 0.5) * 0.34;
+            const distance = 86 + Math.random() * 118;
+            particle.style.setProperty('--x', `${Math.cos(angle) * distance}px`);
+            particle.style.setProperty('--y', `${Math.sin(angle) * distance}px`);
+            particle.style.setProperty('--c', colors[index % colors.length]);
+            particle.style.setProperty('--d', `${Math.random() * 0.16}s`);
+            layer.appendChild(particle);
+        }
+
+        document.body.appendChild(layer);
+        window.setTimeout(() => layer.remove(), 1250);
     }
 
     function showDialog({ title, message = '', buttonText, type = 'warning' } = {}) {
