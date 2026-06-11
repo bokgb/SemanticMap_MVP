@@ -443,8 +443,8 @@ body, html {
     justify-content: center;
     padding: 24px;
     box-sizing: border-box;
-    background: rgba(13, 31, 39, 0.62);
-    backdrop-filter: blur(6px);
+    background: #020508;
+    backdrop-filter: none;
 }
 
 #level-onboarding-layer.hidden {
@@ -466,6 +466,49 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 16px 42px rgba(0,0,0,0.28);
+}
+
+.tutorial-pen-core {
+    animation: tutorialPenPulse 1.05s ease-in-out infinite;
+}
+
+.tutorial-pen-core::before,
+.tutorial-pen-core::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(102, 255, 231, 0.72);
+    pointer-events: none;
+    animation: tutorialPenRing 1.35s ease-out infinite;
+}
+
+.tutorial-pen-core::after {
+    inset: -15px;
+    animation-delay: 0.32s;
+    border-color: rgba(255, 255, 255, 0.58);
+}
+
+@keyframes tutorialPenPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.7), 0 0 18px rgba(15,118,110,0.88), 0 4px 14px rgba(8,75,68,0.28);
+    }
+    50% {
+        transform: scale(1.22);
+        box-shadow: 0 0 0 6px rgba(255,255,255,0.86), 0 0 32px rgba(46,230,204,1), 0 8px 22px rgba(8,75,68,0.38);
+    }
+}
+
+@keyframes tutorialPenRing {
+    0% {
+        opacity: 0.9;
+        transform: scale(0.72);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.75);
+    }
 }
 
 .level-onboarding-kicker {

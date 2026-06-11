@@ -1074,7 +1074,7 @@
         if (spot.type === 'npc_cat') {
             iconHtml = `<div data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="font-size: 28px; text-align: center; line-height: ${size}px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));">🐱</div>`;
         } else {
-            iconHtml = `<div data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="
+            iconHtml = `<div class="${isTutorialMarker ? 'tutorial-pen-core' : ''}" data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="
                 position: relative;
                 background: ${markerBackground};
                 width: 100%; height: 100%;
