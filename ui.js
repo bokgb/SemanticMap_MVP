@@ -217,28 +217,21 @@
     }
 
     function showRewardPopup(message, reward = {}) {
-        const existingPopup = document.querySelector('.reward-popup');
-        if (existingPopup) existingPopup.remove();
         showCelebrationBurst();
 
-        const layer = document.createElement('div');
-        layer.className = 'reward-popup';
-        layer.setAttribute('role', 'status');
-        layer.setAttribute('aria-live', 'polite');
-        layer.innerHTML = `
-            <div class="reward-popup-title">CLEAR</div>
-            <div class="reward-popup-main">${escapeHtml(message)}</div>
-            <div class="reward-popup-chips">
-                <span>EXP +${escapeHtml(reward.xp || 0)}</span>
-                <span>${escapeHtml(SM.i18n?.t?.('coinsLabel') || '')} +${escapeHtml(reward.coins || 0)}</span>
-            </div>
-        `;
-        document.body.appendChild(layer);
+        const existingFloat = document.querySelector('.reward-float');
+        if (existingFloat) existingFloat.remove();
 
-        window.setTimeout(() => {
-            layer.classList.add('leaving');
-            window.setTimeout(() => layer.remove(), 260);
-        }, 1900);
+        const float = document.createElement('div');
+        float.className = 'reward-float';
+        float.setAttribute('role', 'status');
+        float.setAttribute('aria-live', 'polite');
+        float.innerHTML = `
+            <span>EXP +${escapeHtml(reward.xp || 0)}</span>
+            <span>${escapeHtml(SM.i18n?.t?.('coinsLabel') || '')} +${escapeHtml(reward.coins || 0)}</span>
+        `;
+        document.body.appendChild(float);
+        window.setTimeout(() => float.remove(), 1300);
     }
 
     function showCelebrationBurst() {
