@@ -1212,8 +1212,14 @@
             return;
         }
 
-        markTutorialPenSeen();
-        SM.ui?.showGuideMessage?.(tr('mimiTutorialIntro'), { type: 'info', duration: 5200 });
+        SM.ui?.showGuideSequence?.([
+            tr('mimiIntroLine1'),
+            tr('mimiIntroLine2'),
+            tr('mimiIntroLine3')
+        ], {
+            type: 'info',
+            onComplete: markTutorialPenSeen
+        });
     }
 
     function isLevelOnboardingOpen() {

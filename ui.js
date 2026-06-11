@@ -5,6 +5,7 @@
     let guideLayer = null;
     let tutorialLayer = null;
     let guideMessageTimer = null;
+    let guideSequence = null;
     const bagHudHideReasons = new Set();
     const TUTORIAL_STORAGE_PREFIX = 'semantic-map-tutorial-v1-';
 
@@ -37,13 +38,21 @@
                 <div class="mimi-speech" role="status" aria-live="polite">
                     <div class="mimi-name"></div>
                     <div class="mimi-text"></div>
+                    <button class="mimi-next-btn" type="button"></button>
                 </div>
             `;
             document.body.appendChild(guideLayer);
             refreshLanguage();
 
             guideLayer.querySelector('.mimi-avatar')?.addEventListener('click', () => {
+                if (guideSequence) {
+                    advanceGuideSequence();
+                    return;
+                }
                 showGuideMessage(SM.i18n?.t?.('mimiIdle') || '', { type: 'info', duration: 3200 });
+            });
+            guideLayer.querySelector('.mimi-speech')?.addEventListener('click', () => {
+                if (guideSequence) advanceGuideSequence();
             });
         }
 
@@ -56,9 +65,11 @@
 
         const avatar = layer.querySelector('.mimi-avatar');
         const nameEl = layer.querySelector('.mimi-name');
+        const nextButton = layer.querySelector('.mimi-next-btn');
 
         avatar?.setAttribute('aria-label', name);
         if (nameEl) nameEl.textContent = name;
+        if (nextButton) nextButton.textContent = SM.i18n?.t?.('dialogNextButton') || 'Next';
 
         layer.classList.remove('show');
         window.clearTimeout(guideMessageTimer);
@@ -67,13 +78,19 @@
     function showGuideMessage(message, options = {}) {
         const layer = getGuideLayer();
         const textEl = layer.querySelector('.mimi-text');
+        const nextButton = layer.querySelector('.mimi-next-btn');
         const type = options.type || 'info';
         const duration = Number.isFinite(options.duration) ? options.duration : 3200;
 
+        guideSequence = null;
         layer.classList.remove('success', 'warning', 'error', 'info', 'show');
+        layer.classList.remove('sequence');
         layer.classList.add(type);
         if (textEl) {
             textEl.textContent = String(message || '');
+        }
+        if (nextButton) {
+            nextButton.hidden = true;
         }
 
         window.clearTimeout(guideMessageTimer);
@@ -86,7 +103,59 @@
     function hideGuideMessage() {
         const layer = getGuideLayer();
         layer.classList.remove('show');
+        layer.classList.remove('sequence');
+        guideSequence = null;
         window.clearTimeout(guideMessageTimer);
+    }
+
+    function showGuideSequence(messages, options = {}) {
+        const lines = Array.isArray(messages) ? messages.filter(Boolean).map(String) : [];
+        if (!lines.length) return;
+
+        const layer = getGuideLayer();
+        guideSequence = {
+            lines,
+            index: 0,
+            type: options.type || 'info',
+            onComplete: typeof options.onComplete === 'function' ? options.onComplete : null
+        };
+
+        window.clearTimeout(guideMessageTimer);
+        layer.classList.remove('success', 'warning', 'error', 'info', 'show');
+        layer.classList.add(guideSequence.type, 'sequence');
+        renderGuideSequenceLine();
+        window.requestAnimationFrame(() => layer.classList.add('show'));
+    }
+
+    function renderGuideSequenceLine() {
+        if (!guideSequence) return;
+
+        const layer = getGuideLayer();
+        const textEl = layer.querySelector('.mimi-text');
+        const nextButton = layer.querySelector('.mimi-next-btn');
+        const isLastLine = guideSequence.index >= guideSequence.lines.length - 1;
+
+        if (textEl) textEl.textContent = guideSequence.lines[guideSequence.index] || '';
+        if (nextButton) {
+            nextButton.hidden = false;
+            nextButton.textContent = SM.i18n?.t?.(isLastLine ? 'dialogStartButton' : 'dialogNextButton')
+                || (isLastLine ? 'Start' : 'Next');
+        }
+    }
+
+    function advanceGuideSequence() {
+        if (!guideSequence) return;
+
+        if (guideSequence.index < guideSequence.lines.length - 1) {
+            guideSequence.index += 1;
+            renderGuideSequenceLine();
+            return;
+        }
+
+        const onComplete = guideSequence.onComplete;
+        guideSequence = null;
+        hideGuideMessage();
+        if (onComplete) onComplete();
     }
 
     function setBagHudHidden(hidden, reason = 'default') {
@@ -236,6 +305,7 @@
     SM.ui = {
         showToast,
         showGuideMessage,
+        showGuideSequence,
         hideGuideMessage,
         setBagHudHidden,
         showTutorial,
