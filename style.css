@@ -8,6 +8,12 @@ body, html {
     color: var(--ink);
 }
 
+@property --tutorial-reveal-radius {
+    syntax: '<percentage>';
+    inherits: false;
+    initial-value: 0%;
+}
+
 :root {
     --ink: #263238;
     --muted: #607076;
@@ -127,13 +133,30 @@ body, html {
     max-width: none;
     padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
     box-sizing: border-box;
-    background: rgba(14, 25, 30, 0.34);
+    --tutorial-reveal-radius: 0%;
+    background:
+        radial-gradient(circle at center,
+            transparent 0%,
+            transparent var(--tutorial-reveal-radius),
+            rgba(2, 5, 8, 0.96) calc(var(--tutorial-reveal-radius) + 8%),
+            #020508 100%);
     pointer-events: auto;
     transform: scale(0.98);
 }
 
 #mimi-guide.sequence.show {
     transform: scale(1);
+}
+
+#mimi-guide.sequence.reveal {
+    animation: tutorial-reveal 1.6s ease-out forwards;
+}
+
+#mimi-guide.sequence.reveal .mimi-avatar,
+#mimi-guide.sequence.reveal .mimi-speech {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
 #mimi-guide.sequence .mimi-avatar {
@@ -163,6 +186,21 @@ body, html {
 #mimi-guide.sequence .mimi-text {
     font-size: 17px;
     line-height: 1.48;
+}
+
+@keyframes tutorial-reveal {
+    0% {
+        --tutorial-reveal-radius: 0%;
+        opacity: 1;
+    }
+    72% {
+        --tutorial-reveal-radius: 82%;
+        opacity: 1;
+    }
+    100% {
+        --tutorial-reveal-radius: 120%;
+        opacity: 0;
+    }
 }
 
 .mimi-speech::before {

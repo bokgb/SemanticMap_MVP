@@ -1218,6 +1218,7 @@
             tr('mimiIntroLine3')
         ], {
             type: 'info',
+            revealOnComplete: true,
             onComplete: markTutorialPenSeen
         });
     }

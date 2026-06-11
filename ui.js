@@ -71,7 +71,7 @@
         if (nameEl) nameEl.textContent = name;
         if (nextButton) nextButton.textContent = SM.i18n?.t?.('dialogNextButton') || 'Next';
 
-        layer.classList.remove('show');
+        layer.classList.remove('show', 'reveal');
         window.clearTimeout(guideMessageTimer);
     }
 
@@ -84,7 +84,7 @@
 
         guideSequence = null;
         layer.classList.remove('success', 'warning', 'error', 'info', 'show');
-        layer.classList.remove('sequence');
+        layer.classList.remove('sequence', 'reveal');
         layer.classList.add(type);
         if (textEl) {
             textEl.textContent = String(message || '');
@@ -103,7 +103,7 @@
     function hideGuideMessage() {
         const layer = getGuideLayer();
         layer.classList.remove('show');
-        layer.classList.remove('sequence');
+        layer.classList.remove('sequence', 'reveal');
         guideSequence = null;
         window.clearTimeout(guideMessageTimer);
     }
@@ -117,11 +117,12 @@
             lines,
             index: 0,
             type: options.type || 'info',
+            revealOnComplete: Boolean(options.revealOnComplete),
             onComplete: typeof options.onComplete === 'function' ? options.onComplete : null
         };
 
         window.clearTimeout(guideMessageTimer);
-        layer.classList.remove('success', 'warning', 'error', 'info', 'show');
+        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal');
         layer.classList.add(guideSequence.type, 'sequence');
         renderGuideSequenceLine();
         window.requestAnimationFrame(() => layer.classList.add('show'));
@@ -153,9 +154,27 @@
         }
 
         const onComplete = guideSequence.onComplete;
+        const shouldReveal = guideSequence.revealOnComplete;
         guideSequence = null;
+
+        if (shouldReveal) {
+            playGuideReveal(onComplete);
+            return;
+        }
+
         hideGuideMessage();
         if (onComplete) onComplete();
+    }
+
+    function playGuideReveal(onComplete) {
+        const layer = getGuideLayer();
+        window.clearTimeout(guideMessageTimer);
+        layer.classList.add('reveal');
+
+        guideMessageTimer = window.setTimeout(() => {
+            hideGuideMessage();
+            if (onComplete) onComplete();
+        }, 1700);
     }
 
     function setBagHudHidden(hidden, reason = 'default') {
