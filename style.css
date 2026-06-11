@@ -119,6 +119,49 @@ body, html {
     pointer-events: auto;
 }
 
+#mimi-guide.sequence {
+    left: 18px;
+    right: 18px;
+    top: auto;
+    bottom: max(20px, calc(env(safe-area-inset-bottom) + 20px));
+    z-index: 7100;
+    align-items: flex-end;
+    max-width: none;
+    transform: translateY(12px);
+}
+
+#mimi-guide.sequence.show {
+    transform: translateY(0);
+}
+
+#mimi-guide.sequence .mimi-avatar {
+    width: 70px;
+    height: 70px;
+}
+
+#mimi-guide.sequence .mimi-face {
+    width: 64px;
+    height: 64px;
+}
+
+#mimi-guide.sequence .mimi-speech {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    padding: 14px 16px 16px;
+    border-radius: 14px;
+}
+
+#mimi-guide.sequence .mimi-name {
+    font-size: 13px;
+}
+
+#mimi-guide.sequence .mimi-text {
+    font-size: 17px;
+    line-height: 1.48;
+}
+
 .mimi-speech::before {
     content: "";
     position: absolute;
@@ -707,6 +750,26 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
         left: 14px;
         right: 96px;
         max-width: none;
+    }
+
+    #mimi-guide.sequence {
+        left: 14px;
+        right: 14px;
+        bottom: max(18px, calc(env(safe-area-inset-bottom) + 18px));
+    }
+
+    #mimi-guide.sequence .mimi-avatar {
+        width: 64px;
+        height: 64px;
+    }
+
+    #mimi-guide.sequence .mimi-face {
+        width: 58px;
+        height: 58px;
+    }
+
+    #mimi-guide.sequence .mimi-text {
+        font-size: 16px;
     }
 
     .mimi-speech {
