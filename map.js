@@ -1108,21 +1108,22 @@
         };
     }
 
-    function createCollapseErrorZone(spot, isTutorialMarker = false) {
-        const zoneRadius = isTutorialMarker ? Math.max(70, TUTORIAL_PEN_OFFSET_METERS * 1.7) : SCAN_START_RADIUS_METERS;
-        const latOffset = zoneRadius / 111320;
+    function getCollapseZonePixelDiameter(spot, radiusMeters) {
+        if (!map) return 96;
         const lngScale = Math.max(0.2, Math.cos(spot.lat * Math.PI / 180));
-        const lngOffset = zoneRadius / (111320 * lngScale);
-        const bounds = L.latLngBounds(
-            [spot.lat - latOffset, spot.lng - lngOffset],
-            [spot.lat + latOffset, spot.lng + lngOffset]
-        );
+        const edgeLng = spot.lng + radiusMeters / (111320 * lngScale);
+        const centerPoint = map.latLngToLayerPoint([spot.lat, spot.lng]);
+        const edgePoint = map.latLngToLayerPoint([spot.lat, edgeLng]);
+        return Math.max(42, Math.min(560, Math.round(centerPoint.distanceTo(edgePoint) * 2)));
+    }
+
+    function createCollapseErrorZoneHtml(spot, isTutorialMarker = false) {
+        const zoneRadius = isTutorialMarker ? Math.max(70, TUTORIAL_PEN_OFFSET_METERS * 1.7) : SCAN_START_RADIUS_METERS;
+        const pixelDiameter = getCollapseZonePixelDiameter(spot, zoneRadius);
         const clipId = `collapse-zone-${Math.random().toString(36).slice(2)}`;
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 100 100');
-        svg.setAttribute('preserveAspectRatio', 'none');
-        svg.classList.add('collapse-error-svg');
-        svg.innerHTML = `
+        return `
+            <div class="collapse-error-child" aria-hidden="true" style="--collapse-zone-size: ${pixelDiameter}px;" data-collapse-radius="${zoneRadius}">
+                <svg class="collapse-error-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
                 <clipPath id="${clipId}">
                     <circle cx="50" cy="50" r="48"></circle>
@@ -1146,34 +1147,30 @@
                 <rect class="collapse-error-svg-band band-c" x="0" y="67" width="100" height="8"></rect>
             </g>
             <circle class="collapse-error-svg-edge" cx="50" cy="50" r="48"></circle>
+                </svg>
+            </div>
         `;
-        const zone = L.svgOverlay(svg, bounds, {
-            pane: 'radarPane',
-            interactive: false,
-            opacity: 0.9,
-        });
-        zone.collapseSpotKey = getSpotDiscoveryKey(spot);
-        return zone;
+    }
+
+    function updateCollapseZoneSize(marker) {
+        if (!marker?.spotData || !marker._icon) return;
+        const zoneElement = marker._icon.querySelector('.collapse-error-child');
+        if (!zoneElement) return;
+        const radius = Number(zoneElement.dataset.collapseRadius) || SCAN_START_RADIUS_METERS;
+        zoneElement.style.setProperty('--collapse-zone-size', `${getCollapseZonePixelDiameter(marker.spotData, radius)}px`);
+    }
+
+    function updateCollapseZoneSizes() {
+        if (!dynamicMarkersLayer) return;
+        dynamicMarkersLayer.eachLayer(layer => updateCollapseZoneSize(layer));
     }
 
     function clearCollapseErrorZone(marker) {
-        const zone = marker?.collapseErrorZone;
-        if (!zone) return;
+        const zoneElement = marker?._icon?.querySelector?.('.collapse-error-child');
+        if (!zoneElement) return;
 
-        const zoneElements = [];
-        const element = typeof zone.getElement === 'function' ? zone.getElement() : null;
-        if (element) zoneElements.push(element);
-
-        if (zoneElements.length) {
-            zoneElements.forEach(element => element.classList.add('collapse-error-zone-repaired'));
-            window.setTimeout(() => {
-                if (dynamicMarkersLayer?.hasLayer(zone)) {
-                    dynamicMarkersLayer.removeLayer(zone);
-                }
-            }, 520);
-        } else if (dynamicMarkersLayer?.hasLayer(zone)) {
-            dynamicMarkersLayer.removeLayer(zone);
-        }
+        zoneElement.classList.add('collapse-error-zone-repaired');
+        window.setTimeout(() => zoneElement.remove(), 520);
         marker.collapseErrorZone = null;
     }
 
@@ -1212,6 +1209,7 @@
             : `0 0 10px ${config.color}`;
         const markerTextShadow = isSrMarker || isTutorialMarker ? '0 1px 3px rgba(0,0,0,0.35)' : 'none';
         const markerOpacity = isInteractable ? '1' : '0.62';
+        const collapseZoneHtml = spot.type !== 'npc_cat' ? createCollapseErrorZoneHtml(spot, isTutorialMarker) : '';
         const sparkleHtml = isSrMarker
             ? '<span style="position:absolute; top:3px; right:5px; font-size:10px; line-height:1; color:#fff8b8; text-shadow:0 0 5px rgba(255,255,255,0.9);">✦</span>'
             : '';
@@ -1220,7 +1218,9 @@
         if (spot.type === 'npc_cat') {
             iconHtml = `<div data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="font-size: 28px; text-align: center; line-height: ${size}px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));">🐱</div>`;
         } else {
-            iconHtml = `<div class="${isTutorialMarker ? 'tutorial-pen-core' : 'quest-marker-core'}" data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}" style="
+            iconHtml = `<div class="collapse-marker-shell" data-spot-type="${spotTypeAttr}" data-spot-name="${spotNameAttr}">
+                ${collapseZoneHtml}
+                <div class="${isTutorialMarker ? 'tutorial-pen-core' : 'quest-marker-core'}" style="
                 position: relative;
                 background: ${markerBackground};
                 width: 100%; height: 100%;
@@ -1233,6 +1233,7 @@
                 opacity: ${markerOpacity};">
                 <span style="position: relative; z-index: 1;">${isTutorialMarker ? '!' : markerQuestData.rarity}</span>
                 ${sparkleHtml}
+                </div>
             </div>`;
         }
 
@@ -1247,7 +1248,8 @@
         marker.spotData = spot;
         marker.questData = markerQuestData;
         if (spot.type !== 'npc_cat') {
-            marker.collapseErrorZone = createCollapseErrorZone(spot, isTutorialMarker);
+            marker.collapseErrorZone = true;
+            marker.on('add', () => updateCollapseZoneSize(marker));
         }
 
         marker.on('click', () => {
@@ -1528,9 +1530,6 @@
             const isUnlocked = true;
             const marker = createPoiMarker(spot);
             if (marker) {
-                if (marker.collapseErrorZone) {
-                    dynamicMarkersLayer.addLayer(marker.collapseErrorZone);
-                }
                 dynamicMarkersLayer.addLayer(marker);
                 currentVisibleKeys.push(getSpotDiscoveryKey(spot));
                 if (isUnlocked && !isLevelOnboardingOpen() && !discoveredToastShown && spot.type !== 'tutorial_pen' && markSpotDiscovered(spot)) {
@@ -1874,6 +1873,7 @@
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
+        map.on('zoomend', updateCollapseZoneSizes);
         map.createPane('areaPane');
         map.getPane('areaPane').style.zIndex = 380;
         map.getPane('areaPane').style.pointerEvents = 'none';

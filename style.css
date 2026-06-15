@@ -595,7 +595,33 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     animation: collapseZoneRepair 0.52s ease-out forwards !important;
 }
 
+.collapse-marker-shell {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.collapse-error-child {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--collapse-zone-size, 96px);
+    height: var(--collapse-zone-size, 96px);
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.collapse-marker-shell > .quest-marker-core,
+.collapse-marker-shell > .tutorial-pen-core {
+    z-index: 2;
+}
+
 .collapse-error-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
     overflow: visible;
     filter:
@@ -1023,6 +1049,7 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 
 .custom-marker {
     cursor: pointer;
+    overflow: visible;
 }
 
 .signal-dot {
