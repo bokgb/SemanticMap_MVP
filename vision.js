@@ -5,6 +5,8 @@
     const elements = {};
     let currentStream = null;
     const LEVEL_STORAGE_KEY = 'semantic-map-selected-level';
+    const REPAIR_GUIDE_COUNT_KEY = 'semantic-map-repair-guide-count-v1';
+    const MAX_REPAIR_GUIDE_COUNT = 4;
 
     function updateDifficultyHint() {
         if (!elements.levelSelector || !elements.difficultyHint) return;
@@ -391,12 +393,38 @@
         });
     }
 
+    function getRepairGuideCount() {
+        try {
+            return Number(localStorage.getItem(REPAIR_GUIDE_COUNT_KEY) || '0') || 0;
+        } catch (error) {
+            return state.repairGuideCount || 0;
+        }
+    }
+
+    function setRepairGuideCount(count) {
+        state.repairGuideCount = count;
+        try {
+            localStorage.setItem(REPAIR_GUIDE_COUNT_KEY, String(count));
+        } catch (error) {
+            // localStorage can fail in private mode; in-memory state is enough for this session.
+        }
+    }
+
+    function takeRepairGuideLines(lines) {
+        if (!lines?.length) return null;
+        setRepairGuideCount(getRepairGuideCount() + 1);
+        return lines;
+    }
+
     function getRepairCompleteGuideLines(activeQuest, areaResult, areaName) {
+        const guideCount = getRepairGuideCount();
+        if (guideCount >= MAX_REPAIR_GUIDE_COUNT) return null;
+
         const isJa = SM.state?.currentLang === 'ja';
         const area = areaName || (isJa ? 'このエリア' : '这个区域');
 
         if (activeQuest?.type === 'TUTORIAL') {
-            return isJa
+            return takeRepairGuideLines(isJa
                 ? [
                     '同期成功。現実世界の物体が、デジタル世界の空白に応えた。',
                     '覚えておいて。撮影は、あなたとこの世界をつなぐ術式だよ。',
@@ -406,11 +434,11 @@
                     '同步成功。现实世界的物体，回应了数字世界的空白。',
                     '记住这种感觉。拍照就是你和这个世界沟通的术式。',
                     '旁边还有崩壊ノード在闪烁。去吧，把下一处断裂也修好。'
-                ];
+                ]);
         }
 
         if (areaResult?.justPurified) {
-            return isJa
+            return takeRepairGuideLines(isJa
                 ? [
                     `やった、${area} の異常コアは沈黙した。`,
                     'この一帯の地図は現実側へ戻った。あなたは今、ひとつのエリアを救ったんだ。',
@@ -420,21 +448,47 @@
                     `太好了，${area} 的异常核心已经沉默。`,
                     '这一带的地图回到了现实侧。你刚刚确实拯救了一个区域。',
                     '不过数字世界还没有完全恢复。附近仍有新的崩壊ノード，继续前进吧，选ばれし者。'
-                ];
+                ]);
         }
 
         if (areaResult?.addedPoints) {
-            return isJa
-                ? [
+            const jaVariants = [
+                [
                     `ありがとう、選ばれし者。${area} の崩壊波形は押さえ込めた。`,
                     '現実の映像がデジタル世界の断層をつないだ。この場所は、ひとまず救われたよ。',
                     'でも近くにまだ崩壊ノードが広がっている。裂け目が閉じる前に、次も片付けよう。'
+                ],
+                [
+                    `見えた？ ${area} の黒いノイズが、あなたの一枚でほどけた。`,
+                    '写真はただの記録じゃない。現実側から送る修復コードなんだ。',
+                    '次の崩壊ノードも近い。連鎖する前に、もう一度同期しよう。'
+                ],
+                [
+                    `${area} の地図信号が戻ってきた。いい判断だったよ。`,
+                    '崩壊はまだ浅い。今なら、あなたの視界で食い止められる。',
+                    '隣の異常反応へ向かって。ここからが本当の調査だ。'
                 ]
-                : [
+            ];
+            const zhVariants = [
+                [
                     `谢谢你，选ばれし者。${area} 的崩坏波形已经被压制。`,
                     '现实的影像接上了数字世界的断层，这片区域暂时得救了。',
                     '但是旁边还有崩壊ノード在扩散。趁裂缝还没合拢，顺势把它也解决吧。'
-                ];
+                ],
+                [
+                    `看到了吗？${area} 的黑色噪声，被你这一张照片撕开了。`,
+                    '拍照不是记录，是从现实侧发出的修复代码。',
+                    '下一个崩壊ノード就在附近。趁它还没连锁扩散，再同步一次。'
+                ],
+                [
+                    `${area} 的地图信号回来了。判断不错，修复者。`,
+                    '这次崩坏还很浅，现在正是把它压回去的窗口期。',
+                    '去旁边的异常反应吧。从这里开始，才是真正的调查。'
+                ]
+            ];
+            const variants = isJa ? jaVariants : zhVariants;
+            const variantIndex = Math.max(0, Math.min(guideCount - 1, variants.length - 1));
+            return takeRepairGuideLines(variants[variantIndex]);
         }
 
         return null;
