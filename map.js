@@ -1089,7 +1089,7 @@
             distance: L.latLng(playerLat, playerLng).distanceTo([position.lat, position.lng]),
             type: 'tutorial_pen',
             questTag: 'Item',
-            emoji: 'P',
+            emoji: '!',
             name: tr('tutorialPracticeSpotName'),
             questData: {
                 rarity: 'N',
@@ -1162,7 +1162,7 @@
                 text-shadow: ${markerTextShadow};
                 box-shadow: ${markerShadow};
                 opacity: ${markerOpacity};">
-                <span style="position: relative; z-index: 1;">${isTutorialMarker ? 'P' : markerQuestData.rarity}</span>
+                <span style="position: relative; z-index: 1;">${isTutorialMarker ? '!' : markerQuestData.rarity}</span>
                 <span class="glitch-node" aria-hidden="true">ERROR</span>
                 ${sparkleHtml}
             </div>`;
@@ -1248,7 +1248,9 @@
             marker
         };
 
-        document.querySelector('.location-tag').innerText = `${spot.emoji} ${spot.name}`;
+        document.querySelector('.location-tag').innerText = isTutorialQuest
+            ? spot.name
+            : `${tr('collapseNodeName')} ${data.rarity}`;
         SM.ui?.setBagHudHidden?.(true, 'quest-panel');
         questLayer.classList.remove('hidden');
         if (isTutorialQuest) {
@@ -1740,6 +1742,7 @@
 
         const questTitle = questLayer.querySelector('.quest-content h3');
         const repairPointsChip = questLayer.querySelector('#quest-repair-points');
+        const locationTag = questLayer.querySelector('.location-tag');
         const activeQuest = state.activeQuest;
         const isCatQuest = activeQuest.type === 'NPC';
         const isTutorialQuest = activeQuest.type === 'TUTORIAL';
@@ -1750,7 +1753,13 @@
             : getSpotArea(activeQuest.spot);
 
         if (questTitle) {
-            questTitle.innerText = tr('questTitle', { rarity: activeQuest.rarity });
+            questTitle.innerText = isTutorialQuest ? tr('tutorialQuestTitle') : tr('questTitle', { rarity: activeQuest.rarity });
+        }
+
+        if (locationTag) {
+            locationTag.innerText = isTutorialQuest
+                ? tr('collapseNodeName')
+                : `${tr('collapseNodeName')} ${activeQuest.rarity}`;
         }
 
         if (repairPointsChip) {
