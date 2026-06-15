@@ -592,15 +592,14 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 }
 
 .collapse-error-zone {
-    fill: rgba(190, 18, 46, 0.2);
+    fill: rgba(6, 9, 12, 0.86);
     stroke: rgba(255, 255, 255, 0.92);
-    stroke-width: 2;
+    stroke-width: 2.5;
     stroke-dasharray: 9 5 2 5;
     stroke-linecap: square;
     filter:
-        drop-shadow(0 0 7px rgba(225, 29, 72, 0.82))
-        drop-shadow(0 0 16px rgba(255, 255, 255, 0.28));
-    mix-blend-mode: screen;
+        drop-shadow(0 0 9px rgba(225, 29, 72, 0.92))
+        drop-shadow(0 0 18px rgba(0, 0, 0, 0.82));
     animation:
         collapseZonePulse 1.18s ease-in-out infinite,
         collapseZoneDash 0.72s linear infinite;
@@ -622,23 +621,23 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     border-radius: 50%;
     background:
         repeating-linear-gradient(0deg,
-            rgba(255, 255, 255, 0.72) 0 3px,
-            rgba(220, 38, 38, 0.8) 3px 7px,
-            rgba(22, 26, 30, 0.12) 7px 12px),
+            rgba(255, 255, 255, 0.82) 0 3px,
+            rgba(220, 38, 38, 0.9) 3px 7px,
+            rgba(3, 7, 10, 0.98) 7px 15px),
         repeating-linear-gradient(90deg,
-            rgba(255, 255, 255, 0.16) 0 9px,
-            rgba(220, 38, 38, 0.18) 9px 18px),
+            rgba(255, 255, 255, 0.2) 0 9px,
+            rgba(220, 38, 38, 0.28) 9px 18px),
         radial-gradient(circle at center,
-            rgba(255, 255, 255, 0.06) 0 24%,
-            rgba(225, 29, 72, 0.22) 25% 64%,
-            rgba(0, 0, 0, 0) 72%);
+            rgba(0, 0, 0, 0.98) 0 26%,
+            rgba(10, 12, 15, 0.94) 27% 54%,
+            rgba(225, 29, 72, 0.84) 55% 70%,
+            rgba(0, 0, 0, 0.18) 82%);
     border: 1px solid rgba(255, 255, 255, 0.55);
     box-shadow:
-        inset 0 0 18px rgba(255, 255, 255, 0.24),
-        inset 0 0 34px rgba(220, 38, 38, 0.45),
-        0 0 24px rgba(220, 38, 38, 0.58);
-    opacity: 0.42;
-    mix-blend-mode: screen;
+        inset 0 0 22px rgba(0, 0, 0, 0.92),
+        inset 0 0 38px rgba(220, 38, 38, 0.72),
+        0 0 26px rgba(220, 38, 38, 0.7);
+    opacity: 0.9;
     transform-origin: center center;
     animation:
         collapseFieldPulse 1.05s ease-in-out infinite,
@@ -712,33 +711,33 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 
 @keyframes collapseZonePulse {
     0%, 100% {
-        fill-opacity: 0.14;
-        stroke-opacity: 0.72;
-        stroke-width: 1.5;
+        fill-opacity: 0.82;
+        stroke-opacity: 0.78;
+        stroke-width: 2;
     }
     42% {
-        fill-opacity: 0.28;
+        fill-opacity: 0.94;
         stroke-opacity: 1;
-        stroke-width: 3.2;
+        stroke-width: 3.4;
     }
     55% {
-        fill-opacity: 0.1;
-        stroke-opacity: 0.48;
-        stroke-width: 1;
+        fill-opacity: 0.74;
+        stroke-opacity: 0.58;
+        stroke-width: 1.4;
     }
 }
 
 @keyframes collapseFieldPulse {
     0%, 100% {
-        opacity: 0.34;
+        opacity: 0.88;
         transform: scale(0.98);
     }
     48% {
-        opacity: 0.58;
-        transform: scale(1.05);
+        opacity: 0.98;
+        transform: scale(1.04);
     }
     62% {
-        opacity: 0.24;
+        opacity: 0.78;
         transform: scale(1.01);
     }
 }
@@ -773,7 +772,7 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 @keyframes collapseZoneRepair {
     0% {
         opacity: 1;
-        fill-opacity: 0.24;
+        fill-opacity: 0.9;
         stroke-opacity: 1;
     }
     100% {
