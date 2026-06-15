@@ -1163,6 +1163,7 @@
                 box-shadow: ${markerShadow};
                 opacity: ${markerOpacity};">
                 <span style="position: relative; z-index: 1;">${isTutorialMarker ? 'P' : markerQuestData.rarity}</span>
+                <span class="glitch-node" aria-hidden="true">ERROR</span>
                 ${sparkleHtml}
             </div>`;
         }

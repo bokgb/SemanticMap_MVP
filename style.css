@@ -591,6 +591,51 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     animation: questMarkerRing 1.45s ease-out infinite;
 }
 
+.glitch-node {
+    position: absolute;
+    left: calc(100% + 5px);
+    top: -9px;
+    min-width: 34px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 3px;
+    overflow: hidden;
+    background:
+        repeating-linear-gradient(0deg,
+            rgba(255,255,255,0.94) 0 2px,
+            rgba(196, 20, 36, 0.96) 2px 4px,
+            rgba(12, 18, 22, 0.88) 4px 6px);
+    border: 1px solid rgba(255,255,255,0.86);
+    color: #ffffff;
+    font-size: 7px;
+    font-weight: 900;
+    line-height: 17px;
+    text-align: center;
+    text-shadow: 1px 0 #e11d48, -1px 0 #ffffff;
+    box-shadow: 0 0 12px rgba(230, 30, 48, 0.7), 0 2px 6px rgba(0,0,0,0.36);
+    pointer-events: none;
+    transform-origin: left center;
+    animation: glitchNodeJitter 0.42s steps(2, end) infinite;
+}
+
+.glitch-node::before,
+.glitch-node::after {
+    content: "";
+    position: absolute;
+    left: -30%;
+    right: -30%;
+    height: 3px;
+    background: rgba(255,255,255,0.9);
+    mix-blend-mode: screen;
+    animation: glitchNodeScan 0.86s linear infinite;
+}
+
+.glitch-node::after {
+    height: 2px;
+    background: rgba(255, 45, 45, 0.9);
+    animation-delay: 0.22s;
+}
+
 @keyframes questMarkerBreath {
     0%, 100% {
         transform: scale(1);
@@ -608,6 +653,34 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     100% {
         opacity: 0;
         transform: scale(1.65);
+    }
+}
+
+@keyframes glitchNodeJitter {
+    0%, 100% {
+        transform: translate(0, 0) skewX(0deg);
+        opacity: 0.92;
+    }
+    25% {
+        transform: translate(1px, -1px) skewX(-7deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-2px, 1px) skewX(5deg);
+        opacity: 0.82;
+    }
+    75% {
+        transform: translate(2px, 0) skewX(-4deg);
+        opacity: 1;
+    }
+}
+
+@keyframes glitchNodeScan {
+    from {
+        top: -25%;
+    }
+    to {
+        top: 115%;
     }
 }
 
