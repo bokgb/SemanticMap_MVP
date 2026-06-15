@@ -336,11 +336,13 @@
                 };
             }
 
+            let repairGuideLines = null;
             SM.inventory.showWordDetailCard(aiResult);
             SM.quests.completeQuest(activeQuest);
             SM.map?.clearCollapseErrorZone?.(activeQuest.marker);
             if (activeQuest.type === 'TUTORIAL') {
                 SM.map?.grantExplorerReward?.({ type: activeQuest.rarity || 'N' });
+                repairGuideLines = getRepairCompleteGuideLines(activeQuest);
                 try {
                     localStorage.setItem('semantic-map-tutorial-pen-complete-v1', '1');
                 } catch (error) {
@@ -350,6 +352,7 @@
             if (activeQuest.type === 'POI' && SM.map?.recordQuestComplete) {
                 const areaResult = SM.map.recordQuestComplete(activeQuest);
                 const areaName = SM.map?.getAreaName?.(areaResult?.area) || '';
+                repairGuideLines = getRepairCompleteGuideLines(activeQuest, areaResult, areaName);
                 if (areaResult?.justPurified) {
                     SM.ui?.showToast(`${SM.i18n?.t?.('areaPurified')}\n${areaName} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
                 } else if (areaResult?.addedPoints) {
@@ -359,6 +362,9 @@
                 }
             }
             document.getElementById('quest-layer').classList.add('hidden');
+            if (repairGuideLines?.length) {
+                SM.ui?.showGuideSequence?.(repairGuideLines, { type: 'success' });
+            }
             state.activeQuest = null;
         } else {
             showWrongObjectDialog(activeQuest, aiResult);
@@ -383,6 +389,55 @@
             buttonText: SM.i18n?.t?.('tryAgain'),
             type: 'warning'
         });
+    }
+
+    function getRepairCompleteGuideLines(activeQuest, areaResult, areaName) {
+        const isJa = SM.state?.currentLang === 'ja';
+        const area = areaName || (isJa ? 'このエリア' : '这个区域');
+
+        if (activeQuest?.type === 'TUTORIAL') {
+            return isJa
+                ? [
+                    '同期成功。現実世界の物体が、デジタル世界の空白に応えた。',
+                    '覚えておいて。撮影は、あなたとこの世界をつなぐ術式だよ。',
+                    '近くでまだ崩壊ノードが明滅している。行こう、次の断裂も修復しよう。'
+                ]
+                : [
+                    '同步成功。现实世界的物体，回应了数字世界的空白。',
+                    '记住这种感觉。拍照就是你和这个世界沟通的术式。',
+                    '旁边还有崩壊ノード在闪烁。去吧，把下一处断裂也修好。'
+                ];
+        }
+
+        if (areaResult?.justPurified) {
+            return isJa
+                ? [
+                    `やった、${area} の異常コアは沈黙した。`,
+                    'この一帯の地図は現実側へ戻った。あなたは今、ひとつのエリアを救ったんだ。',
+                    'でもデジタル世界はまだ完全じゃない。近くの崩壊ノードへ進もう、選ばれし者。'
+                ]
+                : [
+                    `太好了，${area} 的异常核心已经沉默。`,
+                    '这一带的地图回到了现实侧。你刚刚确实拯救了一个区域。',
+                    '不过数字世界还没有完全恢复。附近仍有新的崩壊ノード，继续前进吧，选ばれし者。'
+                ];
+        }
+
+        if (areaResult?.addedPoints) {
+            return isJa
+                ? [
+                    `ありがとう、選ばれし者。${area} の崩壊波形は押さえ込めた。`,
+                    '現実の映像がデジタル世界の断層をつないだ。この場所は、ひとまず救われたよ。',
+                    'でも近くにまだ崩壊ノードが広がっている。裂け目が閉じる前に、次も片付けよう。'
+                ]
+                : [
+                    `谢谢你，选ばれし者。${area} 的崩坏波形已经被压制。`,
+                    '现实的影像接上了数字世界的断层，这片区域暂时得救了。',
+                    '但是旁边还有崩壊ノード在扩散。趁裂缝还没合拢，顺势把它也解决吧。'
+                ];
+        }
+
+        return null;
     }
 
     function isLooseCatFood(aiResult) {
