@@ -1110,38 +1110,48 @@
 
     function createCollapseErrorZone(spot, isTutorialMarker = false) {
         const zoneRadius = isTutorialMarker ? Math.max(70, TUTORIAL_PEN_OFFSET_METERS * 1.7) : SCAN_START_RADIUS_METERS;
+        const latOffset = zoneRadius / 111320;
         const lngScale = Math.max(0.2, Math.cos(spot.lat * Math.PI / 180));
-        const edgeLng = spot.lng + zoneRadius / (111320 * lngScale);
-        const centerPoint = map?.latLngToLayerPoint([spot.lat, spot.lng]);
-        const edgePoint = map?.latLngToLayerPoint([spot.lat, edgeLng]);
-        const pixelDiameter = centerPoint && edgePoint
-            ? Math.max(104, Math.min(230, Math.round(centerPoint.distanceTo(edgePoint) * 2.15)))
-            : (isTutorialMarker ? 116 : 168);
-        const zoneRing = L.circle([spot.lat, spot.lng], {
-            radius: zoneRadius,
+        const lngOffset = zoneRadius / (111320 * lngScale);
+        const bounds = L.latLngBounds(
+            [spot.lat - latOffset, spot.lng - lngOffset],
+            [spot.lat + latOffset, spot.lng + lngOffset]
+        );
+        const clipId = `collapse-zone-${Math.random().toString(36).slice(2)}`;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.classList.add('collapse-error-svg');
+        svg.innerHTML = `
+            <defs>
+                <clipPath id="${clipId}">
+                    <circle cx="50" cy="50" r="48"></circle>
+                </clipPath>
+                <radialGradient id="${clipId}-fade" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(0,0,0,1)"></stop>
+                    <stop offset="58%" stop-color="rgba(8,9,12,0.98)"></stop>
+                    <stop offset="78%" stop-color="rgba(225,29,72,0.92)"></stop>
+                    <stop offset="100%" stop-color="rgba(0,0,0,0)"></stop>
+                </radialGradient>
+            </defs>
+            <circle class="collapse-error-svg-base" cx="50" cy="50" r="48"></circle>
+            <g class="collapse-error-svg-noise" clip-path="url(#${clipId})">
+                <rect x="0" y="0" width="100" height="100" fill="url(#${clipId}-fade)"></rect>
+                <rect class="collapse-error-svg-scan scan-a" x="-10" y="15" width="120" height="5"></rect>
+                <rect class="collapse-error-svg-scan scan-b" x="-10" y="35" width="120" height="8"></rect>
+                <rect class="collapse-error-svg-scan scan-c" x="-10" y="57" width="120" height="4"></rect>
+                <rect class="collapse-error-svg-scan scan-d" x="-10" y="76" width="120" height="7"></rect>
+                <rect class="collapse-error-svg-band band-a" x="0" y="24" width="100" height="9"></rect>
+                <rect class="collapse-error-svg-band band-b" x="0" y="47" width="100" height="11"></rect>
+                <rect class="collapse-error-svg-band band-c" x="0" y="67" width="100" height="8"></rect>
+            </g>
+            <circle class="collapse-error-svg-edge" cx="50" cy="50" r="48"></circle>
+        `;
+        const zone = L.svgOverlay(svg, bounds, {
             pane: 'radarPane',
             interactive: false,
-            className: 'collapse-error-zone',
-            stroke: true,
-            color: '#ffffff',
-            weight: 2,
             opacity: 0.9,
-            fill: true,
-            fillColor: '#e11d48',
-            fillOpacity: 0.18
         });
-        const zoneField = L.marker([spot.lat, spot.lng], {
-            pane: 'radarPane',
-            interactive: false,
-            keyboard: false,
-            icon: L.divIcon({
-                className: 'collapse-error-field-icon',
-                html: '<div class="collapse-error-field" aria-hidden="true"><span></span><span></span><span></span></div>',
-                iconSize: [pixelDiameter, pixelDiameter],
-                iconAnchor: [pixelDiameter / 2, pixelDiameter / 2]
-            })
-        });
-        const zone = L.layerGroup([zoneRing, zoneField]);
         zone.collapseSpotKey = getSpotDiscoveryKey(spot);
         return zone;
     }
@@ -1151,15 +1161,8 @@
         if (!zone) return;
 
         const zoneElements = [];
-        if (typeof zone.eachLayer === 'function') {
-            zone.eachLayer(layer => {
-                const element = typeof layer.getElement === 'function' ? layer.getElement() : null;
-                if (element) zoneElements.push(element);
-            });
-        } else {
-            const element = typeof zone.getElement === 'function' ? zone.getElement() : null;
-            if (element) zoneElements.push(element);
-        }
+        const element = typeof zone.getElement === 'function' ? zone.getElement() : null;
+        if (element) zoneElements.push(element);
 
         if (zoneElements.length) {
             zoneElements.forEach(element => element.classList.add('collapse-error-zone-repaired'));
