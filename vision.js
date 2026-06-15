@@ -338,6 +338,7 @@
 
             SM.inventory.showWordDetailCard(aiResult);
             SM.quests.completeQuest(activeQuest);
+            SM.map?.clearCollapseErrorZone?.(activeQuest.marker);
             if (activeQuest.type === 'TUTORIAL') {
                 SM.map?.grantExplorerReward?.({ type: activeQuest.rarity || 'N' });
                 try {

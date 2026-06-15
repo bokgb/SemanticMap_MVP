@@ -1108,6 +1108,72 @@
         };
     }
 
+    function createCollapseErrorZone(spot, isTutorialMarker = false) {
+        const zoneRadius = isTutorialMarker ? Math.max(70, TUTORIAL_PEN_OFFSET_METERS * 1.7) : SCAN_START_RADIUS_METERS;
+        const lngScale = Math.max(0.2, Math.cos(spot.lat * Math.PI / 180));
+        const edgeLng = spot.lng + zoneRadius / (111320 * lngScale);
+        const centerPoint = map?.latLngToLayerPoint([spot.lat, spot.lng]);
+        const edgePoint = map?.latLngToLayerPoint([spot.lat, edgeLng]);
+        const pixelDiameter = centerPoint && edgePoint
+            ? Math.max(104, Math.min(230, Math.round(centerPoint.distanceTo(edgePoint) * 2.15)))
+            : (isTutorialMarker ? 116 : 168);
+        const zoneRing = L.circle([spot.lat, spot.lng], {
+            radius: zoneRadius,
+            pane: 'radarPane',
+            interactive: false,
+            className: 'collapse-error-zone',
+            stroke: true,
+            color: '#ffffff',
+            weight: 2,
+            opacity: 0.9,
+            fill: true,
+            fillColor: '#e11d48',
+            fillOpacity: 0.18
+        });
+        const zoneField = L.marker([spot.lat, spot.lng], {
+            pane: 'radarPane',
+            interactive: false,
+            keyboard: false,
+            icon: L.divIcon({
+                className: 'collapse-error-field-icon',
+                html: '<div class="collapse-error-field" aria-hidden="true"><span></span><span></span><span></span></div>',
+                iconSize: [pixelDiameter, pixelDiameter],
+                iconAnchor: [pixelDiameter / 2, pixelDiameter / 2]
+            })
+        });
+        const zone = L.layerGroup([zoneRing, zoneField]);
+        zone.collapseSpotKey = getSpotDiscoveryKey(spot);
+        return zone;
+    }
+
+    function clearCollapseErrorZone(marker) {
+        const zone = marker?.collapseErrorZone;
+        if (!zone) return;
+
+        const zoneElements = [];
+        if (typeof zone.eachLayer === 'function') {
+            zone.eachLayer(layer => {
+                const element = typeof layer.getElement === 'function' ? layer.getElement() : null;
+                if (element) zoneElements.push(element);
+            });
+        } else {
+            const element = typeof zone.getElement === 'function' ? zone.getElement() : null;
+            if (element) zoneElements.push(element);
+        }
+
+        if (zoneElements.length) {
+            zoneElements.forEach(element => element.classList.add('collapse-error-zone-repaired'));
+            window.setTimeout(() => {
+                if (dynamicMarkersLayer?.hasLayer(zone)) {
+                    dynamicMarkersLayer.removeLayer(zone);
+                }
+            }, 520);
+        } else if (dynamicMarkersLayer?.hasLayer(zone)) {
+            dynamicMarkersLayer.removeLayer(zone);
+        }
+        marker.collapseErrorZone = null;
+    }
+
     function createPoiMarker(spot) {
         const questState = SM.quests.getQuestStateForSpot(spot);
         if (questState.status === 'completed') {
@@ -1163,7 +1229,6 @@
                 box-shadow: ${markerShadow};
                 opacity: ${markerOpacity};">
                 <span style="position: relative; z-index: 1;">${isTutorialMarker ? '!' : markerQuestData.rarity}</span>
-                <span class="glitch-node" aria-hidden="true">ERROR</span>
                 ${sparkleHtml}
             </div>`;
         }
@@ -1178,6 +1243,9 @@
         const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
         marker.spotData = spot;
         marker.questData = markerQuestData;
+        if (spot.type !== 'npc_cat') {
+            marker.collapseErrorZone = createCollapseErrorZone(spot, isTutorialMarker);
+        }
 
         marker.on('click', () => {
             if (!isInteractable) {
@@ -1457,6 +1525,9 @@
             const isUnlocked = true;
             const marker = createPoiMarker(spot);
             if (marker) {
+                if (marker.collapseErrorZone) {
+                    dynamicMarkersLayer.addLayer(marker.collapseErrorZone);
+                }
                 dynamicMarkersLayer.addLayer(marker);
                 currentVisibleKeys.push(getSpotDiscoveryKey(spot));
                 if (isUnlocked && !isLevelOnboardingOpen() && !discoveredToastShown && spot.type !== 'tutorial_pen' && markSpotDiscovered(spot)) {
@@ -1505,6 +1576,7 @@
         if (!actualMarkerOnMap) return;
 
         const iconElement = actualMarkerOnMap._icon;
+        clearCollapseErrorZone(actualMarkerOnMap);
         if (iconElement) {
             iconElement.classList.add('marker-destroy-fx');
             setTimeout(() => {
@@ -1832,6 +1904,7 @@
         openQuestUI,
         updateVisibleSpots,
         removeMarkerForSpot,
+        clearCollapseErrorZone,
         focusOnPlayer,
         recordQuestComplete,
         recordCatComplete,
