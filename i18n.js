@@ -6,8 +6,8 @@
     const DICT = {
         zh: {
             langToggle: 'JP',
-            mimiName: 'Mimi',
-            mimiFace: 'M',
+            mimiName: 'Lumi',
+            mimiFace: 'L',
             bagTitle: '地点词汇卡',
             inventoryEmpty: '还没有词卡。完成附近任务后，词卡会收进这里。',
             tutorialEyebrow: '新手提示',
@@ -93,7 +93,7 @@
             questRewardToast: '获得 EXP +{xp} / 金币 +{coins}',
             coinsLabel: '金币',
             maxLevelLabel: 'EXP MAX',
-            mimiIdle: '我是 Mimi。附近有语义信号，走近一点看看吧。',
+            mimiIdle: '我是 Lumi。附近有语义信号，走近一点看看吧。',
             noSignalHint: '这个范围暂时没有稳定信号。看一下雷达边缘的方向提示吧。',
             noSignalMoveHint: '附近暂时没有稳定信号，往{direction}走约 {meters} 米试试看。',
             moveCloserToScan: '再靠近一点。还差约 {meters} 米。',
@@ -101,14 +101,14 @@
             npcHelp: 'バッグからカードを渡す',
             npcSkip: 'またあとで',
             npcDone: 'ありがとう',
-            npcReward: 'ミミ：いい判断だね。探索経験 +1',
+            npcReward: 'Lumi：いい判断だね。探索経験 +1',
             dialogFallbackTitle: '提示',
             dialogFallbackButton: '知道了'
         },
         ja: {
             langToggle: 'ZH',
-            mimiName: 'ミミ',
-            mimiFace: 'ミ',
+            mimiName: 'ルミ',
+            mimiFace: 'ル',
             bagTitle: '場所語彙カード',
             inventoryEmpty: 'まだ語彙カードがありません。近くのタスクを完了すると、ここに入ります。',
             tutorialEyebrow: 'はじめてのヒント',
@@ -194,7 +194,7 @@
             questRewardToast: 'EXP +{xp} / コイン +{coins}',
             coinsLabel: 'コイン',
             maxLevelLabel: 'EXP MAX',
-            mimiIdle: 'ミミだよ。近くに意味信号があるみたい。少し近づいてみよう。',
+            mimiIdle: 'ルミだよ。近くに意味信号があるみたい。少し近づいてみよう。',
             noSignalHint: 'この範囲にはまだ安定した信号がないみたい。レーダー端の方向ヒントを見てみよう。',
             noSignalMoveHint: '近くに安定した信号がありません。{direction}へ約 {meters}m 進んでみましょう。',
             moveCloserToScan: 'もう少し近づこう。あと約 {meters}m。',
@@ -202,7 +202,7 @@
             npcHelp: 'バッグからカードを渡す',
             npcSkip: 'またあとで',
             npcDone: 'ありがとう',
-            npcReward: 'ミミ：いい判断だね。探索経験 +1',
+            npcReward: 'ルミ：いい判断だね。探索経験 +1',
             dialogFallbackTitle: '案内',
             dialogFallbackButton: 'わかりました'
         }

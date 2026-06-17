@@ -180,9 +180,11 @@ body.mimi-alert::after {
     width: 62px;
     height: 62px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.92);
-    background: radial-gradient(circle at 34% 24%, #fff8d7 0%, #f7d26b 48%, #d59b31 100%);
-    box-shadow: 0 8px 22px rgba(0,0,0,0.24), 0 0 0 5px rgba(246,199,68,0.18);
+    border: 2px solid rgba(217, 255, 250, 0.94);
+    background:
+        radial-gradient(circle at 50% 46%, rgba(89, 255, 239, 0.34) 0 38%, rgba(9, 30, 36, 0.92) 72%),
+        linear-gradient(145deg, rgba(233, 255, 252, 0.96), rgba(19, 109, 118, 0.88));
+    box-shadow: 0 8px 22px rgba(0,0,0,0.26), 0 0 0 5px rgba(40, 226, 207, 0.16), 0 0 22px rgba(45, 239, 221, 0.28);
     cursor: pointer;
     pointer-events: auto;
     display: flex;
@@ -196,9 +198,9 @@ body.mimi-alert::after {
     height: 56px;
     border-radius: 50%;
     display: block;
-    object-fit: cover;
-    object-position: 50% 36%;
-    filter: drop-shadow(0 2px 3px rgba(79, 54, 21, 0.2));
+    object-fit: contain;
+    object-position: center;
+    filter: drop-shadow(0 0 5px rgba(75, 255, 238, 0.48)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.24));
 }
 
 .mimi-speech {
