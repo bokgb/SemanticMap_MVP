@@ -1383,7 +1383,8 @@
         SM.ui?.showGuideSequence?.([
             tr('mimiIntroLine1'),
             tr('mimiIntroLine2'),
-            tr('mimiIntroLine3')
+            tr('mimiIntroLine3'),
+            tr('mimiIntroLine4')
         ], {
             type: 'info',
             revealOnComplete: true,
