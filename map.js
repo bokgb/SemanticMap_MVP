@@ -1387,6 +1387,7 @@
             tr('mimiIntroLine4')
         ], {
             type: 'info',
+            alertIndex: 2,
             revealOnComplete: true,
             onComplete: markTutorialPenSeen
         });

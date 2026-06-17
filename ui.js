@@ -104,9 +104,10 @@
     function hideGuideMessage() {
         const layer = getGuideLayer();
         layer.classList.remove('show');
-        layer.classList.remove('sequence', 'reveal');
+        layer.classList.remove('sequence', 'reveal', 'alert');
         guideSequence = null;
         setTutorialCurtain(false);
+        document.body.classList.remove('mimi-alert');
         window.clearTimeout(guideMessageTimer);
     }
 
@@ -123,12 +124,14 @@
             lines,
             index: 0,
             type: options.type || 'info',
+            alertIndex: Number.isInteger(options.alertIndex) ? options.alertIndex : -1,
             revealOnComplete: Boolean(options.revealOnComplete),
             onComplete: typeof options.onComplete === 'function' ? options.onComplete : null
         };
 
         window.clearTimeout(guideMessageTimer);
-        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal');
+        document.body.classList.remove('mimi-alert');
+        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal', 'alert');
         layer.classList.add(guideSequence.type, 'sequence');
         setTutorialCurtain(false);
         renderGuideSequenceLine();
@@ -142,8 +145,11 @@
         const textEl = layer.querySelector('.mimi-text');
         const nextButton = layer.querySelector('.mimi-next-btn');
         const isLastLine = guideSequence.index >= guideSequence.lines.length - 1;
+        const isAlertLine = guideSequence.index === guideSequence.alertIndex;
 
         if (textEl) textEl.textContent = guideSequence.lines[guideSequence.index] || '';
+        layer.classList.toggle('alert', isAlertLine);
+        document.body.classList.toggle('mimi-alert', isAlertLine);
         if (nextButton) {
             nextButton.hidden = false;
             nextButton.textContent = SM.i18n?.t?.(isLastLine ? 'dialogStartButton' : 'dialogNextButton')
@@ -163,6 +169,7 @@
         const onComplete = guideSequence.onComplete;
         const shouldReveal = guideSequence.revealOnComplete;
         guideSequence = null;
+        document.body.classList.remove('mimi-alert');
 
         if (shouldReveal) {
             playGuideReveal(onComplete);
