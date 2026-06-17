@@ -145,7 +145,7 @@
         const textEl = layer.querySelector('.mimi-text');
         const nextButton = layer.querySelector('.mimi-next-btn');
         const isLastLine = guideSequence.index >= guideSequence.lines.length - 1;
-        const isAlertLine = guideSequence.index === guideSequence.alertIndex;
+        const isAlertLine = guideSequence.alertIndex >= 0 && guideSequence.index >= guideSequence.alertIndex;
 
         if (textEl) textEl.textContent = guideSequence.lines[guideSequence.index] || '';
         layer.classList.toggle('alert', isAlertLine);
