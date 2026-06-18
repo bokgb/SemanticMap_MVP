@@ -71,9 +71,9 @@
     function showLevelChoice(onComplete) {
         const isJa = SM.i18n?.getLang?.() === 'ja';
         const choices = [
-            { value: 'N5', label: isJa ? 'ライト練習  N5-N4' : '轻量练习  N5-N4' },
-            { value: 'N3', label: isJa ? '標準練習  N3-N2' : '标准练习  N3-N2' },
-            { value: 'N1', label: isJa ? 'チャレンジ練習  N1+' : '挑战练习  N1+' }
+            { value: 'N5', label: isJa ? '日本語レベル  N5-N4' : '日语水平  N5-N4' },
+            { value: 'N3', label: isJa ? '日本語レベル  N3-N2' : '日语水平  N3-N2' },
+            { value: 'N1', label: isJa ? '日本語レベル  N1+' : '日语水平  N1+' }
         ].map(choice => ({
             ...choice,
             onSelect: level => {
