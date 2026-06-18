@@ -44,16 +44,14 @@
 
         if (savedLevel) {
             setLevel(savedLevel, { persist: false, refresh: false });
+        } else {
+            setLevel('N5', { persist: false, refresh: false });
         }
 
         if (!elements.levelOnboardingLayer) return;
 
-        if (!savedLevel) {
-            elements.levelOnboardingLayer.classList.remove('hidden');
-            SM.ui?.setBagHudHidden?.(true, 'level-onboarding');
-        } else {
-            SM.ui?.setBagHudHidden?.(false, 'level-onboarding');
-        }
+        elements.levelOnboardingLayer.classList.add('hidden');
+        SM.ui?.setBagHudHidden?.(false, 'level-onboarding');
 
         elements.levelChoiceButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -63,6 +61,31 @@
                 elements.levelOnboardingLayer.classList.add('hidden');
                 SM.ui?.setBagHudHidden?.(false, 'level-onboarding');
             });
+        });
+    }
+
+    function hasSelectedLevel() {
+        return Boolean(localStorage.getItem(LEVEL_STORAGE_KEY));
+    }
+
+    function showLevelChoice(onComplete) {
+        const isJa = SM.i18n?.getLang?.() === 'ja';
+        const choices = [
+            { value: 'N5', label: isJa ? '初心者  N5-N4' : '新手  N5-N4' },
+            { value: 'N3', label: isJa ? '中級  N3-N2' : '进阶  N3-N2' },
+            { value: 'N1', label: isJa ? '上級  N1+' : '专家  N1+' }
+        ].map(choice => ({
+            ...choice,
+            onSelect: level => {
+                setLevel(level, { persist: true, refresh: true });
+                SM.ui?.setTutorialCurtain?.(true);
+                if (typeof onComplete === 'function') onComplete(level);
+            }
+        }));
+
+        SM.ui?.showGuideChoice?.(SM.i18n?.t?.('levelChoicePrompt') || '', choices, {
+            type: 'info',
+            curtain: true
         });
     }
 
@@ -634,6 +657,8 @@
         openCamera,
         closeCamera,
         callRealVisionAI,
-        updateDifficultyHint
+        updateDifficultyHint,
+        hasSelectedLevel,
+        showLevelChoice
     };
 })();

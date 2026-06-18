@@ -38,6 +38,7 @@
                 <div class="mimi-speech" role="status" aria-live="polite">
                     <div class="mimi-name"></div>
                     <div class="mimi-text"></div>
+                    <div class="mimi-choice-list" hidden></div>
                     <button class="mimi-next-btn" type="button"></button>
                 </div>
             `;
@@ -84,6 +85,7 @@
 
         guideSequence = null;
         setTutorialCurtain(false);
+        clearGuideChoices(layer);
         layer.classList.remove('success', 'warning', 'error', 'info', 'show');
         layer.classList.remove('sequence', 'reveal');
         layer.classList.add(type);
@@ -120,12 +122,14 @@
         if (!lines.length) return;
 
         const layer = getGuideLayer();
+        clearGuideChoices(layer);
         guideSequence = {
             lines,
             index: 0,
             type: options.type || 'info',
             alertIndex: Number.isInteger(options.alertIndex) ? options.alertIndex : -1,
             revealOnComplete: Boolean(options.revealOnComplete),
+            finalButtonLabel: options.finalButtonLabel || '',
             onComplete: typeof options.onComplete === 'function' ? options.onComplete : null
         };
 
@@ -133,8 +137,44 @@
         document.body.classList.remove('mimi-alert');
         layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal', 'alert');
         layer.classList.add(guideSequence.type, 'sequence');
-        setTutorialCurtain(false);
+        setTutorialCurtain(Boolean(options.curtain || options.revealOnComplete));
         renderGuideSequenceLine();
+        window.requestAnimationFrame(() => layer.classList.add('show'));
+    }
+
+    function showGuideChoice(message, choices = [], options = {}) {
+        const layer = getGuideLayer();
+        const textEl = layer.querySelector('.mimi-text');
+        const nextButton = layer.querySelector('.mimi-next-btn');
+        const choiceList = layer.querySelector('.mimi-choice-list');
+        const type = options.type || 'info';
+        const normalizedChoices = Array.isArray(choices) ? choices.filter(choice => choice?.label) : [];
+        if (!normalizedChoices.length) return;
+
+        guideSequence = null;
+        window.clearTimeout(guideMessageTimer);
+        document.body.classList.remove('mimi-alert');
+        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal', 'alert');
+        layer.classList.add(type, 'sequence');
+        setTutorialCurtain(Boolean(options.curtain));
+        if (textEl) textEl.textContent = String(message || '');
+        if (nextButton) nextButton.hidden = true;
+        if (choiceList) {
+            choiceList.innerHTML = '';
+            choiceList.hidden = false;
+            normalizedChoices.forEach(choice => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'mimi-choice-btn';
+                button.textContent = choice.label;
+                button.addEventListener('click', () => {
+                    clearGuideChoices(layer);
+                    hideGuideMessage();
+                    if (typeof choice.onSelect === 'function') choice.onSelect(choice.value);
+                });
+                choiceList.appendChild(button);
+            });
+        }
         window.requestAnimationFrame(() => layer.classList.add('show'));
     }
 
@@ -152,7 +192,9 @@
         document.body.classList.toggle('mimi-alert', isAlertLine);
         if (nextButton) {
             nextButton.hidden = false;
-            nextButton.textContent = SM.i18n?.t?.(isLastLine ? 'dialogStartButton' : 'dialogNextButton')
+            nextButton.textContent = isLastLine && guideSequence.finalButtonLabel
+                ? guideSequence.finalButtonLabel
+                : SM.i18n?.t?.(isLastLine ? 'dialogStartButton' : 'dialogNextButton')
                 || (isLastLine ? 'Start' : 'Next');
         }
     }
@@ -198,6 +240,13 @@
             bagHudHideReasons.delete(reason);
         }
         document.body.classList.toggle('bag-hud-hidden', bagHudHideReasons.size > 0);
+    }
+
+    function clearGuideChoices(layer = getGuideLayer()) {
+        const choiceList = layer.querySelector('.mimi-choice-list');
+        if (!choiceList) return;
+        choiceList.innerHTML = '';
+        choiceList.hidden = true;
     }
 
     function showToast(message, options = {}) {
@@ -381,6 +430,7 @@
         showRewardPopup,
         showGuideMessage,
         showGuideSequence,
+        showGuideChoice,
         hideGuideMessage,
         setTutorialCurtain,
         setBagHudHidden,

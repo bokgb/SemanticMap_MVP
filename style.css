@@ -284,6 +284,34 @@ body.mimi-alert::after {
     line-height: 1.48;
 }
 
+.mimi-choice-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.mimi-choice-list[hidden] {
+    display: none !important;
+}
+
+.mimi-choice-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(15, 118, 110, 0.22);
+    background: rgba(15, 118, 110, 0.08);
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 900;
+    text-align: left;
+    cursor: pointer;
+}
+
+.mimi-choice-btn:active {
+    transform: scale(0.98);
+}
+
 @keyframes tutorial-reveal {
     0% {
         --tutorial-reveal-radius: 0%;

@@ -1380,14 +1380,35 @@
             return;
         }
 
+        if (!SM.vision?.hasSelectedLevel?.() && !state.levelChoiceAskedThisSession) {
+            state.levelChoiceAskedThisSession = true;
+            SM.ui?.showGuideSequence?.([
+                tr('mimiIntroLine1'),
+                tr('mimiIntroLine2'),
+                tr('levelChoiceLead')
+            ], {
+                type: 'info',
+                curtain: true,
+                finalButtonLabel: tr('levelChoiceButton'),
+                onComplete: () => {
+                    SM.vision?.showLevelChoice?.(() => {
+                        window.setTimeout(showMimiIntroAfterLevelChoice, 120);
+                    });
+                }
+            });
+            return;
+        }
+
         SM.ui?.showGuideSequence?.([
-            tr('mimiIntroLine1'),
-            tr('mimiIntroLine2'),
+            SM.vision?.hasSelectedLevel?.() && state.levelChoiceAskedThisSession
+                ? tr('levelChoiceComplete')
+                : tr('mimiIntroLine1'),
+            ...(SM.vision?.hasSelectedLevel?.() && state.levelChoiceAskedThisSession ? [] : [tr('mimiIntroLine2')]),
             tr('mimiIntroLine3'),
             tr('mimiIntroLine4')
         ], {
             type: 'info',
-            alertIndex: 2,
+            alertIndex: SM.vision?.hasSelectedLevel?.() && state.levelChoiceAskedThisSession ? 1 : 2,
             revealOnComplete: true,
             onComplete: markTutorialPenSeen
         });
