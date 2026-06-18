@@ -7,6 +7,7 @@
     let pendingWord = null;
     let activeNpcEvent = null;
     const rewardQueue = [];
+    const INVENTORY_STORAGE_KEY = 'semantic-map-today-word-cards-v1';
     const NPC_EVENT_CHANCE = 0.28;
     const DEV_NPC_EVENT_CHANCE = 1;
     const NPC_EVENT_SEEN_KEY_PREFIX = 'semantic_map_npc_event_seen_';
@@ -72,6 +73,42 @@
 
     function getLang() {
         return SM.i18n?.getLang?.() || state.currentLang || 'zh';
+    }
+
+    function getTodayKey() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function loadInventory() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(INVENTORY_STORAGE_KEY) || '{}');
+            playerInventory = saved?.date === getTodayKey() && Array.isArray(saved.cards)
+                ? saved.cards
+                : [];
+        } catch (error) {
+            console.warn('Failed to load local word cards.', error);
+            playerInventory = [];
+        }
+    }
+
+    function saveInventory() {
+        const storedCards = playerInventory.map(card => {
+            const { capturePhoto, ...storedCard } = card || {};
+            return storedCard;
+        });
+        try {
+            localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify({
+                date: getTodayKey(),
+                cards: storedCards
+            }));
+        } catch (error) {
+            console.warn('Failed to save local word cards.', error);
+            SM.ui?.showToast?.('照片卡片保存失败，本次仅保留在当前页面。', { type: 'warning', duration: 3200 });
+        }
     }
 
     function translatePos(pos) {
@@ -157,12 +194,27 @@
 
     function renderWordBlock(data) {
         const block = document.createElement('div');
-        block.className = 'word-block';
+        block.className = `word-block${data.capture ? ' has-capture' : ''}`;
         const tagColor = getTagColor(data.tag);
         const questReview = getQuestReview(data);
+        const photo = data.capture?.photo || '';
 
         block.style.borderLeftColor = tagColor;
+        if (data.capture) {
+            block.type = 'button';
+            block.tabIndex = 0;
+            block.setAttribute('role', 'button');
+            block.setAttribute('aria-label', data.capture.spotName || data.word?.text || 'word card');
+            block.addEventListener('click', () => openCaptureOnMap(data));
+            block.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openCaptureOnMap(data);
+                }
+            });
+        }
         block.innerHTML = `
+            ${photo ? `<img class="word-photo-thumb" src="${escapeHtml(photo)}" alt="">` : ''}
             <div class="word-title">${renderRubyWord(data.word)}</div>
             <div class="word-pos">[ ${escapeHtml(translatePos(data.pos))} ]</div>
             <div class="word-tag" style="background-color: ${tagColor}">${escapeHtml(data.tag)}</div>
@@ -180,6 +232,13 @@
         return block;
     }
 
+    function openCaptureOnMap(data) {
+        if (!data?.capture) return;
+        setInventoryOpen(false);
+        elements.bagBadge.style.display = 'none';
+        SM.map?.focusOnCapture?.(data);
+    }
+
     function renderInventoryList() {
         if (!elements.wordList) return;
         elements.wordList.innerHTML = '';
@@ -194,9 +253,12 @@
 
     function addWordToInventory(data) {
         if (!data) return;
+        const { capturePhoto, ...storedData } = data;
 
-        playerInventory.push(data);
-        elements.wordList.prepend(renderWordBlock(data));
+        playerInventory.push(storedData);
+        saveInventory();
+        SM.map?.addCapturedWordCard?.(storedData);
+        elements.wordList.prepend(renderWordBlock(storedData));
 
         collectedWordsCount++;
         if (!elements.inventoryLayer.classList.contains('open')) {
@@ -205,7 +267,7 @@
         }
 
         SM.ui?.showGuideMessage?.(tr('mimiInventoryTip'), { type: 'success', duration: 3600 });
-        maybeTriggerNpcEvent(data);
+        maybeTriggerNpcEvent(storedData);
     }
 
     function showNextQueuedReward() {
@@ -471,6 +533,8 @@
         });
 
         // Dev mode keeps map/testing helpers, but vocabulary cards should be earned through quests.
+        loadInventory();
+        renderInventoryList();
     }
 
     SM.inventory = {
@@ -481,6 +545,7 @@
         renderRubyWord,
         addWordToInventory,
         showWordDetailCard,
-        refreshLanguage
+        refreshLanguage,
+        getCards: () => [...playerInventory]
     };
 })();

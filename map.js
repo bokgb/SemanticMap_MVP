@@ -33,6 +33,7 @@
     const TUTORIAL_PEN_OFFSET_METERS = 26;
     const DEFAULT_ZOOM = 17;
     const FOCUS_ZOOM = 17;
+    const CAPTURE_PHOTO_ZOOM = 17.5;
     const AREA_PROGRESS_STORAGE_KEY = 'semantic-map-area-progress-v3';
     const RARITY_REPAIR_POINTS = {
         N: 1,
@@ -261,6 +262,8 @@
     let map = null;
     let playerMarker = null;
     let dynamicMarkersLayer = null;
+    let capturedWordLayer = null;
+    let capturedWordMarkersById = new Map();
     let radarLayer = null;
     let fogCanvas = null;
     let fogContext = null;
@@ -425,6 +428,101 @@
         const completedMarker = L.marker([spot.lat, spot.lng], { icon: SM.quests.createCompletedMarkerIcon() });
         completedMarker.spotData = spot;
         return completedMarker;
+    }
+
+    function getCaptureId(card) {
+        return card?.capture?.id || `${card?.capture?.lat}_${card?.capture?.lng}_${card?.word?.text || ''}`;
+    }
+
+    function getCapturedWordCards() {
+        return SM.inventory?.getCards?.()
+            ?.filter(card => Number.isFinite(Number(card?.capture?.lat)) && Number.isFinite(Number(card?.capture?.lng)))
+            || [];
+    }
+
+    function getSafeCapturePhoto(card) {
+        const photo = String(card?.capture?.photo || '');
+        return photo.startsWith('data:image/') ? photo : '';
+    }
+
+    function renderCapturePopup(card) {
+        const escapeHtml = SM.inventory?.escapeHtml || escapeAttribute;
+        const word = SM.inventory?.renderRubyWord?.(card.word) || escapeHtml(card?.word?.text || '');
+        const photo = getSafeCapturePhoto(card);
+        const place = card?.capture?.spotName || card?.quest?.location || '';
+        const sentence = card?.quest?.sentence || '';
+        return `
+            <div class="capture-popup">
+                ${photo ? `<img class="capture-popup-photo" src="${escapeHtml(photo)}" alt="">` : ''}
+                <div class="capture-popup-word">${word}</div>
+                ${place ? `<div class="capture-popup-place">${escapeHtml(place)}</div>` : ''}
+                ${sentence ? `<div class="capture-popup-sentence">${escapeHtml(sentence)}</div>` : ''}
+            </div>
+        `;
+    }
+
+    function createCapturedWordMarker(card) {
+        const escapeHtml = SM.inventory?.escapeHtml || escapeAttribute;
+        const photo = getSafeCapturePhoto(card);
+        const wordText = card?.word?.text || '?';
+        const icon = L.divIcon({
+            className: 'custom-marker captured-word-marker',
+            html: `
+                <div class="captured-word-pin">
+                    ${photo
+                        ? `<img src="${escapeHtml(photo)}" alt="">`
+                        : `<span>${escapeHtml(wordText).slice(0, 1)}</span>`}
+                </div>
+            `,
+            iconSize: [52, 58],
+            iconAnchor: [26, 50],
+            popupAnchor: [0, -48]
+        });
+        const marker = L.marker([Number(card.capture.lat), Number(card.capture.lng)], {
+            icon,
+            zIndexOffset: 240
+        });
+        marker.captureCard = card;
+        marker.bindPopup(renderCapturePopup(card), {
+            className: 'capture-popup-shell',
+            maxWidth: 220,
+            closeButton: true
+        });
+        return marker;
+    }
+
+    function renderCapturedWordMarkers() {
+        if (!capturedWordLayer || !map) return;
+
+        capturedWordLayer.clearLayers();
+        capturedWordMarkersById = new Map();
+        if (map.getZoom() < CAPTURE_PHOTO_ZOOM) return;
+
+        getCapturedWordCards().forEach(card => {
+            const marker = createCapturedWordMarker(card);
+            capturedWordMarkersById.set(getCaptureId(card), marker);
+            capturedWordLayer.addLayer(marker);
+        });
+    }
+
+    function addCapturedWordCard(card) {
+        if (!card?.capture) return;
+        renderCapturedWordMarkers();
+    }
+
+    function focusOnCapture(card) {
+        if (!map || !card?.capture) return;
+        const lat = Number(card.capture.lat);
+        const lng = Number(card.capture.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        const targetZoom = Math.max(map.getZoom(), CAPTURE_PHOTO_ZOOM);
+        map.setView([lat, lng], targetZoom, { animate: true });
+        window.setTimeout(() => {
+            renderCapturedWordMarkers();
+            const marker = capturedWordMarkersById.get(getCaptureId(card));
+            marker?.openPopup();
+        }, 360);
     }
 
     function getRequestedDemoArea() {
@@ -1896,7 +1994,10 @@
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        map.on('zoomend', updateCollapseZoneSizes);
+        map.on('zoomend', () => {
+            updateCollapseZoneSizes();
+            renderCapturedWordMarkers();
+        });
         map.createPane('areaPane');
         map.getPane('areaPane').style.zIndex = 380;
         map.getPane('areaPane').style.pointerEvents = 'none';
@@ -1905,6 +2006,7 @@
         map.getPane('radarPane').style.pointerEvents = 'none';
 
         dynamicMarkersLayer = L.layerGroup().addTo(map);
+        capturedWordLayer = L.layerGroup().addTo(map);
         radarLayer = L.layerGroup().addTo(map);
         loadExplorerProgress();
         updatePlayerProgressDisplay();
@@ -1919,6 +2021,7 @@
         updateFloatingControlPositions();
         initGeolocation();
         loadOSMData();
+        renderCapturedWordMarkers();
         window.setTimeout(showMimiIntroAfterLevelChoice, 1300);
     }
 
@@ -1929,6 +2032,8 @@
         },
         openQuestUI,
         updateVisibleSpots,
+        addCapturedWordCard,
+        focusOnCapture,
         removeMarkerForSpot,
         clearCollapseErrorZone,
         focusOnPlayer,

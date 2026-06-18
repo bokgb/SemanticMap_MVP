@@ -118,7 +118,7 @@
         elements.cameraFeed.srcObject = null;
     }
 
-    function captureFrameAsBase64() {
+    function captureFrameAsDataUrl() {
         const video = elements.cameraFeed;
         if (!video || !video.videoWidth || !video.videoHeight) {
             throw new Error(SM.i18n?.t?.('cameraNotReady') || '');
@@ -133,13 +133,19 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         const dataURL = canvas.toDataURL('image/jpeg', 0.68);
-        return dataURL.split(',')[1];
+        return dataURL;
+    }
+
+    function captureFrameAsBase64() {
+        return captureFrameAsDataUrl().split(',')[1];
     }
 
     async function callRealVisionAI() {
         let base64Image = "";
+        let photoDataUrl = "";
         try {
-            base64Image = captureFrameAsBase64();
+            photoDataUrl = captureFrameAsDataUrl();
+            base64Image = photoDataUrl.split(',')[1];
         } catch (error) {
             SM.ui?.showToast(SM.i18n?.t?.('captureFailed', { message: error.message }), { type: 'error', duration: 4200 });
             return null;
@@ -255,12 +261,16 @@
             resultText = resultText.replace(/```json/gi, '').replace(/```/gi, '').trim();
 
             const aiResult = JSON.parse(resultText);
-            return SM.inventory.normalizeAiResult(aiResult);
+            const normalizedResult = SM.inventory.normalizeAiResult(aiResult);
+            if (normalizedResult) {
+                normalizedResult.capturePhoto = photoDataUrl;
+            }
+            return normalizedResult;
         } catch (error) {
             console.error("AI 识别失败:", error);
             SM.ui?.showToast(SM.i18n?.t?.('aiFailed', { message: error.message }), { type: 'error', duration: 4200 });
 
-            return SM.inventory.normalizeAiResult({
+            const fallbackResult = SM.inventory.normalizeAiResult({
                 word: {
                     text: SM.i18n?.t?.('unknownItem') || "",
                     kana: "",
@@ -271,6 +281,10 @@
                 tagColor: "#687174",
                 example: { s: "", k: "", z: "" }
             });
+            if (fallbackResult) {
+                fallbackResult.capturePhoto = photoDataUrl;
+            }
+            return fallbackResult;
         }
     }
 
@@ -358,6 +372,15 @@
                     location: activeQuest.spot?.name || '',
                     spotType: activeQuest.spot?.type || '',
                     requiredTag: activeQuest.requiredTag
+                };
+                aiResult.capture = {
+                    id: `capture_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    photo: aiResult.capturePhoto || '',
+                    spotId: activeQuest.spot?.id || '',
+                    spotName: activeQuest.spot?.name || '',
+                    spotType: activeQuest.spot?.type || '',
+                    lat: Number(activeQuest.spot?.lat),
+                    lng: Number(activeQuest.spot?.lng)
                 };
             }
 
