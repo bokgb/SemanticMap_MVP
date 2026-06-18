@@ -621,8 +621,22 @@ body.mimi-alert::after {
     justify-content: center;
     padding: 24px;
     box-sizing: border-box;
-    background: #020508;
+    background:
+        radial-gradient(circle at 50% 35%, rgba(38, 198, 190, 0.16), rgba(2, 5, 8, 0) 38%),
+        linear-gradient(180deg, #020508 0%, #05080d 100%);
     backdrop-filter: none;
+}
+
+#level-onboarding-layer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(circle at 50% 42%, #000 0 44%, transparent 78%);
 }
 
 #level-onboarding-layer.hidden {
@@ -639,11 +653,55 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 
 .level-onboarding-panel {
     width: min(92vw, 420px);
-    padding: 24px;
+    padding: 22px;
     box-sizing: border-box;
     border-radius: 18px;
-    background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 16px 42px rgba(0,0,0,0.28);
+    background:
+        linear-gradient(180deg, rgba(12, 25, 31, 0.94), rgba(4, 9, 14, 0.96));
+    border: 1px solid rgba(117, 255, 238, 0.28);
+    box-shadow:
+        0 18px 52px rgba(0,0,0,0.52),
+        0 0 0 1px rgba(255,255,255,0.06) inset,
+        0 0 34px rgba(42, 230, 205, 0.16);
+    position: relative;
+    overflow: hidden;
+}
+
+.level-onboarding-panel::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(117,255,238,0.82), transparent);
+}
+
+.level-onboarding-guide {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.level-onboarding-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    border: 1px solid rgba(217, 255, 250, 0.72);
+    background: radial-gradient(circle at 50% 44%, rgba(89, 255, 239, 0.25), rgba(7, 20, 26, 0.88) 72%);
+    box-shadow: 0 0 0 5px rgba(40, 226, 207, 0.12), 0 0 20px rgba(45, 239, 221, 0.24);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.level-onboarding-avatar img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 5px rgba(75, 255, 238, 0.5));
 }
 
 .tutorial-pen-core {
@@ -870,23 +928,23 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 }
 
 .level-onboarding-kicker {
-    margin: 0 0 8px;
-    color: var(--accent);
+    margin: 0 0 5px;
+    color: rgba(119, 255, 239, 0.92);
     font-size: 13px;
     font-weight: 900;
 }
 
 .level-onboarding-panel h1 {
-    margin: 0 0 20px;
-    color: var(--ink);
-    font-size: 28px;
+    margin: 0;
+    color: #f5fffd;
+    font-size: 25px;
     line-height: 1.18;
     letter-spacing: 0;
 }
 
 .level-onboarding-copy {
-    margin: 12px 0 20px;
-    color: var(--muted);
+    margin: 0 0 18px;
+    color: rgba(225, 244, 242, 0.78);
     font-size: 14px;
     line-height: 1.5;
 }
@@ -900,17 +958,22 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     width: 100%;
     min-height: 64px;
     padding: 12px 14px;
-    border: 1px solid var(--accent-line);
+    border: 1px solid rgba(117, 255, 238, 0.22);
     border-radius: 12px;
-    background: var(--panel-solid);
-    color: var(--ink);
+    background: rgba(255, 255, 255, 0.07);
+    color: #f5fffd;
     text-align: left;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.2);
+}
+
+.level-choice-btn:hover {
+    border-color: rgba(117, 255, 238, 0.52);
+    background: rgba(46, 230, 204, 0.12);
 }
 
 .level-choice-btn:active {
@@ -925,8 +988,8 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 .level-choice-sub {
     padding: 6px 9px;
     border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent-dark);
+    background: rgba(46, 230, 204, 0.14);
+    color: rgba(160, 255, 242, 0.96);
     font-size: 12px;
     font-weight: 900;
     white-space: nowrap;
