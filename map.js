@@ -33,7 +33,7 @@
     const TUTORIAL_PEN_OFFSET_METERS = 26;
     const DEFAULT_ZOOM = 17;
     const FOCUS_ZOOM = 17;
-    const CAPTURE_PHOTO_ZOOM = 17.5;
+    const CAPTURE_PHOTO_ZOOM = 16;
     const AREA_PROGRESS_STORAGE_KEY = 'semantic-map-area-progress-v3';
     const RARITY_REPAIR_POINTS = {
         N: 1,

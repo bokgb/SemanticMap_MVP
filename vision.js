@@ -71,9 +71,9 @@
     function showLevelChoice(onComplete) {
         const isJa = SM.i18n?.getLang?.() === 'ja';
         const choices = [
-            { value: 'N5', label: isJa ? '初心者  N5-N4' : '新手  N5-N4' },
-            { value: 'N3', label: isJa ? '中級  N3-N2' : '进阶  N3-N2' },
-            { value: 'N1', label: isJa ? '上級  N1+' : '专家  N1+' }
+            { value: 'N5', label: isJa ? 'ライト練習  N5-N4' : '轻量练习  N5-N4' },
+            { value: 'N3', label: isJa ? '標準練習  N3-N2' : '标准练习  N3-N2' },
+            { value: 'N1', label: isJa ? 'チャレンジ練習  N1+' : '挑战练习  N1+' }
         ].map(choice => ({
             ...choice,
             onSelect: level => {
@@ -472,13 +472,13 @@
         if (activeQuest?.type === 'TUTORIAL') {
             return takeRepairGuideLines(isJa
                 ? [
-                    '同期成功。現実世界の物体が、デジタル世界の空白に応えた。',
-                    '覚えておいて。撮影は、あなたとこの世界をつなぐ術式だよ。',
+                    '同期成功。写真が、デジタル世界の空白に応えた。',
+                    '覚えておいて。撮影は、あなたとこの世界をつなぐ方法だよ。',
                     '近くでまだ崩壊ノードが明滅している。行こう、次の断裂も修復しよう。'
                 ]
                 : [
-                    '同步成功。现实世界的物体，回应了数字世界的空白。',
-                    '记住这种感觉。拍照就是你和这个世界沟通的术式。',
+                    '同步成功。照片回应了数字世界的空白。',
+                    '记住这种感觉。拍照就是你和这个世界连接的方式。',
                     '旁边还有崩壊ノード在闪烁。去吧，把下一处断裂也修好。'
                 ]);
         }
