@@ -118,7 +118,7 @@ function questPanel({ state = 'ready' } = {}) {
     },
     loading: {
       title: '正在生成地点任务...',
-      chip: '同步中',
+      chip: '修复中',
       slot: '...',
       fixed: 'を探しています',
       button: '请稍候'
@@ -304,7 +304,7 @@ function guideComponent({ state = 'ready' } = {}) {
   const type = state === 'error' ? 'error' : state === 'empty' ? 'warning' : 'success';
   const message = {
     ready: '发现新的地点信号。靠近后可以开始文型修复。',
-    loading: '正在同步你的当前位置...',
+    loading: '正在确认你的当前位置...',
     empty: '附近暂时没有新的崩坏节点。',
     error: '定位失败，已切换到演示位置。'
   }[state];
@@ -317,7 +317,7 @@ function guideComponent({ state = 'ready' } = {}) {
       <div class="mimi-speech" role="status">
         <div class="mimi-name">Lumi</div>
         <div class="mimi-text">${message}</div>
-        ${state === 'loading' ? '<button class="mimi-next-btn" type="button">同步中</button>' : ''}
+        ${state === 'loading' ? '<button class="mimi-next-btn" type="button">修复中</button>' : ''}
       </div>
     </div>
   `;
