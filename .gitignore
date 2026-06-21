@@ -3,3 +3,8 @@ osmDataUnCleaned.json
 .edge-screenshot-profile/
 screenshots/
 semantic-map-*.png
+node_modules/
+storybook-static/
+playwright-report/
+test-results/
+debug.log

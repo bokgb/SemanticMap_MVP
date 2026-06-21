@@ -354,6 +354,7 @@
                 const areaResult = SM.map?.recordCatComplete?.(activeQuest);
                 const areaName = SM.map?.getAreaName?.(areaResult?.area) || '';
                 if (areaResult?.justPurified) {
+                    SM.missions?.recordAreaPurified?.();
                     SM.ui?.showToast(`${SM.i18n?.t?.('catRescue')} +${areaResult.addedPoints}\n${areaName} ${SM.i18n?.t?.('purified')}`, { type: 'success', duration: 3600 });
                 } else if (areaResult?.addedPoints) {
                     SM.ui?.showToast(`${SM.i18n?.t?.('catRescue')} +${areaResult.addedPoints}\n${areaName} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
@@ -393,6 +394,7 @@
                 repairGuideLines = getRepairCompleteGuideLines(activeQuest);
                 try {
                     localStorage.setItem('semantic-map-tutorial-pen-complete-v1', '1');
+                    SM.missions?.recordTutorialComplete?.();
                 } catch (error) {
                     console.warn('Failed to save tutorial quest state.', error);
                 }
@@ -402,6 +404,7 @@
                 const areaName = SM.map?.getAreaName?.(areaResult?.area) || '';
                 repairGuideLines = getRepairCompleteGuideLines(activeQuest, areaResult, areaName);
                 if (areaResult?.justPurified) {
+                    SM.missions?.recordAreaPurified?.();
                     SM.ui?.showToast(`${SM.i18n?.t?.('areaPurified')}\n${areaName} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success', duration: 3600 });
                 } else if (areaResult?.addedPoints) {
                     SM.ui?.showToast(`${SM.i18n?.t?.('areaRepair')} +${areaResult.addedPoints}\n${areaName} ${Math.min(areaResult.repairPoints, areaResult.requiredPoints)}/${areaResult.requiredPoints}`, { type: 'success' });

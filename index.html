@@ -66,6 +66,28 @@
         </div>
     </div>
 
+
+    <button id="mission-btn" type="button" aria-label="修复计划">
+        <span class="mission-btn-title">修复计划</span>
+        <span id="mission-btn-progress">0/1</span>
+    </button>
+
+    <div id="mission-layer" class="hidden">
+        <aside class="mission-panel" role="dialog" aria-modal="true" aria-labelledby="mission-title">
+            <div class="mission-panel-header">
+                <div>
+                    <div class="mission-kicker">Mission</div>
+                    <h2 id="mission-title">修复计划</h2>
+                </div>
+                <button id="mission-close-btn" type="button" aria-label="关闭">×</button>
+            </div>
+            <div class="mission-tabs" role="tablist">
+                <button class="mission-tab active" type="button" data-mission-tab="main">主线</button>
+                <button class="mission-tab" type="button" data-mission-tab="daily">每日</button>
+            </div>
+            <div id="mission-list" class="mission-list"></div>
+        </aside>
+    </div>
     <div id="ui-layer">
         <div id="ui-toggle" title="收起/展开" data-zh-title="收起/展开" data-ja-title="折りたたみ/展開">
             <button id="ui-toggle-btn">▲</button>
@@ -150,6 +172,7 @@
     <script src="i18n.js?v=grammar-63"></script>
     <script src="vision.js?v=grammar-67"></script>
     <script src="map.js?v=grammar-71"></script>
+    <script src="missions.js?v=mission-1"></script>
     <script src="app.js?v=grammar-54"></script>
 </body>
 </html>

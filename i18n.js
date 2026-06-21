@@ -270,6 +270,7 @@
         SM.ui?.refreshLanguage?.();
         SM.map?.refreshLanguage?.();
         SM.inventory?.refreshLanguage?.();
+        SM.missions?.refreshLanguage?.();
     }
 
     function toggleLanguage() {

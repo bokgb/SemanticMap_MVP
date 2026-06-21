@@ -1,0 +1,19 @@
+{
+  "name": "semantic-map-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "preview:mobile": "node scripts/generate-mobile-preview.js",
+    "preview:mobile:watch": "nodemon --watch . --ext html,css,js,ts,tsx,jsx --ignore node_modules --ignore screenshots --exec \"npm run preview:mobile\""
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@storybook/html-vite": "latest",
+    "nodemon": "^3.1.14",
+    "storybook": "latest"
+  }
+}

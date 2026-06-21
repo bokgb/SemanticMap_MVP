@@ -13,6 +13,7 @@
         SM.i18n.init();
         SM.vision.init();
         SM.map.init();
+        SM.missions?.init?.();
     }
 
     if (document.readyState === 'loading') {

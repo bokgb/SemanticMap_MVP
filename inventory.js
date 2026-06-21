@@ -258,6 +258,7 @@
         playerInventory.push(storedData);
         saveInventory();
         SM.map?.addCapturedWordCard?.(storedData);
+        SM.missions?.recordCardCollected?.(storedData);
         elements.wordList.prepend(renderWordBlock(storedData));
 
         collectedWordsCount++;
@@ -483,6 +484,7 @@
             activeNpcEvent.completed = true;
             activeNpcEvent.selectedWrong = false;
             SM.map?.grantExplorerReward?.({ type: 'npc' });
+            SM.missions?.recordNpcHelp?.();
             SM.ui?.showGuideMessage?.(tr('npcReward'), { type: 'success', duration: 2800 });
         } else {
             activeNpcEvent.selectedWrong = true;
