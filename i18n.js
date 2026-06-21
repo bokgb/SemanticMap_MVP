@@ -38,7 +38,7 @@
             dialogNextButton: '继续',
             dialogStartButton: '开始调查',
             mimiTutorialQuest: '很好。拍一张照片，让句子亮起来。',
-            mimiInventoryTip: '词卡收好啦。以后会用到。',
+            mimiInventoryTip: '这张词卡保存好了。去看看下一个节点吧。',
             mimiLevelTip: 'Lv.{level}。视野变大一点。',
             difficulty: {
                 N5: '当前日语水平：N5-N4',
@@ -105,7 +105,7 @@
             npcHelp: 'バッグからカードを渡す',
             npcSkip: 'またあとで',
             npcDone: 'ありがとう',
-            npcReward: 'Lumi：いい判断だね。探索経験 +1',
+            npcReward: '判断不错，这张词卡派上用场了。继续前进吧。',
             dialogFallbackTitle: '提示',
             dialogFallbackButton: '知道了'
         },
@@ -143,7 +143,7 @@
             dialogNextButton: 'つづける',
             dialogStartButton: '調査開始',
             mimiTutorialQuest: 'いいね。写真を撮って文を完成させよう。',
-            mimiInventoryTip: 'カードをしまったよ。あとで使える。',
+            mimiInventoryTip: 'このカードを保存したよ。次のノードへ行こう。',
             mimiLevelTip: 'Lv.{level}。視野が少し広がったよ。',
             difficulty: {
                 N5: '現在の日本語レベル：N5-N4',
@@ -210,7 +210,7 @@
             npcHelp: 'バッグからカードを渡す',
             npcSkip: 'またあとで',
             npcDone: 'ありがとう',
-            npcReward: 'ルミ：いい判断だね。探索経験 +1',
+            npcReward: 'いい判断だったね。このカードが役に立ったよ。次へ進もう。',
             dialogFallbackTitle: '案内',
             dialogFallbackButton: 'わかりました'
         }
