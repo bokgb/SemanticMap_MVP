@@ -74,16 +74,18 @@
 
     <div id="mission-layer" class="hidden">
         <aside class="mission-panel" role="dialog" aria-modal="true" aria-labelledby="mission-title">
-            <div class="mission-panel-header">
-                <div>
-                    <div class="mission-kicker">Mission</div>
-                    <h2 id="mission-title">修复计划</h2>
+            <div class="mission-panel-sticky">
+                <div class="mission-panel-header">
+                    <div>
+                        <div class="mission-kicker">Mission</div>
+                        <h2 id="mission-title">修复计划</h2>
+                    </div>
+                    <button id="mission-close-btn" type="button" aria-label="关闭">×</button>
                 </div>
-                <button id="mission-close-btn" type="button" aria-label="关闭">×</button>
-            </div>
-            <div class="mission-tabs" role="tablist">
-                <button class="mission-tab active" type="button" data-mission-tab="main">主线</button>
-                <button class="mission-tab" type="button" data-mission-tab="daily">每日</button>
+                <div class="mission-tabs" role="tablist">
+                    <button class="mission-tab active" type="button" data-mission-tab="main">主线</button>
+                    <button class="mission-tab" type="button" data-mission-tab="daily">每日</button>
+                </div>
             </div>
             <div id="mission-list" class="mission-list"></div>
         </aside>

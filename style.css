@@ -2363,14 +2363,24 @@ body.mission-open #bag-btn {
 .mission-panel {
     width: min(420px, calc(100vw - 28px));
     height: 100%;
-    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+    padding: 0;
     box-sizing: border-box;
     background: rgba(255, 255, 255, 0.98);
     border-left: 1px solid rgba(255,255,255,0.72);
     box-shadow: -14px 0 38px rgba(0,0,0,0.26);
-    overflow: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
+.mission-panel-sticky {
+    flex: 0 0 auto;
+    padding: max(18px, env(safe-area-inset-top)) 16px 12px;
+    background: rgba(255, 255, 255, 0.98);
+    border-bottom: 1px solid rgba(23, 32, 35, 0.08);
+    box-shadow: 0 8px 18px rgba(23, 32, 35, 0.05);
+    z-index: 1;
+}
 .mission-panel-header {
     display: flex;
     align-items: flex-start;
@@ -2434,9 +2444,15 @@ body.mission-open #bag-btn {
 }
 
 .mission-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding: 14px 16px max(18px, env(safe-area-inset-bottom));
 }
 
 .mission-card {
@@ -2571,7 +2587,6 @@ body.mission-open #bag-btn {
     color: var(--muted);
     line-height: 1.45;
 }
-
 @media (max-width: 520px) {
     #mission-btn {
         top: max(128px, calc(env(safe-area-inset-top) + 128px));
