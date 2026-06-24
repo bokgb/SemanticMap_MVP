@@ -1389,7 +1389,7 @@
                     ? tr('questAreaPoints', { points: repairPoints })
                     : tr('questOutside');
         }
-        preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box camera-slot"><span class="slot-camera-icon" aria-hidden="true"></span><span class="slot-camera-label">' + tr('cameraSlotLabel') + '</span></span>');
+        preview.innerHTML = data.text.replace('[ ? ]', '<button class="slot-box camera-slot" type="button"><span class="slot-camera-icon" aria-hidden="true"></span><span class="slot-camera-label">' + tr('cameraSlotLabel') + '</span></button>');
         let hint = questLayer.querySelector('.quest-tutorial-hint');
         if (!hint) {
             hint = document.createElement('div');
@@ -1403,6 +1403,7 @@
                 startScanButton.dataset.defaultText = startScanButton.innerText;
             }
             startScanButton.innerText = isTutorialQuest ? tr('tutorialScanButton') : startScanButton.dataset.defaultText;
+            startScanButton.hidden = true;
         }
 
         state.activeQuest = {
@@ -1901,6 +1902,21 @@
         window.setTimeout(updateFloatingControlPositions, 400);
     }
 
+    function startActiveQuestScan() {
+        const scanCheck = getScanStartCheck(state.activeQuest);
+        if (!scanCheck.ok) {
+            SM.ui?.showGuideMessage?.(tr('moveCloserToScan', { meters: scanCheck.meters }), {
+                type: 'warning',
+                duration: 3200
+            });
+            return;
+        }
+
+        document.getElementById('quest-layer').classList.add('hidden');
+        SM.ui?.setBagHudHidden?.(false, 'quest-panel');
+        SM.vision.openCamera();
+    }
+
     function initQuestButtons() {
         document.getElementById('btn-close-quest').addEventListener('click', () => {
             state.activeQuest = null;
@@ -1908,19 +1924,13 @@
             SM.ui?.setBagHudHidden?.(false, 'quest-panel');
         });
 
-        document.getElementById('btn-start-scan').addEventListener('click', () => {
-            const scanCheck = getScanStartCheck(state.activeQuest);
-            if (!scanCheck.ok) {
-                SM.ui?.showGuideMessage?.(tr('moveCloserToScan', { meters: scanCheck.meters }), {
-                    type: 'warning',
-                    duration: 3200
-                });
-                return;
-            }
+        document.getElementById('btn-start-scan').addEventListener('click', startActiveQuestScan);
 
-            document.getElementById('quest-layer').classList.add('hidden');
-            SM.ui?.setBagHudHidden?.(false, 'quest-panel');
-            SM.vision.openCamera();
+        document.getElementById('quest-layer').addEventListener('click', event => {
+            const cameraSlot = event.target.closest?.('.camera-slot');
+            if (!cameraSlot) return;
+            event.preventDefault();
+            startActiveQuestScan();
         });
 
         document.getElementById('clear-cache-btn').addEventListener('click', SM.quests.clearQuestCacheAll);

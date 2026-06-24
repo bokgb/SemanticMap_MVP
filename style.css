@@ -2047,6 +2047,7 @@ h2, p {
 }
 
 .camera-slot {
+    appearance: none;
     display: inline-flex;
     align-items: center;
     gap: 9px;
@@ -2057,6 +2058,9 @@ h2, p {
     border-radius: 14px;
     background: rgba(15, 118, 110, 0.08);
     box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.05);
+    color: var(--accent-dark);
+    font: inherit;
+    cursor: pointer;
     vertical-align: middle;
 }
 
@@ -2098,6 +2102,19 @@ h2, p {
     font-size: 15px;
     line-height: 1;
     white-space: nowrap;
+}
+
+.camera-slot:active {
+    transform: scale(0.96);
+}
+
+.camera-slot:focus-visible {
+    outline: 3px solid rgba(46, 230, 204, 0.38);
+    outline-offset: 4px;
+}
+
+#btn-start-scan[hidden] {
+    display: none !important;
 }
 
 @keyframes slotBreath {
