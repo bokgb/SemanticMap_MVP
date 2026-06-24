@@ -113,6 +113,8 @@
         elements.cameraLayer.style.display = 'none';
         elements.captureBtn.disabled = false;
         elements.closeCameraBtn.disabled = false;
+        state.pendingAiRetry = null;
+        state.keepCameraForAiRetry = false;
         if (currentStream) currentStream.getTracks().forEach(track => track.stop());
         currentStream = null;
         elements.cameraFeed.srcObject = null;
@@ -140,7 +142,105 @@
         return captureFrameAsDataUrl().split(',')[1];
     }
 
+    const AI_RETRY_TIMEOUT_MS = 10000;
+    const AI_RETRY_DELAYS_MS = [900, 1600, 2400, 3200];
+
+    function wait(ms) {
+        return new Promise(resolve => window.setTimeout(resolve, ms));
+    }
+
+    function getAiErrorMessage(data, status) {
+        return data?.error?.message || data?.message || (status ? `HTTP ${status}` : 'AI request failed');
+    }
+
+    function isRetryableAiError(message = '', status = 0) {
+        const normalized = String(message || '').toLowerCase();
+        return [408, 409, 425, 429, 500, 502, 503, 504].includes(Number(status))
+            || normalized.includes('high demand')
+            || normalized.includes('overload')
+            || normalized.includes('overloaded')
+            || normalized.includes('busy')
+            || normalized.includes('temporarily')
+            || normalized.includes('try again')
+            || normalized.includes('rate limit')
+            || normalized.includes('resource_exhausted')
+            || normalized.includes('unavailable');
+    }
+
+    function createAiServiceError(message, status) {
+        const error = new Error(message || 'AI request failed');
+        error.status = status || 0;
+        error.retryable = isRetryableAiError(message, status);
+        return error;
+    }
+
+    async function requestVisionOnce(requestBody, photoDataUrl) {
+        const response = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (data.error || !response.ok) {
+            throw createAiServiceError(getAiErrorMessage(data, response.status), response.status);
+        }
+
+        const resultTextPart = data?.candidates?.[0]?.content?.parts?.find(part => typeof part.text === 'string');
+        if (!resultTextPart) {
+            throw createAiServiceError(SM.i18n?.t?.('aiNoText') || 'AI returned no text', response.status);
+        }
+
+        let resultText = resultTextPart.text;
+        resultText = resultText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
+        const aiResult = JSON.parse(resultText);
+        const normalizedResult = SM.inventory.normalizeAiResult(aiResult);
+        if (normalizedResult) {
+            normalizedResult.capturePhoto = photoDataUrl;
+        }
+        return normalizedResult;
+    }
+
+    async function requestVisionWithRetry(requestBody, photoDataUrl) {
+        const startedAt = Date.now();
+        let attempt = 0;
+        let lastError = null;
+
+        while (Date.now() - startedAt < AI_RETRY_TIMEOUT_MS) {
+            try {
+                const result = await requestVisionOnce(requestBody, photoDataUrl);
+                state.pendingAiRetry = null;
+                state.keepCameraForAiRetry = false;
+                return result;
+            } catch (error) {
+                lastError = error;
+                console.warn('AI recognition attempt failed:', error);
+                if (!error.retryable) break;
+
+                if (attempt === 0) {
+                    SM.ui?.showGuideMessage?.(SM.i18n?.t?.('aiBusyRetry') || '', { type: 'warning', duration: 2600 });
+                }
+
+                const remainingMs = AI_RETRY_TIMEOUT_MS - (Date.now() - startedAt);
+                if (remainingMs <= 0) break;
+                const delayMs = Math.min(AI_RETRY_DELAYS_MS[Math.min(attempt, AI_RETRY_DELAYS_MS.length - 1)], remainingMs);
+                attempt += 1;
+                await wait(delayMs);
+            }
+        }
+
+        state.pendingAiRetry = { requestBody, photoDataUrl };
+        state.keepCameraForAiRetry = true;
+        SM.ui?.showGuideMessage?.(SM.i18n?.t?.('aiBusyFinal') || '', { type: 'warning', duration: 5200 });
+        console.error('AI recognition failed after retry window:', lastError);
+        return null;
+    }
     async function callRealVisionAI() {
+        if (state.pendingAiRetry?.requestBody && state.pendingAiRetry?.photoDataUrl) {
+            return requestVisionWithRetry(state.pendingAiRetry.requestBody, state.pendingAiRetry.photoDataUrl);
+        }
+
         let base64Image = "";
         let photoDataUrl = "";
         try {
@@ -230,62 +330,7 @@
             }
         };
 
-        try {
-            const response = await fetch('/api/gemini', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-
-            const data = await response.json();
-
-            if (data.error) {
-                SM.ui?.showToast(SM.i18n?.t?.('aiError', {
-                    message: data.error.message || SM.i18n?.t?.('backendLog')
-                }), { type: 'error', duration: 4200 });
-                return null;
-            }
-
-            if (!response.ok) {
-                throw new Error(SM.i18n?.t?.('apiRejected', {
-                    message: data.error?.message || response.status
-                }) || `API 拒绝请求: ${data.error?.message || response.status}`);
-            }
-
-            const resultTextPart = data?.candidates?.[0]?.content?.parts?.find(part => typeof part.text === 'string');
-            if (!resultTextPart) {
-                throw new Error(SM.i18n?.t?.('aiNoText') || '');
-            }
-
-            let resultText = resultTextPart.text;
-            resultText = resultText.replace(/```json/gi, '').replace(/```/gi, '').trim();
-
-            const aiResult = JSON.parse(resultText);
-            const normalizedResult = SM.inventory.normalizeAiResult(aiResult);
-            if (normalizedResult) {
-                normalizedResult.capturePhoto = photoDataUrl;
-            }
-            return normalizedResult;
-        } catch (error) {
-            console.error("AI 识别失败:", error);
-            SM.ui?.showToast(SM.i18n?.t?.('aiFailed', { message: error.message }), { type: 'error', duration: 4200 });
-
-            const fallbackResult = SM.inventory.normalizeAiResult({
-                word: {
-                    text: SM.i18n?.t?.('unknownItem') || "",
-                    kana: "",
-                    zh: SM.i18n?.t?.('recognitionFailed') || ""
-                },
-                pos: SM.i18n?.t?.('noun') || "",
-                tag: "Item",
-                tagColor: "#687174",
-                example: { s: "", k: "", z: "" }
-            });
-            if (fallbackResult) {
-                fallbackResult.capturePhoto = photoDataUrl;
-            }
-            return fallbackResult;
-        }
+        return requestVisionWithRetry(requestBody, photoDataUrl);
     }
 
     async function handleCapture() {
@@ -312,15 +357,21 @@
             console.error("AI 识别流程异常:", error);
             SM.ui?.showToast(SM.i18n?.t?.('flowError', { message: error.message }), { type: 'error', duration: 4200 });
         } finally {
-            if (elements.cameraFeed && typeof elements.cameraFeed.play === 'function' && elements.cameraFeed.srcObject) {
-                elements.cameraFeed.play().catch(() => {});
-            }
             if (elements.scannerOverlay) elements.scannerOverlay.classList.add('hidden');
 
-            elements.captureBtn.innerText = originalText;
-            elements.captureBtn.disabled = false;
-            elements.closeCameraBtn.disabled = false;
-            closeCamera();
+            if (state.keepCameraForAiRetry) {
+                elements.captureBtn.innerText = SM.i18n?.t?.('resyncButton') || originalText;
+                elements.captureBtn.disabled = false;
+                elements.closeCameraBtn.disabled = false;
+            } else {
+                if (elements.cameraFeed && typeof elements.cameraFeed.play === 'function' && elements.cameraFeed.srcObject) {
+                    elements.cameraFeed.play().catch(() => {});
+                }
+                elements.captureBtn.innerText = SM.i18n?.t?.('tutorialScanButton') || originalText;
+                elements.captureBtn.disabled = false;
+                elements.closeCameraBtn.disabled = false;
+                closeCamera();
+            }
         }
 
         handleAiResult(aiResult);
@@ -328,7 +379,6 @@
 
     function handleAiResult(aiResult) {
         if (!aiResult || !aiResult.word) {
-            state.activeQuest = null;
             return;
         }
 
