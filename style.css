@@ -741,6 +741,17 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     transform-origin: center center;
 }
 
+.quest-marker-core::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    background: conic-gradient(from 20deg, rgba(225, 29, 72, 0.86) 0 42deg, transparent 42deg 132deg, rgba(225, 29, 72, 0.58) 132deg 166deg, transparent 166deg 360deg);
+    opacity: 0.78;
+    filter: blur(0.2px);
+    pointer-events: none;
+    animation: questCoreAlertSpin 1.55s linear infinite;
+}
 .quest-marker-core::after {
     content: "";
     position: absolute;
@@ -786,43 +797,43 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     pointer-events: none;
     overflow: visible;
     filter:
-        drop-shadow(0 0 8px rgba(225, 29, 72, 0.95))
-        drop-shadow(0 0 18px rgba(0, 0, 0, 0.86));
+        drop-shadow(0 0 7px rgba(225, 29, 72, 0.62))
+        drop-shadow(0 0 16px rgba(0, 0, 0, 0.78));
     animation: collapseFieldPulse 1.05s ease-in-out infinite;
 }
 
 .collapse-error-svg-base {
-    fill: rgba(4, 7, 10, 0.96);
+    fill: rgba(4, 9, 11, 0.86);
 }
 
 .collapse-error-svg-noise {
-    opacity: 0.98;
+    opacity: 0.82;
     animation: collapseFieldShift 0.52s steps(3, end) infinite;
 }
 
 .collapse-error-svg-scan {
-    fill: rgba(255, 255, 255, 0.82);
+    fill: rgba(255, 255, 255, 0.34);
     transform-origin: center center;
     animation: collapseFieldScan 0.78s linear infinite;
 }
 
 .collapse-error-svg-scan.scan-b,
 .collapse-error-svg-scan.scan-d {
-    fill: rgba(220, 38, 38, 0.92);
+    fill: rgba(225, 29, 72, 0.58);
     animation-delay: 0.22s;
 }
 
 .collapse-error-svg-band {
-    fill: rgba(2, 5, 8, 0.96);
+    fill: rgba(2, 5, 8, 0.72);
 }
 
 .collapse-error-svg-band.band-b {
-    fill: rgba(220, 38, 38, 0.8);
+    fill: rgba(225, 29, 72, 0.48);
 }
 
 .collapse-error-svg-edge {
     fill: transparent;
-    stroke: rgba(255, 255, 255, 0.88);
+    stroke: rgba(182, 255, 242, 0.82);
     stroke-width: 1.8;
     stroke-dasharray: 7 4 2 4;
     animation:
@@ -830,6 +841,11 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
         collapseZoneDash 0.72s linear infinite;
 }
 
+@keyframes questCoreAlertSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 @keyframes questMarkerBreath {
     0%, 100% {
         transform: scale(1);
