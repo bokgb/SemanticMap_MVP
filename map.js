@@ -1389,7 +1389,7 @@
                     ? tr('questAreaPoints', { points: repairPoints })
                     : tr('questOutside');
         }
-        preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box">?</span>');
+        preview.innerHTML = data.text.replace('[ ? ]', '<span class="slot-box camera-slot"><span class="slot-camera-icon" aria-hidden="true"></span><span class="slot-camera-label">' + tr('cameraSlotLabel') + '</span></span>');
         let hint = questLayer.querySelector('.quest-tutorial-hint');
         if (!hint) {
             hint = document.createElement('div');
@@ -1510,6 +1510,7 @@
             tr('mimiIntroLine4')
         ], {
             type: 'info',
+            curtain: true,
             alertIndex: SM.vision?.hasSelectedLevel?.() && state.levelChoiceAskedThisSession ? 1 : 2,
             revealOnComplete: true,
             onComplete: markTutorialPenSeen

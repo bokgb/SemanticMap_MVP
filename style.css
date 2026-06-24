@@ -230,12 +230,7 @@ body.mimi-alert::after {
     padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
     box-sizing: border-box;
     --tutorial-reveal-radius: 0%;
-    background:
-        radial-gradient(circle at center,
-            transparent 0%,
-            transparent var(--tutorial-reveal-radius),
-            rgba(2, 5, 8, 0.96) calc(var(--tutorial-reveal-radius) + 8%),
-            #020508 100%);
+    background: transparent;
     pointer-events: auto;
     transform: scale(0.98);
 }
@@ -244,12 +239,21 @@ body.mimi-alert::after {
     transform: scale(1);
 }
 
-#mimi-guide.sequence.reveal {
+#mimi-guide.sequence.curtain {
+    background:
+        radial-gradient(circle at center,
+            transparent 0%,
+            transparent var(--tutorial-reveal-radius),
+            rgba(2, 5, 8, 0.96) calc(var(--tutorial-reveal-radius) + 8%),
+            #020508 100%);
+}
+
+#mimi-guide.sequence.curtain.reveal {
     animation: tutorial-reveal 1.6s ease-out forwards;
 }
 
-#mimi-guide.sequence.reveal .mimi-avatar,
-#mimi-guide.sequence.reveal .mimi-speech {
+#mimi-guide.sequence.curtain.reveal .mimi-avatar,
+#mimi-guide.sequence.curtain.reveal .mimi-speech {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
     transition: opacity 0.22s ease, transform 0.22s ease;
@@ -2040,6 +2044,60 @@ h2, p {
     display: inline-block;
     animation: slotBreath 1.15s ease-in-out infinite;
     transform-origin: center bottom;
+}
+
+.camera-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 5px 13px 6px;
+    border: 2px dashed rgba(15, 118, 110, 0.34);
+    border-bottom: 3px solid var(--accent);
+    border-radius: 14px;
+    background: rgba(15, 118, 110, 0.08);
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.05);
+    vertical-align: middle;
+}
+
+.slot-camera-icon {
+    position: relative;
+    width: 28px;
+    height: 22px;
+    border: 3px solid currentColor;
+    border-radius: 7px;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+}
+
+.slot-camera-icon::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: -7px;
+    width: 10px;
+    height: 5px;
+    border-radius: 4px 4px 0 0;
+    background: currentColor;
+}
+
+.slot-camera-icon::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.slot-camera-label {
+    font-size: 15px;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 @keyframes slotBreath {

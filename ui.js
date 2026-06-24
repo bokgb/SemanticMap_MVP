@@ -87,7 +87,7 @@
         setTutorialCurtain(false);
         clearGuideChoices(layer);
         layer.classList.remove('success', 'warning', 'error', 'info', 'show');
-        layer.classList.remove('sequence', 'reveal');
+        layer.classList.remove('sequence', 'reveal', 'curtain');
         layer.classList.add(type);
         if (textEl) {
             textEl.textContent = String(message || '');
@@ -106,7 +106,7 @@
     function hideGuideMessage() {
         const layer = getGuideLayer();
         layer.classList.remove('show');
-        layer.classList.remove('sequence', 'reveal', 'alert');
+        layer.classList.remove('sequence', 'reveal', 'alert', 'curtain');
         guideSequence = null;
         setTutorialCurtain(false);
         document.body.classList.remove('mimi-alert');
@@ -135,9 +135,10 @@
 
         window.clearTimeout(guideMessageTimer);
         document.body.classList.remove('mimi-alert');
-        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal', 'alert');
+        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal', 'alert', 'curtain');
         layer.classList.add(guideSequence.type, 'sequence');
-        setTutorialCurtain(Boolean(options.curtain || options.revealOnComplete));
+        layer.classList.toggle('curtain', Boolean(options.curtain));
+        setTutorialCurtain(Boolean(options.curtain));
         renderGuideSequenceLine();
         window.requestAnimationFrame(() => layer.classList.add('show'));
     }
@@ -154,8 +155,9 @@
         guideSequence = null;
         window.clearTimeout(guideMessageTimer);
         document.body.classList.remove('mimi-alert');
-        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal', 'alert');
+        layer.classList.remove('success', 'warning', 'error', 'info', 'show', 'reveal', 'alert', 'curtain');
         layer.classList.add(type, 'sequence');
+        layer.classList.toggle('curtain', Boolean(options.curtain));
         setTutorialCurtain(Boolean(options.curtain));
         if (textEl) textEl.textContent = String(message || '');
         if (nextButton) nextButton.hidden = true;
