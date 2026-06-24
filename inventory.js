@@ -254,7 +254,7 @@
 
     function addWordToInventory(data) {
         if (!data) return;
-        const { capturePhoto, ...storedData } = data;
+        const { capturePhoto, afterCollectGuideLines, ...storedData } = data;
 
         playerInventory.push(storedData);
         saveInventory();
@@ -268,7 +268,11 @@
             elements.bagBadge.innerText = collectedWordsCount;
         }
 
-        SM.ui?.showGuideMessage?.(tr('mimiInventoryTip'), { type: 'success', duration: 3600 });
+        if (Array.isArray(data.afterCollectGuideLines) && data.afterCollectGuideLines.length) {
+            SM.ui?.showGuideSequence?.(data.afterCollectGuideLines, { type: 'success' });
+        } else {
+            SM.ui?.showGuideMessage?.(tr('mimiInventoryTip'), { type: 'success', duration: 3600 });
+        }
         maybeTriggerNpcEvent(storedData);
     }
 

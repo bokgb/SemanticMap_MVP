@@ -386,7 +386,6 @@
             }
 
             let repairGuideLines = null;
-            SM.inventory.showWordDetailCard(aiResult);
             SM.quests.completeQuest(activeQuest);
             SM.map?.clearCollapseErrorZone?.(activeQuest.marker);
             if (activeQuest.type === 'TUTORIAL') {
@@ -414,8 +413,9 @@
             }
             document.getElementById('quest-layer').classList.add('hidden');
             if (repairGuideLines?.length) {
-                SM.ui?.showGuideSequence?.(repairGuideLines, { type: 'success' });
+                aiResult.afterCollectGuideLines = repairGuideLines;
             }
+            SM.inventory.showWordDetailCard(aiResult);
             state.activeQuest = null;
         } else {
             showWrongObjectDialog(activeQuest, aiResult);
