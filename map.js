@@ -1298,13 +1298,13 @@
             ? 'radial-gradient(circle at 32% 24%, #d1fff7 0%, #21b7a2 38%, #0f766e 100%)'
             : isSrMarker
             ? 'radial-gradient(circle at 30% 24%, #fff8b8 0%, #f6d84a 34%, #d69a14 72%, #9c6507 100%)'
-            : 'radial-gradient(circle at 35% 28%, #b8fff3 0%, #28c7b4 34%, #0f766e 63%, #071214 100%)';
-        const markerBorder = isTutorialMarker ? '2px solid #e6fffb' : isSrMarker ? '2px solid #fff4b0' : '2px solid rgba(230,255,251,0.9)';
+            : 'radial-gradient(circle at 34% 28%, #ffb3b3 0%, #dc2626 32%, #7f1d1d 66%, #16070a 100%)';
+        const markerBorder = isTutorialMarker ? '2px solid #e6fffb' : isSrMarker ? '2px solid #fff4b0' : '2px solid rgba(255,255,255,0.92)';
         const markerShadow = isTutorialMarker
             ? '0 0 0 3px rgba(255,255,255,0.7), 0 0 18px rgba(15,118,110,0.88), 0 4px 14px rgba(8,75,68,0.28)'
             : isSrMarker
             ? '0 0 0 3px rgba(255,255,255,0.7), 0 0 18px rgba(246,199,68,0.95), 0 4px 14px rgba(120,80,0,0.32)'
-            : '0 0 0 5px rgba(7,18,20,0.62), 0 0 18px rgba(225,29,72,0.42), 0 0 28px rgba(15,118,110,0.72), 0 5px 16px rgba(0,0,0,0.36)';
+            : '0 0 0 3px rgba(255,255,255,0.42), 0 0 14px rgba(225,29,72,0.72), 0 4px 14px rgba(0,0,0,0.34)';
         const markerTextShadow = isSrMarker || isTutorialMarker ? '0 1px 3px rgba(0,0,0,0.35)' : 'none';
         const markerOpacity = isInteractable ? '1' : '0.62';
         const collapseZoneHtml = spot.type !== 'npc_cat' ? createCollapseErrorZoneHtml(spot, isTutorialMarker) : '';
