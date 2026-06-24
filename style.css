@@ -1654,6 +1654,18 @@ h2, p {
     transform: scale(0.92);
 }
 
+#bag-btn.bag-receiving {
+    opacity: 1;
+    pointer-events: none;
+    transform: scale(1.12);
+    z-index: 7800;
+    box-shadow:
+        0 8px 22px rgba(0,0,0,0.24),
+        0 0 0 8px rgba(46, 230, 204, 0.2),
+        0 0 26px rgba(46, 230, 204, 0.62);
+    animation: bagReceivePulse 0.82s ease-out;
+}
+
 @media (max-width: 520px) {
     #bag-btn {
         top: max(66px, calc(env(safe-area-inset-top) + 66px));
@@ -2151,6 +2163,55 @@ rt {
     box-shadow: 0 5px 15px rgba(15, 118, 110, 0.28);
 }
 .loot-btn:active { transform: scale(0.96); }
+.loot-btn:disabled {
+    opacity: 0.72;
+    cursor: default;
+}
+
+#word-card-layer.collecting .loot-card {
+    opacity: 0.22;
+    transform: scale(0.96);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.word-card-fly-clone {
+    position: fixed;
+    z-index: 7750;
+    box-sizing: border-box;
+    pointer-events: none;
+    transform-origin: center center;
+    animation: wordCardFlyToBag 0.82s cubic-bezier(.17, .78, .22, 1) forwards;
+}
+
+.word-card-fly-clone .loot-btn {
+    display: none;
+}
+
+@keyframes wordCardFlyToBag {
+    0% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+        filter: drop-shadow(0 16px 28px rgba(0,0,0,0.3));
+    }
+    42% {
+        opacity: 0.96;
+        transform: translate3d(calc(var(--fly-x) * 0.42), calc(var(--fly-y) * 0.26 - 18px), 0) scale(0.58) rotate(-2deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translate3d(var(--fly-x), var(--fly-y), 0) scale(var(--fly-scale)) rotate(4deg);
+        filter: drop-shadow(0 0 18px rgba(46,230,204,0.78));
+    }
+}
+
+@keyframes bagReceivePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    45% {
+        transform: scale(1.18);
+    }
+}
 
 #npc-event-layer {
     position: fixed;

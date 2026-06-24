@@ -1,8 +1,9 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = __dirname;
+const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 8000);
 const host = process.env.HOST || '127.0.0.1';
 
@@ -42,6 +43,15 @@ const server = http.createServer((req, res) => {
         });
         res.end(data);
     });
+});
+
+server.on('error', error => {
+    if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Try: $env:PORT=8001; npm run dev`);
+    } else {
+        console.error(error);
+    }
+    process.exit(1);
 });
 
 server.listen(port, host, () => {

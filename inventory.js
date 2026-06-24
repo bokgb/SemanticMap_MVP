@@ -5,6 +5,7 @@
     let playerInventory = [];
     let collectedWordsCount = 0;
     let pendingWord = null;
+    let collectingWord = false;
     let activeNpcEvent = null;
     const rewardQueue = [];
     const INVENTORY_STORAGE_KEY = 'semantic-map-today-word-cards-v1';
@@ -315,6 +316,43 @@
         elements.wordCardLayer.classList.remove('hidden');
     }
 
+    function playWordCardToBagAnimation(onComplete) {
+        const card = elements.wordCardLayer?.querySelector('.loot-card');
+        const bag = elements.bagBtn;
+        if (!card || !bag) {
+            onComplete?.();
+            return;
+        }
+
+        const cardRect = card.getBoundingClientRect();
+        const bagRect = bag.getBoundingClientRect();
+        const targetX = bagRect.left + bagRect.width / 2;
+        const targetY = bagRect.top + bagRect.height / 2;
+        const startX = cardRect.left + cardRect.width / 2;
+        const startY = cardRect.top + cardRect.height / 2;
+        const clone = card.cloneNode(true);
+
+        SM.ui?.setBagHudHidden?.(false, 'word-card');
+        bag.classList.add('bag-receiving');
+        elements.wordCardLayer.classList.add('collecting');
+        clone.classList.add('word-card-fly-clone');
+        clone.style.left = cardRect.left + 'px';
+        clone.style.top = cardRect.top + 'px';
+        clone.style.width = cardRect.width + 'px';
+        clone.style.height = cardRect.height + 'px';
+        clone.style.setProperty('--fly-x', (targetX - startX) + 'px');
+        clone.style.setProperty('--fly-y', (targetY - startY) + 'px');
+        clone.style.setProperty('--fly-scale', Math.max(0.12, Math.min(0.22, bagRect.width / cardRect.width)));
+        document.body.appendChild(clone);
+
+        window.setTimeout(() => {
+            clone.remove();
+            bag.classList.remove('bag-receiving');
+            elements.wordCardLayer.classList.remove('collecting');
+            onComplete?.();
+        }, 820);
+    }
+
     function refreshLanguage() {
         if (pendingWord && elements.lootWordMain) {
             elements.lootWordMain.innerHTML = renderRubyWord(pendingWord.word);
@@ -526,12 +564,20 @@
         });
 
         elements.btnCollectWord.addEventListener('click', () => {
-            elements.wordCardLayer.classList.add('hidden');
-            if (pendingWord) {
-                addWordToInventory(pendingWord);
-                pendingWord = null;
-            }
-            showNextQueuedReward();
+            if (collectingWord) return;
+            collectingWord = true;
+            elements.btnCollectWord.disabled = true;
+
+            playWordCardToBagAnimation(() => {
+                elements.wordCardLayer.classList.add('hidden');
+                elements.btnCollectWord.disabled = false;
+                collectingWord = false;
+                if (pendingWord) {
+                    addWordToInventory(pendingWord);
+                    pendingWord = null;
+                }
+                showNextQueuedReward();
+            });
         });
 
         // Dev mode keeps map/testing helpers, but vocabulary cards should be earned through quests.
