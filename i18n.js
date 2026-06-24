@@ -29,10 +29,15 @@
             mimiTutorialIntro: '我发现一个崩坏节点。先点它。',
             mimiIntroLine1: '终于接上了，选ばれし者。',
             mimiIntroLine2: '这里是现实背面的数字世界。照片是连接现实和地图的桥。',
-            levelChoiceLead: '开始前，先选你的日语水平，用来匹配任务难度。',
-            levelChoicePrompt: '选择日语水平',
+            levelChoiceLead: '……顺便问一下，选ばれし者的日语水平怎么样？',
+            levelChoicePrompt: '选ばれし者的日语水平？',
             levelChoiceButton: '选择',
-            levelChoiceComplete: '设定好了。任务会按这个难度生成。',
+            levelChoiceComplete: '确认完毕。',
+            levelChoiceReaction: {
+                N5: '没事，拯救世界不一定需要完美语法。大概。',
+                N3: '不错。偶尔被助词绊倒一下，也还是能拯救世界。',
+                N1: '原来如此，很强。那敬语崩坏也交给你了。'
+            },
             mimiIntroLine3: '糟了，你周围的地图正在被崩坏侵蚀。再放任下去，连你脚下的位置都会失真。',
             mimiIntroLine4: '我先把最近的崩壊ノード标出来。看到发光的节点后，立刻点它。',
             dialogNextButton: '继续',
@@ -44,7 +49,7 @@
                 N5: '当前日语水平：N5-N4',
                 N3: '当前日语水平：N3-N2',
                 N1: '当前日语水平：N1+',
-                unknown: '当前难度：未知'
+                unknown: '当前日语水平：未知'
             },
             levelSelected: '已选择：{level}',
             cameraUnsupported: '当前浏览器不支持摄像头调用，请使用 HTTPS 或 localhost 环境。',
@@ -134,10 +139,15 @@
             mimiTutorialIntro: '崩壊ノードを見つけました。まずタップしてください。',
             mimiIntroLine1: 'ようやく接続できました、選ばれし者。',
             mimiIntroLine2: 'ここは現実の裏側にあるデジタル世界。写真は、現実と地図をつなぐ橋です。',
-            levelChoiceLead: '始める前に、日本語レベルを選んでください。タスク難易度の調整に使います。',
-            levelChoicePrompt: '日本語レベルを選択',
+            levelChoiceLead: '……ちなみに、選ばれし者の日本語レベルは？',
+            levelChoicePrompt: '選ばれし者の日本語レベルは？',
             levelChoiceButton: '選択',
-            levelChoiceComplete: '設定できました。この難易度でタスクを生成します。',
+            levelChoiceComplete: '確認完了です。',
+            levelChoiceReaction: {
+                N5: '大丈夫。世界を救うのに、完璧な文法はいりません。たぶん。',
+                N3: 'いいですね。たまに助詞で転ぶくらいなら、世界は救えます。',
+                N1: 'なるほど、強い。では敬語の崩壊も任せました。'
+            },
             mimiIntroLine3: 'まずいです。あなたの周囲の地図が崩壊に侵食されています。このままだと、足元の座標まで歪みます。',
             mimiIntroLine4: '一番近い崩壊ノードを標識します。光っているノードを見つけたら、すぐタップしてください。',
             dialogNextButton: 'つづける',
@@ -149,7 +159,7 @@
                 N5: '現在の日本語レベル：N5-N4',
                 N3: '現在の日本語レベル：N3-N2',
                 N1: '現在の日本語レベル：N1+',
-                unknown: '現在の難易度：不明'
+                unknown: '現在の日本語レベル：不明'
             },
             levelSelected: '選択しました：{level}',
             cameraUnsupported: 'このブラウザではカメラを使用できません。HTTPS または localhost で開いてください。',

@@ -1469,6 +1469,10 @@
         }
     }
 
+    function getLevelChoiceReaction() {
+        const level = state.currentLevel || document.getElementById('level-selector')?.value || 'N5';
+        return tr(`levelChoiceReaction.${level}`) || tr('levelChoiceComplete');
+    }
     function showMimiIntroAfterLevelChoice() {
         if (hasCompletedTutorialPenQuest()) return;
         if (hasSeenTutorialPenQuest() && !state.tutorialPenActiveThisSession) return;
@@ -1499,7 +1503,7 @@
 
         SM.ui?.showGuideSequence?.([
             SM.vision?.hasSelectedLevel?.() && state.levelChoiceAskedThisSession
-                ? tr('levelChoiceComplete')
+                ? getLevelChoiceReaction()
                 : tr('mimiIntroLine1'),
             ...(SM.vision?.hasSelectedLevel?.() && state.levelChoiceAskedThisSession ? [] : [tr('mimiIntroLine2')]),
             tr('mimiIntroLine3'),
