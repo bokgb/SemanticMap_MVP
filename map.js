@@ -1189,8 +1189,8 @@
         const icon = L.divIcon({
             className: 'custom-marker distant-signal-marker',
             html: `<div class="distant-signal-dot" data-spot-type="${escapeAttribute(targetSpot.type)}" data-spot-name="${escapeAttribute(targetSpot.name)}">?</div>`,
-            iconSize: [38, 38],
-            iconAnchor: [19, 19]
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
         });
         const marker = L.marker([targetSpot.lat, targetSpot.lng], {
             icon,
