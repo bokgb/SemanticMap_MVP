@@ -260,6 +260,7 @@
         saveInventory();
         SM.map?.addCapturedWordCard?.(storedData);
         SM.missions?.recordCardCollected?.(storedData);
+        SM.map?.onWordCardCollected?.(storedData);
         elements.wordList.prepend(renderWordBlock(storedData));
 
         collectedWordsCount++;

@@ -5,6 +5,7 @@
     const DEFAULT_CENTER = [34.81036015042446, 135.5610787988949];
     const DEFAULT_DEMO_AREA_ID = 'ritsumeikan_oic';
     const EXPLORER_PROGRESS_STORAGE_KEY = 'semantic-map-explorer-progress-v1';
+    const CHAPTER_PROGRESS_STORAGE_KEY = 'semantic-map-chapter-progress-v1';
     const EXPLORER_LEVELS = [
         { level: 1, xp: 0, scanRadius: 180, unlockRadius: 60, maxVisible: 4, distantHints: 2 },
         { level: 2, xp: 50, scanRadius: 240, unlockRadius: 70, maxVisible: 5, distantHints: 2 },
@@ -27,7 +28,11 @@
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
     const MAP_BOUNDS_RADIUS_METERS = 1200;
     const SCAN_START_RADIUS_METERS = 100;
-    const CHAPTER_ONE_SPOT_TYPES = new Set(['convenience']);
+        const CHAPTER_SPOT_TYPES = {
+        convenience: new Set(['convenience']),
+        station: new Set(['station'])
+    };
+    const CONVENIENCE_DUNGEON_REQUIRED_CARDS = 3;
     const TUTORIAL_PEN_SPOT_ID = 'tutorial_pen_practice';
     const TUTORIAL_PEN_COMPLETE_KEY = 'semantic-map-tutorial-pen-complete-v1';
     const TUTORIAL_PEN_SEEN_KEY = 'semantic-map-tutorial-pen-seen-v1';
@@ -272,6 +277,8 @@
     let areaLayer = null;
     let areaProgress = {};
     let explorerProgress = { xp: 0, coins: 0, discoveredSpotKeys: [] };
+    let chapterProgress = createDefaultChapterProgress();
+    let activeDungeon = null;
     let allSpots = [];
     let catSpawnTimer = null;
     let activeCatMarker = null;
@@ -332,6 +339,126 @@
         return EXPLORER_LEVELS.find(levelConfig => levelConfig.level > currentLevel) || null;
     }
 
+    function createDefaultChapterProgress() {
+        return {
+            currentChapter: 'convenience',
+            convenienceCompletedSpotKeys: [],
+            convenienceDungeonUnlocked: false,
+            convenienceDungeonPrompted: false,
+            chapterStartPrompted: false,
+            convenienceDungeonCleared: false
+        };
+    }
+
+    function getQuestSpotProgressKey(cardOrSpot) {
+        const capture = cardOrSpot?.capture;
+        const quest = cardOrSpot?.quest;
+        const spot = cardOrSpot?.spot || cardOrSpot;
+        return capture?.spotId
+            || spot?.id
+            || `${capture?.lat ?? spot?.lat ?? ''}_${capture?.lng ?? spot?.lng ?? ''}_${quest?.spotType || spot?.type || ''}`;
+    }
+
+    function loadChapterProgress() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(CHAPTER_PROGRESS_STORAGE_KEY) || '{}');
+            chapterProgress = { ...createDefaultChapterProgress(), ...(parsed || {}) };
+            chapterProgress.convenienceCompletedSpotKeys = Array.isArray(chapterProgress.convenienceCompletedSpotKeys)
+                ? chapterProgress.convenienceCompletedSpotKeys
+                : [];
+        } catch (error) {
+            chapterProgress = createDefaultChapterProgress();
+        }
+
+        const convenienceCards = SM.inventory?.getCards?.()
+            ?.filter(card => card?.quest?.spotType === 'convenience') || [];
+        convenienceCards.forEach(card => {
+            const key = getQuestSpotProgressKey(card);
+            if (key && !chapterProgress.convenienceCompletedSpotKeys.includes(key)) {
+                chapterProgress.convenienceCompletedSpotKeys.push(key);
+            }
+        });
+        if (chapterProgress.convenienceCompletedSpotKeys.length >= CONVENIENCE_DUNGEON_REQUIRED_CARDS) {
+            chapterProgress.convenienceDungeonUnlocked = true;
+        }
+        if (chapterProgress.convenienceDungeonCleared) {
+            chapterProgress.currentChapter = 'station';
+        }
+        saveChapterProgress();
+        state.chapterProgress = chapterProgress;
+    }
+
+    function saveChapterProgress() {
+        state.chapterProgress = chapterProgress;
+        try {
+            localStorage.setItem(CHAPTER_PROGRESS_STORAGE_KEY, JSON.stringify(chapterProgress));
+        } catch (error) {
+            console.warn('Failed to save chapter progress.', error);
+        }
+    }
+
+    function getUnlockedSpotTypes() {
+        return CHAPTER_SPOT_TYPES[chapterProgress.currentChapter] || CHAPTER_SPOT_TYPES.convenience;
+    }
+
+    function getLangForChapterCopy() {
+        return SM.i18n?.getLang?.() || state.currentLang || 'ja';
+    }
+
+    function getChapterCopy() {
+        const isJa = getLangForChapterCopy() === 'ja';
+        const ja = {
+            dungeonButton: '\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3',
+            unlockedLines: [
+                '\u30b3\u30f3\u30d3\u30cb\u306e\u5358\u8a9e\u30c7\u30fc\u30bf\u304c3\u3064\u96c6\u307e\u308a\u307e\u3057\u305f\u3002',
+                '\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3\u3067\u30c7\u30fc\u30bf\u3092\u6574\u7406\u3057\u307e\u3057\u3087\u3046\u3002\u30af\u30ea\u30a2\u3059\u308b\u3068\u3001\u99c5\u30a8\u30ea\u30a2\u3078\u306e\u30a2\u30af\u30bb\u30b9\u304c\u958b\u304d\u307e\u3059\u3002'
+            ],
+            challenge: '\u6311\u6226\u3059\u308b',
+            dungeonTitle: '\u30b3\u30f3\u30d3\u30cb\u306e\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3',
+            dungeonKicker: 'SPECIAL REVIEW',
+            dungeonIntro: '\u96c6\u3081\u305f\u30b3\u30f3\u30d3\u30cb\u8a9e\u5f59\u3067\u3001\u5d29\u58ca\u3057\u305f\u610f\u5473\u30c7\u30fc\u30bf\u3092\u518d\u69cb\u6210\u3057\u307e\u3059\u3002',
+            questionPrefix: '\u610f\u5473\u3092\u9078\u3093\u3067\u304f\u3060\u3055\u3044',
+            clearTitle: '\u30b3\u30f3\u30d3\u30cb\u306e\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3 CLEAR!',
+            clearLines: [
+                '\u30b3\u30f3\u30d3\u30cb\u30a8\u30ea\u30a2\u306e\u610f\u5473\u30c7\u30fc\u30bf\u3001\u5b89\u5b9a\u3057\u307e\u3057\u305f\u3002',
+                '\u99c5\u30a8\u30ea\u30a2\u3078\u306e\u30a2\u30af\u30bb\u30b9\u3092\u958b\u653e\u3057\u307e\u3059\u3002\u6b21\u306e\u5d29\u58ca\u30ce\u30fc\u30c9\u3078\u5411\u304b\u3044\u307e\u3057\u3087\u3046\u3002'
+            ],
+            close: '\u9589\u3058\u308b',
+            next: '\u6b21\u3078',
+            start: '\u958b\u59cb',
+            clear: '\u89e3\u653e\u3059\u308b',
+            objectiveKicker: '\u7b2c1\u7ae0',
+            convenienceObjectiveTitle: '\u30b3\u30f3\u30d3\u30cb\u30a8\u30ea\u30a2',
+            convenienceObjectiveBody: '\u8fd1\u304f\u306e\u30b3\u30f3\u30d3\u30cb\u3067\u5d29\u58ca\u53cd\u5fdc\u3002\u5d29\u58ca\u30ce\u30fc\u30c9\u3092\u4fee\u5fa9\u3057\u3066\u3001\u8a9e\u5f59\u30ab\u30fc\u30c9\u30923\u679a\u96c6\u3081\u307e\u3057\u3087\u3046\u3002',
+            dungeonObjectiveTitle: '\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3\u89e3\u653e',
+            dungeonObjectiveBody: '\u30b3\u30f3\u30d3\u30cb\u8a9e\u5f59\u304c\u96c6\u307e\u308a\u307e\u3057\u305f\u3002\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3\u3067\u6574\u7406\u3059\u308b\u3068\u3001\u99c5\u30a8\u30ea\u30a2\u304c\u958b\u304d\u307e\u3059\u3002',
+            stationObjectiveTitle: '\u99c5\u30a8\u30ea\u30a2\u89e3\u653e',
+            stationObjectiveBody: '\u6b21\u306f\u99c5\u5468\u8fba\u306e\u5d29\u58ca\u30ce\u30fc\u30c9\u3092\u63a2\u3057\u307e\u3057\u3087\u3046\u3002\u4ea4\u901a\u306e\u8a9e\u5f59\u30c7\u30fc\u30bf\u3092\u56de\u53ce\u3057\u307e\u3059\u3002',
+            cardProgress: '\u30b3\u30f3\u30d3\u30cb\u8a9e\u5f59\u30ab\u30fc\u30c9 {count}/{required}',
+            stationProgress: '\u99c5\u30a8\u30ea\u30a2\u63a2\u7d22\u4e2d',
+            chapterStartLines: [
+                '\u5468\u56f2\u3092\u78ba\u8a8d\u3057\u307e\u3057\u305f\u3002\u8fd1\u304f\u306e\u30b3\u30f3\u30d3\u30cb\u3067\u5d29\u58ca\u53cd\u5fdc\u304c\u51fa\u3066\u3044\u307e\u3059\u3002',
+                '\u307e\u305a\u306f\u30b3\u30f3\u30d3\u30cb\u306e\u5d29\u58ca\u30ce\u30fc\u30c9\u3092\u4fee\u5fa9\u3057\u3066\u3001\u8a9e\u5f59\u30ab\u30fc\u30c9\u30923\u679a\u96c6\u3081\u307e\u3057\u3087\u3046\u3002'
+            ]
+        };
+        if (isJa) return ja;
+        return {
+            ...ja,
+            objectiveKicker: '第 1 章',
+            convenienceObjectiveTitle: '便利店区域',
+            convenienceObjectiveBody: '你周围的便利店好像发生了崩坏反应。去附近的崩壊ノード看看，收集 3 张便利店词卡。',
+            dungeonObjectiveTitle: '言葉ダンジョン已解锁',
+            dungeonObjectiveBody: '便利店词汇已经收集完成。进入言葉ダンジョン整理数据后，就能解锁车站区域。',
+            stationObjectiveTitle: '车站区域已解锁',
+            stationObjectiveBody: '接下来去车站附近调查崩壊ノード，回收交通场景的词汇数据。',
+            cardProgress: '便利店词卡 {count}/{required}',
+            stationProgress: '车站区域探索中',
+            chapterStartLines: [
+                '我确认了周围信号。附近的便利店好像发生了崩坏反应。',
+                '先去便利店的崩壊ノード看看，收集 3 张便利店词卡吧。'
+            ]
+        };
+    }
     function updatePlayerProgressDisplay() {
         const levelLabel = document.getElementById('player-level-label');
         const coinsLabel = document.getElementById('player-coins-label');
@@ -1153,15 +1280,334 @@
         }
     }
 
+    function formatChapterText(template, params = {}) {
+        return String(template || '').replace(/\{(\w+)\}/g, (_, key) => params[key] ?? '');
+    }
+
+    function getChapterObjectiveState() {
+        if (!hasCompletedTutorialPenQuest()) return null;
+        const c = getChapterCopy();
+        const completedCount = Math.min(chapterProgress.convenienceCompletedSpotKeys.length, CONVENIENCE_DUNGEON_REQUIRED_CARDS);
+
+        if (chapterProgress.convenienceDungeonCleared || chapterProgress.currentChapter === 'station') {
+            return {
+                kicker: c.objectiveKicker,
+                title: c.stationObjectiveTitle,
+                body: c.stationObjectiveBody,
+                progress: c.stationProgress,
+                action: ''
+            };
+        }
+
+        if (chapterProgress.convenienceDungeonUnlocked) {
+            return {
+                kicker: c.objectiveKicker,
+                title: c.dungeonObjectiveTitle,
+                body: c.dungeonObjectiveBody,
+                progress: formatChapterText(c.cardProgress, { count: CONVENIENCE_DUNGEON_REQUIRED_CARDS, required: CONVENIENCE_DUNGEON_REQUIRED_CARDS }),
+                action: c.dungeonButton
+            };
+        }
+
+        return {
+            kicker: c.objectiveKicker,
+            title: c.convenienceObjectiveTitle,
+            body: c.convenienceObjectiveBody,
+            progress: formatChapterText(c.cardProgress, { count: completedCount, required: CONVENIENCE_DUNGEON_REQUIRED_CARDS }),
+            action: ''
+        };
+    }
+
+    function getChapterObjectiveHud() {
+        let hud = document.getElementById('chapter-objective-hud');
+        if (hud) return hud;
+
+        hud = document.createElement('button');
+        hud.id = 'chapter-objective-hud';
+        hud.type = 'button';
+        hud.hidden = true;
+        hud.innerHTML = `
+            <span class="chapter-objective-kicker"></span>
+            <span class="chapter-objective-title"></span>
+            <span class="chapter-objective-body"></span>
+            <span class="chapter-objective-progress"></span>
+        `;
+        hud.addEventListener('click', () => {
+            if (chapterProgress.convenienceDungeonUnlocked && !chapterProgress.convenienceDungeonCleared) {
+                openConvenienceDungeon();
+            } else if (state.lastPlayerPosition) {
+                focusOnPlayer();
+            }
+        });
+        document.body.appendChild(hud);
+        return hud;
+    }
+
+    function updateChapterObjectiveHud() {
+        const hud = getChapterObjectiveHud();
+        const objective = getChapterObjectiveState();
+        hud.hidden = !objective;
+        if (!objective) return;
+
+        hud.querySelector('.chapter-objective-kicker').textContent = objective.kicker;
+        hud.querySelector('.chapter-objective-title').textContent = objective.title;
+        hud.querySelector('.chapter-objective-body').textContent = objective.body;
+        hud.querySelector('.chapter-objective-progress').textContent = objective.action || objective.progress;
+        hud.classList.toggle('actionable', Boolean(objective.action));
+    }
+
+    function maybePromptChapterStart() {
+        if (!hasCompletedTutorialPenQuest()) return;
+        if (chapterProgress.chapterStartPrompted || chapterProgress.convenienceDungeonUnlocked || chapterProgress.convenienceDungeonCleared) return;
+        chapterProgress.chapterStartPrompted = true;
+        saveChapterProgress();
+        updateChapterObjectiveHud();
+        const c = getChapterCopy();
+        SM.ui?.showGuideSequence?.(c.chapterStartLines, { type: 'info' });
+    }
+    function getConvenienceDungeonCards() {
+        const cards = SM.inventory?.getCards?.() || [];
+        const seen = new Set();
+        return cards.filter(card => card?.quest?.spotType === 'convenience' && card?.word?.text).filter(card => {
+            const key = getQuestSpotProgressKey(card) || card.word.text;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        }).slice(0, CONVENIENCE_DUNGEON_REQUIRED_CARDS);
+    }
+
+    function updateChapterDungeonButton() {
+        const button = getChapterDungeonButton();
+        const shouldShow = chapterProgress.convenienceDungeonUnlocked && !chapterProgress.convenienceDungeonCleared;
+        button.hidden = !shouldShow;
+        if (shouldShow) {
+            button.textContent = getChapterCopy().dungeonButton;
+        }
+    }
+
+    function getChapterDungeonButton() {
+        let button = document.getElementById('chapter-dungeon-btn');
+        if (button) return button;
+
+        button = document.createElement('button');
+        button.id = 'chapter-dungeon-btn';
+        button.type = 'button';
+        button.hidden = true;
+        button.addEventListener('click', openConvenienceDungeon);
+        document.body.appendChild(button);
+        return button;
+    }
+
+    function maybePromptConvenienceDungeon() {
+        if (!chapterProgress.convenienceDungeonUnlocked || chapterProgress.convenienceDungeonCleared) return;
+        updateChapterDungeonButton();
+        updateChapterObjectiveHud();
+        if (chapterProgress.convenienceDungeonPrompted) return;
+
+        chapterProgress.convenienceDungeonPrompted = true;
+        saveChapterProgress();
+        const c = getChapterCopy();
+        SM.ui?.showGuideSequence?.(c.unlockedLines, {
+            type: 'success',
+            finalButtonLabel: c.challenge,
+            onComplete: openConvenienceDungeon
+        });
+    }
+
+    function onWordCardCollected(card) {
+        if (card?.quest?.spotType !== 'convenience' || chapterProgress.convenienceDungeonCleared) return;
+
+        const key = getQuestSpotProgressKey(card);
+        if (key && !chapterProgress.convenienceCompletedSpotKeys.includes(key)) {
+            chapterProgress.convenienceCompletedSpotKeys.push(key);
+        }
+        if (chapterProgress.convenienceCompletedSpotKeys.length >= CONVENIENCE_DUNGEON_REQUIRED_CARDS) {
+            chapterProgress.convenienceDungeonUnlocked = true;
+        }
+        saveChapterProgress();
+        updateChapterObjectiveHud();
+        maybePromptChapterStart();
+        maybePromptConvenienceDungeon();
+    }
+
+    function getChapterDungeonLayer() {
+        let layer = document.getElementById('chapter-dungeon-layer');
+        if (layer) return layer;
+
+        layer = document.createElement('div');
+        layer.id = 'chapter-dungeon-layer';
+        layer.className = 'hidden';
+        layer.innerHTML = `
+            <div class="chapter-dungeon-panel" role="dialog" aria-modal="true">
+                <div class="chapter-dungeon-top">
+                    <div>
+                        <div class="chapter-dungeon-kicker"></div>
+                        <h2 class="chapter-dungeon-title"></h2>
+                    </div>
+                    <button type="button" class="chapter-dungeon-close">×</button>
+                </div>
+                <div class="chapter-dungeon-body"></div>
+                <div class="chapter-dungeon-options"></div>
+                <button type="button" class="chapter-dungeon-main"></button>
+            </div>
+        `;
+        document.body.appendChild(layer);
+        layer.querySelector('.chapter-dungeon-close')?.addEventListener('click', closeChapterDungeon);
+        layer.querySelector('.chapter-dungeon-main')?.addEventListener('click', () => {
+            if (!activeDungeon) return;
+            if (activeDungeon.status === 'intro') {
+                activeDungeon.status = 'question';
+                activeDungeon.index = 0;
+                renderChapterDungeon();
+                return;
+            }
+            if (activeDungeon.status === 'answered') {
+                activeDungeon.index += 1;
+                activeDungeon.status = activeDungeon.index >= activeDungeon.questions.length ? 'clear' : 'question';
+                renderChapterDungeon();
+                return;
+            }
+            if (activeDungeon.status === 'clear') {
+                completeConvenienceDungeon();
+            }
+        });
+        return layer;
+    }
+
+    function closeChapterDungeon() {
+        document.getElementById('chapter-dungeon-layer')?.classList.add('hidden');
+        activeDungeon = null;
+    }
+
+    function buildDungeonQuestions(cards) {
+        const fallbackMeanings = ['water', 'bread', 'rice ball', 'ticket', 'station', 'tree'];
+        const meanings = cards.map(card => card.word?.zh || card.word?.kana || card.word?.text).filter(Boolean);
+        return cards.slice(0, CONVENIENCE_DUNGEON_REQUIRED_CARDS).map(card => {
+            const answer = card.word?.zh || card.word?.kana || card.word?.text;
+            const pool = [...meanings, ...fallbackMeanings].filter(item => item && item !== answer);
+            const options = [answer];
+            for (const item of pool) {
+                if (options.length >= 3) break;
+                if (!options.includes(item)) options.push(item);
+            }
+            while (options.length < 3) options.push('?');
+            return {
+                prompt: `「${card.word.text}」`,
+                answer,
+                options: options.sort(() => Math.random() - 0.5)
+            };
+        });
+    }
+
+    function openConvenienceDungeon() {
+        if (!chapterProgress.convenienceDungeonUnlocked || chapterProgress.convenienceDungeonCleared) return;
+        const cards = getConvenienceDungeonCards();
+        if (cards.length < CONVENIENCE_DUNGEON_REQUIRED_CARDS) {
+            SM.ui?.showToast?.('便利店词卡还不够。先完成 3 个便利店任务。', { type: 'warning', duration: 3200 });
+            return;
+        }
+
+        activeDungeon = {
+            status: 'intro',
+            index: 0,
+            questions: buildDungeonQuestions(cards),
+            correct: 0
+        };
+        getChapterDungeonLayer().classList.remove('hidden');
+        renderChapterDungeon();
+    }
+
+    function renderChapterDungeon() {
+        if (!activeDungeon) return;
+        const c = getChapterCopy();
+        const layer = getChapterDungeonLayer();
+        const kicker = layer.querySelector('.chapter-dungeon-kicker');
+        const title = layer.querySelector('.chapter-dungeon-title');
+        const body = layer.querySelector('.chapter-dungeon-body');
+        const options = layer.querySelector('.chapter-dungeon-options');
+        const main = layer.querySelector('.chapter-dungeon-main');
+
+        if (kicker) kicker.textContent = c.dungeonKicker;
+        if (title) title.textContent = c.dungeonTitle;
+        if (options) options.innerHTML = '';
+
+        if (activeDungeon.status === 'intro') {
+            if (body) body.innerHTML = `<p>${escapeAttribute(c.dungeonIntro)}</p>`;
+            if (main) {
+                main.hidden = false;
+                main.textContent = c.start;
+            }
+            return;
+        }
+
+        if (activeDungeon.status === 'question' || activeDungeon.status === 'answered') {
+            const question = activeDungeon.questions[activeDungeon.index];
+            if (body) {
+                body.innerHTML = `<div class="chapter-dungeon-progress">${activeDungeon.index + 1}/${activeDungeon.questions.length}</div><p>${escapeAttribute(c.questionPrefix)}</p><div class="chapter-dungeon-word">${escapeAttribute(question.prompt)}</div>`;
+            }
+            if (options) {
+                question.options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'chapter-dungeon-option';
+                    button.textContent = option;
+                    button.disabled = activeDungeon.status === 'answered';
+                    if (activeDungeon.status === 'answered') {
+                        button.classList.toggle('correct', option === question.answer);
+                        button.classList.toggle('wrong', option === activeDungeon.selected && option !== question.answer);
+                    }
+                    button.addEventListener('click', () => answerDungeonQuestion(option));
+                    options.appendChild(button);
+                });
+            }
+            if (main) {
+                main.hidden = activeDungeon.status !== 'answered';
+                main.textContent = c.next;
+            }
+            return;
+        }
+
+        if (activeDungeon.status === 'clear') {
+            if (body) body.innerHTML = `<div class="chapter-dungeon-clear">${escapeAttribute(c.clearTitle)}</div><p>EXP +30 / Coin +20</p>`;
+            if (main) {
+                main.hidden = false;
+                main.textContent = c.clear;
+            }
+        }
+    }
+
+    function answerDungeonQuestion(option) {
+        if (!activeDungeon || activeDungeon.status !== 'question') return;
+        const question = activeDungeon.questions[activeDungeon.index];
+        activeDungeon.selected = option;
+        if (option === question.answer) activeDungeon.correct += 1;
+        activeDungeon.status = 'answered';
+        renderChapterDungeon();
+    }
+
+    function completeConvenienceDungeon() {
+        closeChapterDungeon();
+        chapterProgress.convenienceDungeonCleared = true;
+        chapterProgress.currentChapter = 'station';
+        saveChapterProgress();
+        updateChapterDungeonButton();
+        updateChapterObjectiveHud();
+        grantExplorerReward({ xp: 30, coins: 20, showToast: true });
+        if (state.lastPlayerPosition) {
+            updateVisibleSpots(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng);
+        }
+        const c = getChapterCopy();
+        SM.ui?.showGuideSequence?.(c.clearLines, { type: 'success' });
+    }
     function isSpotVisibleInCurrentChapter(spot) {
         if (!spot) return false;
         if (spot.type === 'tutorial_pen') return true;
         if (!hasCompletedTutorialPenQuest()) return false;
-        return CHAPTER_ONE_SPOT_TYPES.has(spot.type);
+        return getUnlockedSpotTypes().has(spot.type);
     }
 
     function areNpcEventsUnlocked() {
-        return false;
+        return chapterProgress.convenienceDungeonCleared;
     }
 
     function hasSeenTutorialPenQuest() {
@@ -2039,7 +2485,9 @@
         capturedWordLayer = L.layerGroup().addTo(map);
         radarLayer = L.layerGroup().addTo(map);
         loadExplorerProgress();
+        loadChapterProgress();
         updatePlayerProgressDisplay();
+        updateChapterDungeonButton();
         initFogCanvas();
         updateRadarDisplay();
         initAreas();
@@ -2053,6 +2501,7 @@
         loadOSMData();
         renderCapturedWordMarkers();
         window.setTimeout(showMimiIntroAfterLevelChoice, 1300);
+        window.setTimeout(maybePromptChapterStart, 1700);
     }
 
     SM.map = {
@@ -2076,6 +2525,9 @@
         areas: GAME_AREAS,
         getSpotArea,
         getAreaName,
+        onWordCardCollected,
+        openConvenienceDungeon,
+        updateChapterObjectiveHud,
         refreshLanguage
     };
 })();
