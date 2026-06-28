@@ -1240,20 +1240,35 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 }
 
 .distant-signal-dot {
-    width: 30px;
-    height: 30px;
+    position: relative;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 17px;
-    font-weight: 900;
-    background: rgba(214, 147, 30, 0.96);
-    border: 3px solid rgba(255, 255, 255, 0.96);
-    box-shadow: 0 0 0 5px rgba(255, 224, 150, 0.38), 0 0 18px rgba(255, 190, 70, 0.72), 0 5px 16px rgba(0,0,0,0.36);
+    font-size: 21px;
+    font-weight: 950;
+    background: radial-gradient(circle at 32% 24%, #ffe89a 0%, #f2b338 44%, #a85d08 100%);
+    border: 3px solid rgba(255, 255, 255, 0.98);
+    box-shadow:
+        0 0 0 7px rgba(255, 220, 92, 0.42),
+        0 0 28px rgba(255, 190, 36, 0.92),
+        0 0 54px rgba(255, 151, 26, 0.46),
+        0 8px 18px rgba(0, 0, 0, 0.42);
     backdrop-filter: blur(5px);
-    animation: distantSignalPulse 1.8s ease-in-out infinite;
+    animation: distantSignalPulse 1.35s ease-in-out infinite;
+}
+
+.distant-signal-dot::after {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 230, 145, 0.52);
+    box-shadow: 0 0 22px rgba(255, 203, 71, 0.42);
+    animation: distantSignalRing 1.35s ease-out infinite;
 }
 
 .captured-word-pin {
@@ -1351,11 +1366,22 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 @keyframes distantSignalPulse {
     0%, 100% {
         transform: scale(1);
-        opacity: 0.76;
+        opacity: 0.95;
     }
     50% {
-        transform: scale(1.08);
+        transform: scale(1.12);
         opacity: 1;
+    }
+}
+
+@keyframes distantSignalRing {
+    0% {
+        transform: scale(0.72);
+        opacity: 0.82;
+    }
+    100% {
+        transform: scale(1.26);
+        opacity: 0;
     }
 }
 
@@ -2987,10 +3013,7 @@ body.mission-open #bag-btn {
     }
 }
 .mimi-highlight {
-    display: inline-block;
     color: #0f766e;
     font-weight: 950;
-    padding: 0 0.14em;
-    background: linear-gradient(180deg, transparent 54%, rgba(46, 230, 204, 0.32) 54%);
-    text-shadow: 0 0 12px rgba(46, 230, 204, 0.26);
+    text-shadow: 0 0 10px rgba(15, 118, 110, 0.18);
 }
