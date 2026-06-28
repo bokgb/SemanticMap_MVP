@@ -87,9 +87,10 @@
     }
 
     function renderGuideText(value) {
-        return escapeHtml(value).replace(/\[\[(.+?)\]\]/g, '<span class="mimi-highlight">$1</span>');
+        return escapeHtml(value)
+            .replace(/\[\[(.+?)\]\]/g, '<span class="mimi-highlight">$1</span>')
+            .replace(/(\u30b3\u30f3\u30d3\u30cb|\u4fbf\u5229\u5e97)/g, '<span class="mimi-highlight">$1</span>');
     }
-
     function setGuideText(element, value) {
         if (element) element.innerHTML = renderGuideText(value || '');
     }
