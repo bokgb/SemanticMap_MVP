@@ -27,6 +27,7 @@
     const MIN_SAME_TAG_DISTANCE_METERS = 180;
     const MAP_BOUNDS_RADIUS_METERS = 1200;
     const SCAN_START_RADIUS_METERS = 100;
+    const CHAPTER_ONE_SPOT_TYPES = new Set(['convenience']);
     const TUTORIAL_PEN_SPOT_ID = 'tutorial_pen_practice';
     const TUTORIAL_PEN_COMPLETE_KEY = 'semantic-map-tutorial-pen-complete-v1';
     const TUTORIAL_PEN_SEEN_KEY = 'semantic-map-tutorial-pen-seen-v1';
@@ -1098,6 +1099,7 @@
         const selectedAngles = [];
 
         const candidates = allSpots
+            .filter(isSpotVisibleInCurrentChapter)
             .map(spot => ({
                 ...spot,
                 distance: playerLocation.distanceTo([spot.lat, spot.lng]),
@@ -1149,6 +1151,17 @@
         } catch (error) {
             return false;
         }
+    }
+
+    function isSpotVisibleInCurrentChapter(spot) {
+        if (!spot) return false;
+        if (spot.type === 'tutorial_pen') return true;
+        if (!hasCompletedTutorialPenQuest()) return false;
+        return CHAPTER_ONE_SPOT_TYPES.has(spot.type);
+    }
+
+    function areNpcEventsUnlocked() {
+        return false;
     }
 
     function hasSeenTutorialPenQuest() {
@@ -1532,6 +1545,7 @@
         updateRadarDisplay();
 
         const nearbySpots = allSpots
+            .filter(isSpotVisibleInCurrentChapter)
             .map(spot => ({ ...spot, distance: playerLocation.distanceTo([spot.lat, spot.lng]) }))
             .filter(spot => spot.distance < explorerConfig.scanRadius)
             .sort((a, b) => a.distance - b.distance);
@@ -1723,6 +1737,7 @@
     }
 
     function scheduleRandomCatSpawn() {
+        if (!areNpcEventsUnlocked()) return;
         if (catSpawnTimer || activeCatMarker || !playerMarker) return;
 
         catSpawnTimer = window.setTimeout(() => {
