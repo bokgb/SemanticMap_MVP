@@ -76,6 +76,23 @@
         window.clearTimeout(guideMessageTimer);
     }
 
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char]));
+    }
+
+    function renderGuideText(value) {
+        return escapeHtml(value).replace(/\[\[(.+?)\]\]/g, '<span class="mimi-highlight">$1</span>');
+    }
+
+    function setGuideText(element, value) {
+        if (element) element.innerHTML = renderGuideText(value || '');
+    }
     function showGuideMessage(message, options = {}) {
         const layer = getGuideLayer();
         const textEl = layer.querySelector('.mimi-text');
@@ -89,9 +106,7 @@
         layer.classList.remove('success', 'warning', 'error', 'info', 'show');
         layer.classList.remove('sequence', 'reveal', 'curtain');
         layer.classList.add(type);
-        if (textEl) {
-            textEl.textContent = String(message || '');
-        }
+        setGuideText(textEl, message);
         if (nextButton) {
             nextButton.hidden = true;
         }
@@ -159,7 +174,7 @@
         layer.classList.add(type, 'sequence');
         layer.classList.toggle('curtain', Boolean(options.curtain));
         setTutorialCurtain(Boolean(options.curtain));
-        if (textEl) textEl.textContent = String(message || '');
+        setGuideText(textEl, message);
         if (nextButton) nextButton.hidden = true;
         if (choiceList) {
             choiceList.innerHTML = '';
@@ -189,7 +204,7 @@
         const isLastLine = guideSequence.index >= guideSequence.lines.length - 1;
         const isAlertLine = guideSequence.alertIndex >= 0 && guideSequence.index >= guideSequence.alertIndex;
 
-        if (textEl) textEl.textContent = guideSequence.lines[guideSequence.index] || '';
+        setGuideText(textEl, guideSequence.lines[guideSequence.index] || '');
         layer.classList.toggle('alert', isAlertLine);
         document.body.classList.toggle('mimi-alert', isAlertLine);
         if (nextButton) {

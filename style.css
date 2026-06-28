@@ -2986,3 +2986,11 @@ body.mission-open #bag-btn {
         font-size: 12px;
     }
 }
+.mimi-highlight {
+    display: inline-block;
+    color: #0f766e;
+    font-weight: 950;
+    padding: 0 0.14em;
+    background: linear-gradient(180deg, transparent 54%, rgba(46, 230, 204, 0.32) 54%);
+    text-shadow: 0 0 12px rgba(46, 230, 204, 0.26);
+}
