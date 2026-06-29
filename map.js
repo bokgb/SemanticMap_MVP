@@ -6,6 +6,7 @@
     const DEFAULT_DEMO_AREA_ID = 'ritsumeikan_oic';
     const EXPLORER_PROGRESS_STORAGE_KEY = 'semantic-map-explorer-progress-v1';
     const CHAPTER_PROGRESS_STORAGE_KEY = 'semantic-map-chapter-progress-v1';
+    const CONVENIENCE_TASK_SWITCH_HINT_KEY = 'semantic-map-convenience-task-switch-hint-seen-v1';
     const EXPLORER_LEVELS = [
         { level: 1, xp: 0, scanRadius: 180, unlockRadius: 60, maxVisible: 4, distantHints: 2 },
         { level: 2, xp: 50, scanRadius: 240, unlockRadius: 70, maxVisible: 5, distantHints: 2 },
@@ -357,6 +358,55 @@
         return capture?.spotId
             || spot?.id
             || `${capture?.lat ?? spot?.lat ?? ''}_${capture?.lng ?? spot?.lng ?? ''}_${quest?.spotType || spot?.type || ''}`;
+    }
+
+    function getBaseSpotId(spot) {
+        return spot?.id || `${spot?.lat ?? ''}_${spot?.lng ?? ''}_${spot?.type || ''}`;
+    }
+
+    function isConvenienceMultiQuestSpot(spot) {
+        return spot?.type === 'convenience'
+            && chapterProgress.currentChapter === 'convenience'
+            && !chapterProgress.convenienceDungeonUnlocked
+            && !chapterProgress.convenienceDungeonCleared;
+    }
+
+    function getConvenienceTaskId(spot, index) {
+        return `${getBaseSpotId(spot)}__convenience_task_${index + 1}`;
+    }
+
+    function createConvenienceTaskSpot(spot, index) {
+        return {
+            ...spot,
+            id: getConvenienceTaskId(spot, index),
+            parentSpotId: getBaseSpotId(spot),
+            chapterTaskIndex: index,
+            chapterTaskTotal: CONVENIENCE_DUNGEON_REQUIRED_CARDS
+        };
+    }
+
+    function getConvenienceTaskChoices(spot) {
+        return Array.from({ length: CONVENIENCE_DUNGEON_REQUIRED_CARDS }, (_, index) => {
+            const taskSpot = createConvenienceTaskSpot(spot, index);
+            const questState = SM.quests.getQuestStateForSpot(taskSpot);
+            return {
+                index,
+                spot: taskSpot,
+                status: questState.status,
+                questData: questState.questData ? {
+                    ...questState.questData,
+                    chapterTaskIndex: index,
+                    chapterTaskTotal: CONVENIENCE_DUNGEON_REQUIRED_CARDS,
+                    parentSpotId: getBaseSpotId(spot)
+                } : null
+            };
+        });
+    }
+
+    function getConvenienceSpotCompletedCount(spot) {
+        return getConvenienceTaskChoices(spot)
+            .filter(choice => choice.status === 'completed' || chapterProgress.convenienceCompletedSpotKeys.includes(choice.spot.id))
+            .length;
     }
 
     function loadChapterProgress() {
@@ -1423,6 +1473,9 @@
         }
         if (chapterProgress.convenienceCompletedSpotKeys.length >= CONVENIENCE_DUNGEON_REQUIRED_CARDS) {
             chapterProgress.convenienceDungeonUnlocked = true;
+            if (state.lastPlayerPosition) {
+                updateVisibleSpots(state.lastPlayerPosition.lat, state.lastPlayerPosition.lng);
+            }
         }
         saveChapterProgress();
         updateChapterObjectiveHud();
@@ -1603,6 +1656,7 @@
         if (!spot) return false;
         if (spot.type === 'tutorial_pen') return true;
         if (!hasCompletedTutorialPenQuest()) return false;
+        if (spot.type === 'convenience' && chapterProgress.convenienceDungeonUnlocked && !chapterProgress.convenienceDungeonCleared) return false;
         return getUnlockedSpotTypes().has(spot.type);
     }
 
@@ -1737,6 +1791,10 @@
             return createCompletedQuestMarker(spot);
         }
 
+        if (isConvenienceMultiQuestSpot(spot) && getConvenienceSpotCompletedCount(spot) >= CONVENIENCE_DUNGEON_REQUIRED_CARDS) {
+            return createCompletedQuestMarker(spot);
+        }
+
         const markerQuestData = questState.questData;
         const explorerConfig = getExplorerConfig();
         const distanceToPlayer = Number(spot.distance ?? (
@@ -1819,7 +1877,161 @@
         return marker;
     }
 
+    function escapeQuestChoiceText(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function openConvenienceTaskChoice(spot, marker) {
+        const questLayer = document.getElementById('quest-layer');
+        const questTitle = questLayer.querySelector('.quest-content h3');
+        const repairPointsChip = questLayer.querySelector('#quest-repair-points');
+        const preview = questLayer.querySelector('.sentence-preview');
+        const startScanButton = document.getElementById('btn-start-scan');
+        const choices = getConvenienceTaskChoices(spot);
+        const isJa = getLangForChapterCopy() === 'ja';
+        let activeIndex = Math.max(0, choices.findIndex(choice => {
+            return choice.status !== 'completed' && !chapterProgress.convenienceCompletedSpotKeys.includes(choice.spot.id);
+        }));
+        let hint = questLayer.querySelector('.quest-tutorial-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'quest-tutorial-hint';
+            preview.insertAdjacentElement('afterend', hint);
+        }
+
+        function hasSeenTaskSwitchHint() {
+            try {
+                return localStorage.getItem(CONVENIENCE_TASK_SWITCH_HINT_KEY) === '1';
+            } catch (error) {
+                return Boolean(state.convenienceTaskSwitchHintSeen);
+            }
+        }
+
+        function markTaskSwitchHintSeen() {
+            state.convenienceTaskSwitchHintSeen = true;
+            try {
+                localStorage.setItem(CONVENIENCE_TASK_SWITCH_HINT_KEY, '1');
+            } catch (error) {
+                // In-memory state is enough if localStorage is unavailable.
+            }
+            updateHint();
+        }
+
+        function updateHint() {
+            if (!hint) return;
+            hint.hidden = hasSeenTaskSwitchHint();
+            hint.innerText = isJa ? '\u5de6\u53f3\u306b\u5207\u66ff' : '\u5de6\u53f3\u5207\u6362\u4efb\u52a1';
+        }
+
+        function isChoiceDone(choice) {
+            return choice.status === 'completed' || chapterProgress.convenienceCompletedSpotKeys.includes(choice.spot.id);
+        }
+
+        function updateHeader() {
+            const completedCount = choices.filter(isChoiceDone).length;
+            questTitle.innerText = isJa ? '\u30b3\u30f3\u30d3\u30cb\u306e\u5d29\u58ca\u30ce\u30fc\u30c9' : '\u4fbf\u5229\u5e97\u7684\u5d29\u574f\u8282\u70b9';
+            questTitle.style.color = 'var(--accent-dark)';
+            if (repairPointsChip) {
+                repairPointsChip.hidden = false;
+                repairPointsChip.classList.remove('outside', 'special');
+                repairPointsChip.innerText = isJa
+                    ? `\u4fee\u5fa9 ${completedCount}/${CONVENIENCE_DUNGEON_REQUIRED_CARDS}`
+                    : `\u4fee\u590d ${completedCount}/${CONVENIENCE_DUNGEON_REQUIRED_CARDS}`;
+            }
+        }
+
+        function switchTask(nextIndex, { markSeen = false } = {}) {
+            activeIndex = (nextIndex + choices.length) % choices.length;
+            if (markSeen) markTaskSwitchHintSeen();
+            renderSentenceCarousel();
+        }
+
+        function bindSwipeSwitch() {
+            const card = preview.querySelector('.convenience-sentence-preview');
+            if (!card) return;
+            let startX = 0;
+            let startY = 0;
+            let tracking = false;
+
+            card.addEventListener('touchstart', event => {
+                const touch = event.touches?.[0];
+                if (!touch) return;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                tracking = true;
+            }, { passive: true });
+
+            card.addEventListener('touchend', event => {
+                if (!tracking) return;
+                tracking = false;
+                const touch = event.changedTouches?.[0];
+                if (!touch) return;
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+                if (Math.abs(dx) < 42 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+                event.preventDefault();
+                switchTask(activeIndex + (dx < 0 ? 1 : -1), { markSeen: true });
+            }, { passive: false });
+        }
+
+        function renderSentenceCarousel() {
+            const choice = choices[activeIndex] || choices[0];
+            const done = isChoiceDone(choice);
+            const sentence = escapeQuestChoiceText(choice?.questData?.text || '[ ? ]');
+            const slotHtml = done
+                ? '<span class="completed-slot">\u4fee\u5fa9\u6e08\u307f</span>'
+                : '<button class="slot-box camera-slot convenience-camera-slot" type="button"><span class="slot-camera-icon" aria-hidden="true"></span><span class="slot-camera-label">\u5199\u771f\u3067\u5165\u529b</span></button>';
+            const displayText = sentence.replace('[ ? ]', slotHtml);
+
+            preview.innerHTML = `
+                <div class="convenience-sentence-carousel">
+                    <div class="convenience-sentence-preview${done ? ' completed' : ''}">${displayText}</div>
+                    <div class="convenience-sentence-dots" aria-label="sentence choices">
+                        ${choices.map((item, index) => {
+                            const itemDone = isChoiceDone(item);
+                            return `<button type="button" class="sentence-dot${index === activeIndex ? ' active' : ''}${itemDone ? ' completed' : ''}" data-task-index="${index}" aria-label="${index + 1}">${itemDone ? '\u2713' : ''}</button>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            preview.querySelector('.convenience-camera-slot')?.addEventListener('click', event => {
+                event.preventDefault();
+                if (!choice?.questData) return;
+                openQuestUI(choice.questData, choice.spot, marker);
+            });
+
+            preview.querySelectorAll('.sentence-dot').forEach(button => {
+                button.addEventListener('click', () => {
+                    switchTask(Number(button.dataset.taskIndex || 0), { markSeen: true });
+                });
+            });
+
+            bindSwipeSwitch();
+        }
+
+        updateHeader();
+        renderSentenceCarousel();
+        updateHint();
+
+        if (startScanButton) startScanButton.hidden = true;
+        document.querySelector('.location-tag').innerText = spot.name || (isJa ? '\u30b3\u30f3\u30d3\u30cb' : '\u4fbf\u5229\u5e97');
+        state.activeQuest = null;
+
+        SM.ui?.setBagHudHidden?.(true, 'quest-panel');
+        questLayer.classList.remove('hidden');
+        SM.ui?.hideGuideMessage?.();
+    }
     function openQuestUI(data, spot, marker) {
+        if (isConvenienceMultiQuestSpot(spot) && !Number.isInteger(data?.chapterTaskIndex)) {
+            openConvenienceTaskChoice(spot, marker);
+            return;
+        }
         const questLayer = document.getElementById('quest-layer');
         const questTitle = questLayer.querySelector('.quest-content h3');
         const repairPointsChip = questLayer.querySelector('#quest-repair-points');
@@ -1874,6 +2086,10 @@
             level: data.level,
             requiredTag: data.requiredTag,
             rewardCount: data.rewardCount,
+            chapterTaskIndex: data.chapterTaskIndex,
+            chapterTaskTotal: data.chapterTaskTotal,
+            parentSpotId: data.parentSpotId,
+            keepMarkerUntilChapterComplete: Number.isInteger(data.chapterTaskIndex),
             targetAreaId: targetArea?.id || null,
             spot,
             marker

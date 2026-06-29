@@ -223,7 +223,7 @@
         };
         saveQuestCache();
 
-        if (quest.marker) {
+        if (quest.marker && !quest.keepMarkerUntilChapterComplete) {
             quest.marker.setIcon(createCompletedMarkerIcon());
             quest.marker.off('click');
         }

@@ -422,7 +422,9 @@
                     sentence: finishedSentence,
                     location: activeQuest.spot?.name || '',
                     spotType: activeQuest.spot?.type || '',
-                    requiredTag: activeQuest.requiredTag
+                    requiredTag: activeQuest.requiredTag,
+                    chapterTaskIndex: activeQuest.chapterTaskIndex,
+                    parentSpotId: activeQuest.parentSpotId
                 };
                 aiResult.capture = {
                     id: `capture_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -437,7 +439,9 @@
 
             let repairGuideLines = null;
             SM.quests.completeQuest(activeQuest);
-            SM.map?.clearCollapseErrorZone?.(activeQuest.marker);
+            if (!activeQuest.keepMarkerUntilChapterComplete) {
+                SM.map?.clearCollapseErrorZone?.(activeQuest.marker);
+            }
             if (activeQuest.type === 'TUTORIAL') {
                 SM.map?.grantExplorerReward?.({ type: activeQuest.rarity || 'N' });
                 repairGuideLines = getRepairCompleteGuideLines(activeQuest);
