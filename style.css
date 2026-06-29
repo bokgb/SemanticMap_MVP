@@ -1246,15 +1246,17 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #f7fffc;
+    color: #fff4f4;
     font-size: 17px;
     font-weight: 900;
-    background: radial-gradient(circle at 34% 24%, rgba(214, 255, 248, 0.98) 0%, rgba(70, 178, 166, 0.96) 46%, rgba(18, 86, 88, 0.94) 100%);
-    border: 2px solid rgba(232, 255, 251, 0.94);
+    background:
+        linear-gradient(90deg, transparent 0 18%, rgba(255,255,255,0.34) 19% 22%, transparent 23% 44%, rgba(255,255,255,0.18) 45% 48%, transparent 49%),
+        radial-gradient(circle at 36% 28%, rgba(255, 95, 95, 0.96) 0%, rgba(132, 14, 24, 0.98) 46%, rgba(17, 8, 12, 0.98) 100%);
+    border: 2px solid rgba(255, 205, 205, 0.9);
     box-shadow:
-        0 0 0 4px rgba(120, 232, 215, 0.18),
-        0 0 18px rgba(80, 220, 202, 0.5),
-        0 5px 16px rgba(5, 24, 27, 0.38);
+        0 0 0 4px rgba(255, 55, 76, 0.16),
+        0 0 20px rgba(255, 47, 69, 0.52),
+        0 5px 16px rgba(6, 0, 2, 0.5);
     backdrop-filter: blur(5px);
     animation: distantSignalPulse 1.65s ease-in-out infinite;
 }
@@ -1354,22 +1356,15 @@ body:has(#quest-layer:not(.hidden)) #bag-btn {
 @keyframes distantSignalPulse {
     0%, 100% {
         transform: scale(1);
-        opacity: 0.78;
-        filter: saturate(0.92) brightness(1);
+        opacity: 0.76;
+        filter: saturate(0.92) brightness(0.94);
     }
     50% {
-        transform: scale(1.14);
+        transform: scale(1.13);
         opacity: 1;
-        filter: saturate(1.06) brightness(1.18);
+        filter: saturate(1.12) brightness(1.14);
     }
 }
-
-100% {
-        transform: scale(1.26);
-        opacity: 0;
-    }
-}
-
 @keyframes signalPulse {
     0%, 100% {
         transform: scale(1);
