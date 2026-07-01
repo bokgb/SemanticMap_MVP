@@ -1982,15 +1982,23 @@
         function renderSentenceCarousel() {
             const choice = choices[activeIndex] || choices[0];
             const done = isChoiceDone(choice);
-            const sentence = escapeQuestChoiceText(choice?.questData?.text || '[ ? ]');
+            const sentenceParts = escapeQuestChoiceText(choice?.questData?.text || '[ ? ]').split('[ ? ]');
+            const beforeText = sentenceParts[0] || '';
+            const afterText = sentenceParts.slice(1).join('[ ? ]') || '';
             const slotHtml = done
                 ? '<span class="completed-slot">\u4fee\u5fa9\u6e08\u307f</span>'
-                : '<button class="slot-box camera-slot convenience-camera-slot" type="button"><span class="slot-camera-icon" aria-hidden="true"></span><span class="slot-camera-label">\u5199\u771f\u3067\u5165\u529b</span></button>';
-            const displayText = sentence.replace('[ ? ]', slotHtml);
+                : '<button class="slot-box camera-slot convenience-camera-slot" type="button"><span class="slot-camera-icon" aria-hidden="true"></span><span class="slot-camera-label">\u5199\u771f</span></button>';
+            const sentenceLayout = `
+                <div class="sentence-fill-layout sentence-inline-layout">
+                    ${beforeText ? `<span class="sentence-text sentence-before">${beforeText}</span>` : ''}
+                    ${slotHtml}
+                    ${afterText ? `<span class="sentence-text sentence-after">${afterText}</span>` : ''}
+                </div>
+            `;
 
             preview.innerHTML = `
                 <div class="convenience-sentence-carousel">
-                    <div class="convenience-sentence-preview${done ? ' completed' : ''}">${displayText}</div>
+                    <div class="convenience-sentence-preview${done ? ' completed' : ''}">${sentenceLayout}</div>
                     <div class="convenience-sentence-dots" aria-label="sentence choices">
                         ${choices.map((item, index) => {
                             const itemDone = isChoiceDone(item);
