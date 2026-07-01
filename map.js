@@ -1338,12 +1338,14 @@
         if (!hasCompletedTutorialPenQuest()) return null;
         const c = getChapterCopy();
         const completedCount = Math.min(chapterProgress.convenienceCompletedSpotKeys.length, CONVENIENCE_DUNGEON_REQUIRED_CARDS);
+        const isJa = getLangForChapterCopy() === 'ja';
+        const mainLabel = isJa ? '\u30e1\u30a4\u30f3' : '\u4e3b\u7ebf';
 
         if (chapterProgress.convenienceDungeonCleared || chapterProgress.currentChapter === 'station') {
             return {
-                kicker: c.objectiveKicker,
-                title: c.stationObjectiveTitle,
-                body: c.stationObjectiveBody,
+                kicker: mainLabel,
+                title: isJa ? '\u99c5' : '\u8f66\u7ad9',
+                body: '',
                 progress: c.stationProgress,
                 action: ''
             };
@@ -1351,23 +1353,22 @@
 
         if (chapterProgress.convenienceDungeonUnlocked) {
             return {
-                kicker: c.objectiveKicker,
-                title: c.dungeonObjectiveTitle,
-                body: c.dungeonObjectiveBody,
-                progress: formatChapterText(c.cardProgress, { count: CONVENIENCE_DUNGEON_REQUIRED_CARDS, required: CONVENIENCE_DUNGEON_REQUIRED_CARDS }),
+                kicker: mainLabel,
+                title: '\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3',
+                body: '',
+                progress: 'OPEN',
                 action: c.dungeonButton
             };
         }
 
         return {
-            kicker: c.objectiveKicker,
-            title: c.convenienceObjectiveTitle,
-            body: c.convenienceObjectiveBody,
-            progress: formatChapterText(c.cardProgress, { count: completedCount, required: CONVENIENCE_DUNGEON_REQUIRED_CARDS }),
+            kicker: mainLabel,
+            title: isJa ? '\u30b3\u30f3\u30d3\u30cb' : '\u4fbf\u5229\u5e97',
+            body: '',
+            progress: `${completedCount}/${CONVENIENCE_DUNGEON_REQUIRED_CARDS}`,
             action: ''
         };
     }
-
     function getChapterObjectiveHud() {
         let hud = document.getElementById('chapter-objective-hud');
         if (hud) return hud;
@@ -2712,6 +2713,7 @@
         radarLayer = L.layerGroup().addTo(map);
         loadExplorerProgress();
         loadChapterProgress();
+        updateChapterObjectiveHud();
         updatePlayerProgressDisplay();
         updateChapterDungeonButton();
         initFogCanvas();
