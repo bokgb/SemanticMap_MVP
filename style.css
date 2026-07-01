@@ -2071,28 +2071,30 @@ h2, p {
 }
 
 .sentence-inline-layout .camera-slot {
-    min-height: 32px;
-    padding: 2px 9px 3px;
-    border-radius: 11px;
-    gap: 5px;
+    min-width: 46px;
+    min-height: 34px;
+    padding: 2px 10px 3px;
+    border-radius: 12px;
+    gap: 0;
     font-size: 0.68em;
     font-weight: 760;
     line-height: 1;
     transform: translateY(-0.04em);
 }
 
+.sentence-inline-layout .camera-slot.icon-only {
+    justify-content: center;
+    vertical-align: middle;
+}
+
 .sentence-inline-layout .slot-camera-icon {
-    width: 22px;
-    height: 16px;
+    width: 24px;
+    height: 17px;
 }
 
 .sentence-inline-layout .slot-camera-icon::before {
     width: 8px;
     height: 8px;
-}
-
-.sentence-inline-layout .slot-camera-label {
-    white-space: nowrap;
 }
 
 .convenience-sentence-dots {
