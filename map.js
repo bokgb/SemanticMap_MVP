@@ -1985,6 +1985,8 @@
             const sentenceParts = escapeQuestChoiceText(choice?.questData?.text || '[ ? ]').split('[ ? ]');
             const beforeText = sentenceParts[0] || '';
             const afterText = sentenceParts.slice(1).join('[ ? ]') || '';
+            const rawSentenceLength = `${beforeText}${afterText}`.replace(/\s+/g, '').length;
+            const isLongSentence = rawSentenceLength > 10;
             const slotHtml = done
                 ? '<span class="completed-slot">\u4fee\u5fa9\u6e08\u307f</span>'
                 : '<button class="slot-box camera-slot convenience-camera-slot icon-only" type="button" aria-label="\u5199\u771f\u3067\u5165\u529b"><span class="slot-camera-icon" aria-hidden="true"></span></button>';
