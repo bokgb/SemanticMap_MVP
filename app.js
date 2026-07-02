@@ -7,7 +7,24 @@
     state.currentLang = 'ja';
     state.activeQuest = null;
 
+    function initClickEffects() {
+        document.addEventListener('pointerdown', (event) => {
+            if (event.button !== undefined && event.button !== 0) return;
+
+            const pulse = document.createElement('span');
+            pulse.className = 'recording-click-pulse';
+            pulse.style.left = `${event.clientX}px`;
+            pulse.style.top = `${event.clientY}px`;
+            document.body.appendChild(pulse);
+
+            pulse.addEventListener('animationend', () => {
+                pulse.remove();
+            }, { once: true });
+        }, { capture: true, passive: true });
+    }
+
     function init() {
+        initClickEffects();
         SM.quests.init();
         SM.inventory.init();
         SM.i18n.init();

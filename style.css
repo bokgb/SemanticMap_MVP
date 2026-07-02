@@ -3113,3 +3113,31 @@ body.mission-open #bag-btn {
     font-weight: 950;
     text-shadow: 0 0 10px rgba(15, 118, 110, 0.18);
 }
+.recording-click-pulse {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 2147483647;
+    width: 14px;
+    height: 14px;
+    border: 3px solid rgba(255, 107, 53, 0.95);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.82), 0 0 18px rgba(255, 107, 53, 0.38);
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.75);
+    animation: recording-click-pulse 560ms ease-out forwards;
+}
+
+@keyframes recording-click-pulse {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.75);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(2.8);
+    }
+}
+
