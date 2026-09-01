@@ -2,19 +2,19 @@
     const SM = window.SemanticMap = window.SemanticMap || {};
     const state = SM.state = SM.state || {};
 
-    const QUEST_CACHE_STORAGE_KEY = 'semantic-map-quest-cache-v5';
+    const QUEST_CACHE_STORAGE_KEY = 'semantic-map-quest-cache-v6';
     const COOLDOWN_TIME = 1000 * 60 * 60 * 2;
     const questCache = {};
 
     const QUEST_TEMPLATES = {
         N5: {
             convenience: [
-                { rarity: 'R', weight: 0.3, text: "[ ? ] を飲みます。", req: "Food", grammar: "N を Vます", instruction: "可以喝的东西，例如水、咖啡、茶。", reward: 1 },
-                { rarity: 'N', weight: 0.3, text: "[ ? ] を食べます。", req: "Food", grammar: "N を Vます", instruction: "可以吃的便利店食物。", reward: 1 },
-                { rarity: 'R', weight: 0.25, text: "冷たい [ ? ] を飲みます。", req: "Food", grammar: "イ形容詞 + N を Vます", instruction: "冰的、冷的饮料。", reward: 1 },
-                { rarity: 'R', weight: 0.25, text: "甘い [ ? ] を食べます。", req: "Food", grammar: "イ形容詞 + N を Vます", instruction: "甜的食物或点心。", reward: 1 },
-                { rarity: 'R', weight: 0.2, text: "温かい [ ? ] を買います。", req: "Food", grammar: "イ形容詞 + N を Vます", instruction: "热的、温热的食品或饮料。", reward: 1 },
-                { rarity: 'R', weight: 0.2, text: "[ ? ] を温めます。", req: "Food", grammar: "N を Vます", instruction: "适合加热的便利店食品。", reward: 1 }
+                { rarity: 'R', weight: 0.3, text: "[ ? ] を買って飲みます。", req: "Food", grammar: "N を Vて Vます", instruction: "拍摄买来就能喝的饮料，例如水、咖啡或茶。", instructionJa: "買って飲めるものを撮影してください。例：水、コーヒー、お茶", reward: 1 },
+                { rarity: 'N', weight: 0.3, text: "[ ? ] を買って食べます。", req: "Food", grammar: "N を Vて Vます", instruction: "拍摄买来就能吃的便利店食品。", instructionJa: "買って食べられるものを撮影してください。例：おにぎり、パン、弁当", reward: 1 },
+                { rarity: 'R', weight: 0.25, text: "冷たい [ ? ] が飲みたいです。", req: "Food", grammar: "イ形容詞 + N が Vたいです", instruction: "拍摄一种冰的或冷藏的饮料。", instructionJa: "冷たい飲み物を撮影してください。例：水、お茶、ジュース", reward: 1 },
+                { rarity: 'R', weight: 0.25, text: "甘い [ ? ] が食べたいです。", req: "Food", grammar: "イ形容詞 + N が Vたいです", instruction: "拍摄一种甜点、糖果或其他甜味食品。", instructionJa: "甘い食べ物を撮影してください。例：プリン、チョコレート、ケーキ", reward: 1 },
+                { rarity: 'R', weight: 0.2, text: "温かい [ ? ] を買います。", req: "Food", grammar: "イ形容詞 + N を Vます", instruction: "拍摄一种热的或温热的食品、饮料。", instructionJa: "温かい食べ物か飲み物を撮影してください。例：スープ、コーヒー、弁当", reward: 1 },
+                { rarity: 'R', weight: 0.2, text: "この [ ? ] を温めてください。", req: "Food", grammar: "N を Vてください", instruction: "拍摄一种可以请店员加热的食品。", instructionJa: "温めてもらえる食べ物を撮影してください。例：弁当、おにぎり", reward: 1 }
             ],
             park: [
                 { rarity: 'R', weight: 0.25, text: "赤い [ ? ] を見ます。", req: "Nature", grammar: "イ形容詞 + N を Vます", instruction: "红色或偏红的自然物。", reward: 1 },
@@ -36,13 +36,13 @@
         },
         N3: {
             convenience: [
-                { rarity: 'R', weight: 0.35, text: "昼ごはんのために、[ ? ] を買いました。", req: "Food", grammar: "N のために", instruction: "适合作为午饭或补给的便利店食品。", reward: 1 },
-                { rarity: 'R', weight: 0.35, text: "[ ? ] を温めてもらえますか。", req: "Food", grammar: "Vてもらえますか", instruction: "可以请店员加热的食品。", reward: 1 },
-                { rarity: 'SR', weight: 0.015, text: "[ ? ] を買ってから、学校へ行きます。", req: "Food", grammar: "Vてから", instruction: "上学前可以买的食物或饮料。", reward: 1 },
-                { rarity: 'R', weight: 0.3, text: "甘い [ ? ] を食べると、少し元気になります。", req: "Food", grammar: "Vると", instruction: "甜食、点心或能量补给。", reward: 1 },
-                { rarity: 'R', weight: 0.25, text: "冷たい [ ? ] を飲みながら歩きます。", req: "Food", grammar: "Vながら", instruction: "冷饮。", reward: 1 },
-                { rarity: 'R', weight: 0.2, text: "[ ? ] を買いすぎないようにします。", req: "Food", grammar: "Vすぎないように", instruction: "容易买太多的零食、饮料或食品。", reward: 1 },
-                { rarity: 'R', weight: 0.2, text: "[ ? ] を選ぶかどうか迷っています。", req: "Food", grammar: "かどうか", instruction: "购买时会犹豫选择的食品或饮料。", reward: 1 }
+                { rarity: 'R', weight: 0.35, text: "昼ごはんに、[ ? ] を買いました。", req: "Food", grammar: "N に N を Vました", instruction: "拍摄一种适合作为午饭的便利店食品。", instructionJa: "昼ごはんにしたい食べ物を撮影してください。例：おにぎり、弁当、サンドイッチ", reward: 1 },
+                { rarity: 'R', weight: 0.35, text: "[ ? ] を温めてもらえますか。", req: "Food", grammar: "Vてもらえますか", instruction: "拍摄一种可以请店员加热的食品。", instructionJa: "温めてもらえる食べ物を撮影してください。例：弁当、おにぎり", reward: 1 },
+                { rarity: 'SR', weight: 0.015, text: "[ ? ] を買ってから、学校へ行きます。", req: "Food", grammar: "Vてから", instruction: "拍摄一种上学前会购买的食物或饮料。", instructionJa: "学校へ行く前に買いたいものを撮影してください。", reward: 1 },
+                { rarity: 'R', weight: 0.3, text: "甘い [ ? ] を食べると、少し元気になります。", req: "Food", grammar: "Vると", instruction: "拍摄一种甜食、点心或能量补给食品。", instructionJa: "元気が出そうな甘い食べ物を撮影してください。例：チョコレート、プリン", reward: 1 },
+                { rarity: 'R', weight: 0.25, text: "冷たい [ ? ] を飲みながら休みます。", req: "Food", grammar: "Vます形 + ながら", instruction: "拍摄一种休息时会喝的冷饮。", instructionJa: "休みながら飲みたい冷たい飲み物を撮影してください。", reward: 1 },
+                { rarity: 'R', weight: 0.2, text: "[ ? ] は、買いすぎないようにしています。", req: "Food", grammar: "Vすぎないようにしています", instruction: "拍摄一种容易买多、需要控制数量的零食或饮料。", instructionJa: "買いすぎに気をつけたいものを撮影してください。例：お菓子、ジュース", reward: 1 },
+                { rarity: 'R', weight: 0.2, text: "[ ? ] を買うかどうか迷っています。", req: "Food", grammar: "V辞書形 + かどうか", instruction: "拍摄一种正在犹豫要不要购买的食品或饮料。", instructionJa: "買うか迷っているものを撮影してください。", reward: 1 }
             ],
             park: [
                 { rarity: 'R', weight: 0.28, text: "[ ? ] の近くで休むことにしました。", req: "Nature", grammar: "N の近くで", instruction: "公园里适合靠近休息的自然物或设施。", reward: 1 },
@@ -71,13 +71,13 @@
         },
         N1: {
             convenience: [
-                { rarity: 'N', weight: 0.34, text: "時間が限られている場合、[ ? ] は手軽な食事として有用だ。", req: "Food", grammar: "N として", instruction: "能作为便捷食物的便利店商品。", reward: 1 },
-                { rarity: 'R', weight: 0.33, text: "災害時に備えるうえで、[ ? ] は欠かせない。", req: "Food", grammar: "Vるうえで", instruction: "灾害准备或日常储备中有用的食品饮料。", reward: 1 },
-                { rarity: 'SR', weight: 0.015, text: "健康面を考慮すると、[ ? ] ばかりに頼るべきではない。", req: "Food", grammar: "N ばかりに頼るべきではない", instruction: "可以吃喝但不应过度依赖的便利店食品。", reward: 1 },
-                { rarity: 'SR', weight: 0.015, text: "糖分の多い [ ? ] は、摂取量に注意せざるを得ない。", req: "Food", grammar: "Vざるを得ない", instruction: "甜食、含糖饮料或高糖食品。", reward: 1 },
-                { rarity: 'R', weight: 0.25, text: "忙しい学生にとって、[ ? ] は即時性の高い補給手段となり得る。", req: "Food", grammar: "N にとって / V得る", instruction: "能快速补充能量的便利店食品或饮料。", reward: 1 },
-                { rarity: 'N', weight: 0.25, text: "温かい [ ? ] は、寒い日に心理的な安心感をもたらす。", req: "Food", grammar: "N は N をもたらす", instruction: "热的食品或饮料。", reward: 1 },
-                { rarity: 'N', weight: 0.2, text: "[ ? ] を選択する際には、価格だけでなく栄養面も考慮すべきだ。", req: "Food", grammar: "N だけでなく", instruction: "购买时需要考虑营养或价格的食品。", reward: 1 }
+                { rarity: 'N', weight: 0.34, text: "時間がないときでも、[ ? ] なら手軽に食事を済ませられる。", req: "Food", grammar: "N なら / V可能形", instruction: "拍摄一种时间紧张时也能方便食用的食品。", instructionJa: "時間がないときでも手軽に食べられるものを撮影してください。", reward: 1 },
+                { rarity: 'R', weight: 0.33, text: "災害に備えて、保存のきく [ ? ] を買っておく。", req: "Food", grammar: "Vておく", instruction: "拍摄一种适合长期保存的应急食品或饮料。", instructionJa: "長く保存できる食べ物か飲み物を撮影してください。", reward: 1 },
+                { rarity: 'SR', weight: 0.015, text: "健康面を考えると、[ ? ] ばかりに頼るのは避けたい。", req: "Food", grammar: "N ばかりに頼る", instruction: "拍摄一种虽然方便，但不适合长期依赖的食品。", instructionJa: "便利でも、頼りすぎたくない食べ物を撮影してください。", reward: 1 },
+                { rarity: 'SR', weight: 0.015, text: "糖分の多い [ ? ] は、摂りすぎないよう注意したい。", req: "Food", grammar: "Vすぎないよう注意する", instruction: "拍摄一种甜食、含糖饮料或其他高糖食品。", instructionJa: "糖分の多い食べ物か飲み物を撮影してください。", reward: 1 },
+                { rarity: 'R', weight: 0.25, text: "忙しい学生にとって、[ ? ] は短時間で空腹を満たせる便利な選択肢だ。", req: "Food", grammar: "N にとって / V可能形", instruction: "拍摄一种可以在短时间内充饥的食品。", instructionJa: "短時間で空腹を満たせる食べ物を撮影してください。", reward: 1 },
+                { rarity: 'N', weight: 0.25, text: "寒い日には、温かい [ ? ] がいつも以上においしく感じられる。", req: "Food", grammar: "自発の助動詞「られる」", instruction: "拍摄一种寒冷天气里会想吃或喝的热食、热饮。", instructionJa: "寒い日に食べたい温かいものを撮影してください。", reward: 1 },
+                { rarity: 'N', weight: 0.2, text: "[ ? ] を選ぶ際は、価格だけでなく栄養バランスも考えたい。", req: "Food", grammar: "V辞書形 + 際 / N だけでなく", instruction: "拍摄一种购买时需要比较价格和营养的食品。", instructionJa: "価格と栄養の両方を考えて選びたい食べ物を撮影してください。", reward: 1 }
             ],
             park: [
                 { rarity: 'SR', weight: 0.015, text: "[ ? ] を通して、季節の移り変わりを感じることができる。", req: "Nature", grammar: "N を通して", instruction: "能体现季节变化的自然物。", reward: 1 },
@@ -177,6 +177,7 @@
             text: template.text,
             grammar: template.grammar || '',
             instruction: template.instruction || '',
+            instructionJa: template.instructionJa || '',
             level: getCurrentLevel(),
             config,
             requiredTag: template.req || spot.questTag,

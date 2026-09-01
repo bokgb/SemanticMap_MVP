@@ -1887,6 +1887,22 @@
             .replace(/'/g, '&#39;');
     }
 
+    function getQuestInstructionText(data, isJa = getLangForChapterCopy() === 'ja') {
+        const instruction = isJa ? data?.instructionJa : data?.instruction;
+        if (!instruction) return '';
+        return `${isJa ? '撮影ヒント' : '拍摄提示'}：${instruction}`;
+    }
+
+    function ensureQuestHint(questLayer, preview, className) {
+        let hint = questLayer.querySelector(`.${className}`);
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = `quest-tutorial-hint ${className}`;
+            preview.insertAdjacentElement('afterend', hint);
+        }
+        return hint;
+    }
+
     function openConvenienceTaskChoice(spot, marker) {
         const questLayer = document.getElementById('quest-layer');
         const questTitle = questLayer.querySelector('.quest-content h3');
@@ -1898,12 +1914,8 @@
         let activeIndex = Math.max(0, choices.findIndex(choice => {
             return choice.status !== 'completed' && !chapterProgress.convenienceCompletedSpotKeys.includes(choice.spot.id);
         }));
-        let hint = questLayer.querySelector('.quest-tutorial-hint');
-        if (!hint) {
-            hint = document.createElement('div');
-            hint.className = 'quest-tutorial-hint';
-            preview.insertAdjacentElement('afterend', hint);
-        }
+        const instructionHint = ensureQuestHint(questLayer, preview, 'quest-instruction-hint');
+        const switchHint = ensureQuestHint(questLayer, preview, 'quest-switch-hint');
 
         function hasSeenTaskSwitchHint() {
             try {
@@ -1924,9 +1936,8 @@
         }
 
         function updateHint() {
-            if (!hint) return;
-            hint.hidden = hasSeenTaskSwitchHint();
-            hint.innerText = isJa ? '\u5de6\u53f3\u306b\u5207\u66ff' : '\u5de6\u53f3\u5207\u6362\u4efb\u52a1';
+            switchHint.hidden = hasSeenTaskSwitchHint();
+            switchHint.innerText = isJa ? '\u5de6\u53f3\u306b\u5207\u66ff' : '\u5de6\u53f3\u5207\u6362\u4efb\u52a1';
         }
 
         function isChoiceDone(choice) {
@@ -1988,6 +1999,7 @@
             const afterText = sentenceParts.slice(1).join('[ ? ]') || '';
             const rawSentenceLength = `${beforeText}${afterText}`.replace(/\s+/g, '').length;
             const isLongSentence = rawSentenceLength > 10;
+            const instructionText = getQuestInstructionText(choice?.questData, isJa);
             const slotHtml = done
                 ? '<span class="completed-slot">\u4fee\u5fa9\u6e08\u307f</span>'
                 : '<button class="slot-box camera-slot convenience-camera-slot icon-only" type="button" aria-label="\u5199\u771f\u3067\u5165\u529b"><span class="slot-camera-icon" aria-hidden="true"></span></button>';
@@ -2022,6 +2034,9 @@
                     switchTask(Number(button.dataset.taskIndex || 0), { markSeen: true });
                 });
             });
+
+            instructionHint.hidden = done || !instructionText;
+            instructionHint.innerText = instructionText;
 
             bindSwipeSwitch();
         }
@@ -2072,14 +2087,12 @@
                     : tr('questOutside');
         }
         preview.innerHTML = data.text.replace('[ ? ]', '<button class="slot-box camera-slot" type="button"><span class="slot-camera-icon" aria-hidden="true"></span><span class="slot-camera-label">' + tr('cameraSlotLabel') + '</span></button>');
-        let hint = questLayer.querySelector('.quest-tutorial-hint');
-        if (!hint) {
-            hint = document.createElement('div');
-            hint.className = 'quest-tutorial-hint';
-            preview.insertAdjacentElement('afterend', hint);
-        }
-        hint.hidden = !isTutorialQuest;
-        hint.innerText = isTutorialQuest ? tr('tutorialQuestHint') : '';
+        const hint = ensureQuestHint(questLayer, preview, 'quest-instruction-hint');
+        const instructionText = getQuestInstructionText(data);
+        hint.hidden = !isTutorialQuest && !instructionText;
+        hint.innerText = isTutorialQuest ? tr('tutorialQuestHint') : instructionText;
+        const switchHint = questLayer.querySelector('.quest-switch-hint');
+        if (switchHint) switchHint.hidden = true;
         if (startScanButton) {
             if (!startScanButton.dataset.defaultText) {
                 startScanButton.dataset.defaultText = startScanButton.innerText;
@@ -2094,6 +2107,7 @@
             text: data.text,
             grammar: data.grammar,
             instruction: data.instruction,
+            instructionJa: data.instructionJa,
             level: data.level,
             requiredTag: data.requiredTag,
             rewardCount: data.rewardCount,
@@ -2670,6 +2684,13 @@
                     : targetArea
                     ? tr('questAreaPoints', { points: repairPoints })
                     : tr('questOutside');
+        }
+
+        const instructionHint = questLayer.querySelector('.quest-instruction-hint');
+        if (instructionHint) {
+            const instructionText = getQuestInstructionText(activeQuest);
+            instructionHint.hidden = !isTutorialQuest && !instructionText;
+            instructionHint.innerText = isTutorialQuest ? tr('tutorialQuestHint') : instructionText;
         }
     }
 
