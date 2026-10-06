@@ -298,3 +298,93 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
     .tutorial-sent-heading h2 { font-size:26px; }
 }
 @media(max-height:690px) and (max-width:760px) { #courier-app.courier-tutorial { grid-template-rows:59px 100px minmax(0,1fr); } .tutorial-poco { right:14%; bottom:8px; } #courier-app .tutorial-poco .courier-robot { width:110px; } .tutorial-envelope { width:86px; height:45px; top:-10px; } .tutorial-room-label { font-size:11px; top:10px; } }
+
+/* A playable title screen: one letter, one invitation, one clear action. */
+#courier-app.courier-opening { grid-template-columns:1fr; grid-template-rows:68px minmax(0,1fr); }
+.courier-opening .courier-header { background:#f8f6eb; border-bottom:0; padding:0 30px; }
+.courier-opening .courier-logo { font-size:17px; letter-spacing:1px; }
+.courier-opening .courier-logo small,.courier-opening .courier-logo>svg,.courier-opening .courier-edition,.courier-opening [data-action="journal"],.courier-opening .courier-story-header { display:none !important; }
+.courier-opening .courier-world { grid-column:1/-1; grid-row:2; }
+.courier-opening .tutorial-room { background:radial-gradient(ellipse at 50% 25%,#fff9e2 0,transparent 65%),linear-gradient(120deg,#e0e8d4,#f3edda 70%); }
+.courier-opening .tutorial-room::after { content:''; position:absolute; inset:0; pointer-events:none; z-index:4; background:repeating-linear-gradient(0deg,#8d906407 0 1px,transparent 1px 4px); }
+.courier-opening .tutorial-room-label,.courier-opening .tutorial-room-caption { display:none; }
+.opening-title { position:absolute; z-index:3; top:5%; left:0; right:0; text-align:center; pointer-events:none; animation:opening-rise .75s both; }
+.opening-title>p { margin:0 0 8px; font:15px "Yu Mincho","SimSun",serif; letter-spacing:5px; color:#768662; }
+.opening-title h1 { font:700 clamp(44px,6vw,84px)/1.3 "Yu Mincho","SimSun",serif; letter-spacing:3px; margin:0; color:#40583c; text-shadow:0 3px 0 #fffaf0,0 7px 0 #74835f13; }
+.opening-title-rule { display:flex; align-items:center; justify-content:center; gap:14px; color:#92a17d; margin:17px auto; }
+.opening-title-rule span { width:50px; height:1px; background:#9dac8980; }
+.opening-title-rule svg { width:17px !important; height:17px !important; }
+.courier-opening .tutorial-window { top:14%; left:13%; width:210px; height:38%; opacity:.5; }
+.courier-opening .tutorial-table { height:31%; transform:skewY(-2deg); border-top-width:12px; background:repeating-linear-gradient(0deg,transparent 0 60px,#b4a77c12 61px),#dbcead; }
+#courier-app .courier-opening { color:inherit; }
+.courier-opening .tutorial-poco { z-index:2; bottom:28%; right:27%; transform:rotate(3deg); }
+#courier-app.courier-opening .tutorial-poco .courier-robot { width:clamp(240px,29vw,400px); height:auto; animation:poco-breathe 3.8s ease-in-out infinite; }
+#courier-app .opening-poco { border:0; padding:0; background:none; color:#637c5b; transition:filter .2s; }
+.opening-poco:hover { filter:brightness(1.04); }
+.poco-hello { opacity:0; position:absolute; top:10%; right:12%; color:#768d5f; font-size:38px; pointer-events:none; }
+.courier-opening .opening-envelope { z-index:3; left:29%; top:-58px; width:210px; height:132px; padding:0; border-radius:7px; background:#fffbeb; border:2px solid #d5c9a5; box-shadow:0 14px 0 -7px #97895828,0 19px 25px #7b724022; animation:envelope-idle 4.2s ease-in-out infinite; transform-origin:50% 80%; isolation:isolate; }
+.opening-envelope::after { inset:10px; border-color:#dccdae; border-radius:3px; }
+.opening-envelope .envelope-flap { position:absolute; z-index:2; inset:0; clip-path:polygon(0 0,100% 0,50% 65%); background:#efe5c6; transform-origin:top; transition:transform .3s; }
+.opening-envelope .envelope-seal { position:absolute; z-index:3; top:42%; left:calc(50% - 18px); width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:#8a9e6d; color:#fcf8e9; font:italic 23px Georgia,serif; box-shadow:0 3px 0 #698052; }
+.opening-envelope .envelope-paper { position:absolute; inset:9px 16px; z-index:-1; background:#fffdf4; border-radius:3px; transition:transform .4s; }
+.opening-envelope .envelope-spark { position:absolute; top:-25px; left:-23px; color:#a8b783; font-size:22px; animation:spark-shine 2.8s ease-in-out infinite; }
+.opening-envelope .envelope-spark.second { left:auto; right:-27px; top:50%; font-size:17px; animation-delay:1.2s; }
+.opening-envelope:hover { filter:brightness(1.035); }
+.courier-opening .courier-story { position:absolute; z-index:5; bottom:32px; left:50%; transform:translateX(-50%); width:min(360px,calc(100% - 48px)); background:transparent; border:0; overflow:visible; }
+.courier-opening #courier-story-body { padding:0; overflow:visible; flex:none; }
+.courier-opening .tutorial-opening { padding:0; text-align:center; animation:opening-rise .75s .15s both; }
+.opening-invite { display:inline-block; margin:0 0 19px; padding:10px 19px; border-radius:15px 15px 4px 15px; background:#fffcef; color:#6a7457; box-shadow:0 3px 0 #b5aa7e2a; font-size:14px; }
+.courier-opening .courier-story-footer { padding:0; border:0; background:transparent; animation:opening-rise .75s .25s both; }
+#courier-app.courier-opening .courier-primary { min-height:59px; font-size:16px; font-weight:600; border:2px solid #4e6945; border-radius:15px; background:#698556; box-shadow:0 6px 0 #435e3b,0 12px 22px #61744625; transition:transform .16s,box-shadow .16s,background .16s; }
+#courier-app.courier-opening .courier-primary:hover { transform:translateY(-2px); box-shadow:0 8px 0 #435e3b,0 14px 22px #61744625; }
+#courier-app.courier-opening .courier-primary:active { transform:translateY(5px); box-shadow:0 1px 0 #435e3b; }
+.opening-motes { position:absolute; inset:0; pointer-events:none; }
+.opening-motes i { position:absolute; width:8px; height:13px; background:#98b17f70; border-radius:1px 7px 1px 7px; left:16%; top:50%; animation:paper-drift 8s ease-in-out infinite; }
+.opening-motes i:nth-child(2) { left:78%; top:26%; animation-delay:-3s; width:6px; }
+.opening-motes i:nth-child(3) { left:66%; top:63%; animation-delay:-5s; background:#c9b88480; }
+.opening-motes i:nth-child(4) { left:24%; top:25%; animation-delay:-7s; width:5px; }
+.opening-motes i:nth-child(5) { left:85%; top:58%; animation-delay:-1s; background:#c9b88480; }
+.courier-opening.opening-mail .opening-envelope { animation:envelope-open .42s both; }
+.opening-mail .envelope-flap { transform:rotateX(160deg); }
+.opening-mail .envelope-paper { transform:translateY(-45px) rotate(4deg); }
+.opening-mail .envelope-seal { opacity:0; transition:opacity .12s; }
+.opening-mail .envelope-spark { animation:mail-burst .42s both; }
+.poco-cheer .opening-poco { animation:poco-hop .7s both; }
+.poco-cheer .poco-hello { animation:hello-pop .8s both; }
+.courier-tutorial:not(.courier-opening) .incoming-letter { animation:letter-arrive .4s ease-out; }
+@keyframes opening-rise { from {opacity:0;translate:0 16px} to {opacity:1;translate:0 0} }
+@keyframes poco-breathe { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-9px) rotate(1deg)} }
+@keyframes envelope-idle { 0%,65%,100%{transform:rotate(-9deg) translateY(0)} 72%{transform:rotate(-5deg) translateY(-7px)} 79%{transform:rotate(-11deg) translateY(-3px)} 86%{transform:rotate(-7deg) translateY(-5px)} }
+@keyframes spark-shine { 0%,100%{opacity:.3;scale:.7} 50%{opacity:1;scale:1.1} }
+@keyframes paper-drift { 0%,100%{transform:translate(0,0) rotate(-20deg);opacity:.3} 50%{transform:translate(24px,-38px) rotate(70deg);opacity:.7} }
+@keyframes envelope-open { 0%{transform:rotate(-9deg)} 40%{transform:rotate(3deg) scale(1.08)} 100%{transform:rotate(0) scale(1.12);opacity:0} }
+@keyframes mail-burst { from{scale:1;opacity:1} to{scale:2.5;translate:0 -30px;opacity:0} }
+@keyframes poco-hop { 0%,100%{transform:rotate(3deg)} 30%{transform:translateY(-25px) rotate(-8deg)} 65%{transform:translateY(-6px) rotate(6deg)} }
+@keyframes hello-pop { 0%{opacity:0;transform:scale(.5)} 30%,65%{opacity:1;transform:translateY(-16px) scale(1.15)} 100%{opacity:0;transform:translateY(-30px)} }
+@media(max-width:760px) {
+    #courier-app.courier-opening { grid-template-rows:54px minmax(0,1fr); }
+    .courier-opening .courier-header { padding:0 20px; }
+    .courier-opening .courier-logo { font-size:14px; }
+    .opening-title { top:7%; }
+    .opening-title>p { font-size:13px; letter-spacing:4px; }
+    .opening-title h1 { font-size:clamp(38px,10.5vw,60px); letter-spacing:1px; }
+    .opening-title-rule { margin:14px auto; }
+    .courier-opening .tutorial-poco { right:8%; bottom:30%; }
+    #courier-app.courier-opening .tutorial-poco .courier-robot { width:245px; }
+    .courier-opening .tutorial-table { height:31%; }
+    .courier-opening .opening-envelope { left:12%; top:-47px; width:136px; height:91px; }
+    .opening-envelope .envelope-seal { width:28px; height:28px; left:calc(50% - 14px); font-size:18px; }
+    .courier-opening .courier-story { bottom:max(29px,env(safe-area-inset-bottom)); }
+    .opening-invite { font-size:13px; margin-bottom:17px; }
+    #courier-app.courier-opening .courier-primary { min-height:55px; font-size:15px; }
+}
+@media(max-height:660px) {
+    .opening-title { top:3%; }
+    .opening-title h1 { font-size:40px; }
+    .opening-title-rule { margin:8px auto; }
+    #courier-app.courier-opening .tutorial-poco .courier-robot { width:190px; }
+    .courier-opening .tutorial-poco { bottom:29%; }
+    .courier-opening .opening-envelope { width:116px; height:76px; top:-37px; }
+    .courier-opening .courier-story { bottom:22px; }
+    .opening-invite { padding:8px 14px; margin-bottom:14px; }
+}
