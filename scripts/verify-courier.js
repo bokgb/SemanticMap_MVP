@@ -38,18 +38,27 @@ async function meetPoco(page) {
     assert.match(await page.locator('.opening-invite').innerText(),/ぼくはポコ/);
     await page.locator('[data-letter-action="open"]').click();
     assert.equal(await page.locator('.incoming-letter').count(),0);
-    assert.match(await page.locator('.opening-invite').innerText(),/写真/);
+    assert.match(await page.locator('.opening-invite').innerText(),/友だちに手紙を書きたい/);
     await page.reload({waitUntil:'networkidle'});
-    assert.match(await page.locator('.opening-invite').innerText(),/写真/);
+    assert.match(await page.locator('.opening-invite').innerText(),/ぼくはポコ/);
+    await page.locator('[data-letter-action="open"]').click();
+    assert.match(await page.locator('.opening-invite').innerText(),/友だちに手紙を書きたい/);
     await page.locator('[data-letter-action="open"]').click();
     assert.equal(await page.locator('.incoming-letter').count(),0);
-    assert.match(await page.locator('.opening-invite').innerText(),/友だち/);
+    assert.match(await page.locator('.opening-invite').innerText(),/ペンが見つからない/);
+    assert.equal(await page.locator('[data-letter-action="photo"]').count(),0);
     await page.locator('[data-letter-action="open"]').click();
-    await page.locator('.incoming-letter').waitFor();
+    assert.match(await page.locator('.opening-invite').innerText(),/写真.*本物/);
+    assert.equal(await page.locator('[data-letter-action="photo"]').count(),0);
+    await page.locator('[data-letter-action="open"]').click();
+    await page.locator('[data-letter-action="photo"]').waitFor();
+    assert.match(await page.locator('.opening-invite').innerText(),/ペン.*写真/);
+    assert.equal(await page.locator('#courier-app.courier-opening').count(),1);
+    assert.equal(await page.locator('.tutorial-task-title').count(),0);
+    assert.equal(await page.locator('.incoming-letter,[data-letter-action="reply"]').count(),0);
 }
 async function openWriting(page) {
     await meetPoco(page);
-    await page.locator('[data-letter-action="reply"]').click();
     await page.locator('#courier-file').setInputFiles(fixture);
     await page.locator('[data-letter-slot="food"]').first().waitFor();
 }
@@ -57,6 +66,7 @@ async function capture(page,key) {
     await page.locator(`[data-letter-slot="${key}"]`).first().click();
     await page.locator('#courier-file').setInputFiles(fixture);
     await page.locator(`[data-letter-slot="${key}"].filled`).waitFor();
+    await page.waitForFunction(()=>!document.querySelector('#courier-app').classList.contains('letter-receiving'));
 }
 async function sample(page,key){await page.locator('[data-action="sample"]').click();await page.locator(`[data-sample="${key}"]`).click();}
 try {
@@ -65,8 +75,7 @@ try {
     assert.equal(await p.evaluate(()=>window.gpsRequests),0);
     await p.screenshot({path:'screenshots/letter-opening-desktop.png'});
     await meetPoco(p);
-    assert.match(await p.locator('.incoming-letter').innerText(),/ポコへ/);
-    await p.locator('[data-letter-action="reply"]').click();
+    assert.match(await p.locator('.opening-invite').innerText(),/ペン.*写真/);
     mock.mismatch=true;await p.locator('#courier-file').setInputFiles(fixture);
     await p.getByRole('heading',{name:/別の写真で試してみよう|再找找这件东西/}).waitFor();
     assert.equal(await p.locator('.reply-letter').count(),0);
@@ -77,29 +86,33 @@ try {
     await p.locator('#courier-dialog [data-action="close"]').click();
     mock.status=200;await p.locator('#courier-file').setInputFiles(fixture);
     await p.locator('[data-letter-slot="food"]').waitFor();
-    assert.equal(await p.locator('.letter-slot').count(),3);
+    assert.equal(await p.locator('.letter-slot').count(),1);
+    assert.equal(await p.locator('[data-letter-slot="cute"],[data-letter-slot="drink"]').count(),0);
     assert.equal(await p.locator('[data-letter-action="send"]').count(),0);
     await p.screenshot({path:'screenshots/letter-writing-desktop.png'});
-    await capture(p,'drink');await capture(p,'food');
+    await capture(p,'food');await capture(p,'cute');
     await p.reload({waitUntil:'networkidle'});
-    assert.equal(await p.locator('.letter-slot.filled').count(),2);
+    assert.match(await p.locator('.opening-invite').innerText(),/ぼくはポコ/);
+    assert.equal(await p.locator('.letter-slot').count(),0);
     assert.equal(await p.evaluate(()=>window.gpsRequests),0);
-    assert.match(await p.locator('[data-letter-slot="food"]').first().innerText(),/りんご/);
-    await capture(p,'cute');
+    await openWriting(p);await capture(p,'food');await capture(p,'cute');
+    assert.equal(await p.locator('.letter-slot.filled').count(),2);
+    assert.equal(await p.evaluate(()=>localStorage.getItem('kotoba-hunter-letter-tutorial-v1')),null);
+    await capture(p,'drink');
     assert.equal(await p.locator('.materialized-item').count(),3);
     assert.match(await p.locator('.reply-letter').innerText(),/今朝は、\s*りんご/);
     mock.wordOverride='パン';await p.locator('[data-letter-slot="food"]').first().click();
     await p.locator('[data-letter-action="retake"]').click();
     await p.locator('#courier-file').setInputFiles(fixture);
     await p.waitForFunction(()=>document.querySelector('[data-letter-slot="food"]').textContent.includes('パン'));
+    await p.waitForFunction(()=>!document.querySelector('#courier-app').classList.contains('letter-receiving'));
     assert.equal(await p.locator('.letter-slot.filled').count(),3);mock.wordOverride=null;
     await p.screenshot({path:'screenshots/letter-completed-desktop.png'});
     await p.locator('[data-letter-action="send"]').click();
-    await p.reload({waitUntil:'networkidle'});
     assert.equal(await p.locator('[data-letter-action="field"]').count(),1);
     assert.equal(await p.evaluate(()=>window.gpsRequests),0);
     await p.locator('[data-letter-action="stay"]').click();
-    assert.match(await p.locator('#courier-status').innerText(),/保存/);
+    assert.match(await p.locator('#courier-status').innerText(),/ありがとう/);
     await p.locator('[data-letter-action="field"]').click();
     assert.equal(await p.locator('#courier-app.courier-tutorial').count(),0);
     assert.equal(await p.evaluate(()=>window.gpsRequests),1);
@@ -115,6 +128,18 @@ try {
     assert.equal(await p.locator('.courier-collected>span').count(),4);
     await p.locator('[data-action="restart"]').click();await p.locator('[data-action="confirm-restart"]').click();
     assert.equal(await p.locator('[data-letter-action="open"]').count(),1);
+    await p.evaluate(()=>{
+        const photo=document.createElement('canvas').toDataURL('image/jpeg');const card={word:'ペン',kana:'ぺん',photo};
+        localStorage.setItem('kotoba-hunter-letter-tutorial-v1',JSON.stringify({phase:'sent',introduced:true,captures:{pen:card,food:card,cute:card,drink:card},finished:true}));
+        localStorage.setItem('oic-courier-story-v2',JSON.stringify({index:1,cards:[{step:0,object:'letter',word:'手紙'}],mode:'field'}));
+        localStorage.setItem('courier-unrelated-test','keep');
+    });
+    await p.reload({waitUntil:'networkidle'});
+    assert.match(await p.locator('.opening-invite').innerText(),/ぼくはポコ/);
+    assert.equal(await p.evaluate(()=>window.gpsRequests),0);
+    assert.equal(await p.evaluate(()=>localStorage.getItem('kotoba-hunter-letter-tutorial-v1')),null);
+    assert.equal(await p.evaluate(()=>localStorage.getItem('oic-courier-story-v2')),null);
+    assert.equal(await p.evaluate(()=>localStorage.getItem('courier-unrelated-test')),'keep');
     const mobile=await fresh({width:390,height:844});mockPhotos(mobile);
     await mobile.screenshot({path:'screenshots/letter-opening-mobile.png'});
     await openWriting(mobile);await mobile.screenshot({path:'screenshots/letter-writing-mobile.png'});
@@ -132,5 +157,5 @@ try {
     await mobile.locator('#courier-story-body').evaluate(el=>el.scrollTop=el.scrollHeight);
     rect=await mobile.locator('[data-letter-action="send"]').boundingBox();assert(rect.y+rect.height<=568);
     assert.deepEqual(errors,[]);
-    console.log('PASS: POCO introduction before letter with reload persistence; opening/incoming letter; required pen; 3 open photo slots; mismatch/service error; out-of-order fills and retake; persistence; no GPS until explicit field start; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');
+    console.log('PASS: POCO conversation and pen; one photo question at a time; delivery celebration then next paragraph; mismatch/service error; retake; reload resets introduction, photos and legacy field progress; no progress persisted; no GPS until explicit field start; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');
 } finally {await browser.close();}

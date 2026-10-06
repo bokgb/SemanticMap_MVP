@@ -1,6 +1,5 @@
 (function () {
     const SM = window.SemanticMap = window.SemanticMap || {};
-    const KEY = 'oic-courier-story-v2';
     const icons = {
         mail: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="m3 7 9 7 9-7"/>',
         camera: '<path d="M8 5 9 3h6l1 2h4v15H4V5Z"/><circle cx="12" cy="12" r="4"/>',
@@ -26,10 +25,10 @@
         book: { label:'书', ja:'本', kana:'ほん', icon:'book' }, battery: { label:'电池', ja:'電池', kana:'でんち', icon:'battery' },
         tree: { label:'树', ja:'木', kana:'き', icon:'tree' }, leaf: { label:'叶子', ja:'葉っぱ', kana:'はっぱ', icon:'leaf' },
         station: { label:'茨木站站名标识', ja:'駅', kana:'えき', icon:'station' },
-        letter: { label:'第一封回信', ja:'手紙', kana:'てがみ', icon:'mail' }
+        letter: { label:'第一封信', ja:'手紙', kana:'てがみ', icon:'mail' }
     };
     const steps = [
-        { place:'OIC · 风间邮局', short:'第一封回信', lat:34.81015, lng:135.56130, role:'见习邮差机器人', name:'波可 POCO', stamp:'第一封回信', hint:'原地完成拍照填空', scene:'home' },
+        { place:'OIC · 风间邮局', short:'第一封信', lat:34.81015, lng:135.56130, role:'见习邮差机器人', name:'波可 POCO', stamp:'第一封信', hint:'原地完成拍照填空', scene:'home' },
         { place:'A 栋 1F · Seven-Eleven', short:'便利店补给', lat:34.8104582, lng:135.5618457, role:'杂货驿站掌柜', name:'米娜 MINA', title:'给它一点出发的能量。', line:'波可说要出远门，可它的备用电池已经用完了。帮我找一包电池吧，我来把这份补给装好。', ja:'電池がほしいです。', goal:'拍下电池或电池包装。', targets:['battery'], stamp:'旅途补给', reply:'电池装好了。波可又有精神了，它还想带一份家乡的风景。', next:'去岩仓公园', hint:'电池 / 电池包装均可 · 货品与店内拍摄请现场确认', scene:'shop' },
         { place:'岩仓公园 · 草坪旁', short:'公园明信片', lat:34.8109427, lng:135.5629133, role:'林间园丁', name:'莉莉 LILI', title:'把这里的绿色，也带走吧。', line:'波可以前常在这片树荫下读信。拍一棵树，或者一片叶子，我把它做成明信片，让它在远方也能想起这里。', ja:'緑の思い出を届けましょう。', goal:'选择树或叶子，拍一份家乡的风景。', targets:['tree','leaf'], stamp:'故乡风景', reply:'这张明信片会陪它走很远。现在，去车站把包裹交给它吧。', next:'前往 JR 茨木站', hint:'不需要采摘 · 拍下眼前的绿色就好', scene:'park' },
         { place:'JR 茨木站 · 东口站外', short:'车站送别', lat:34.81517, lng:135.56260, role:'驿站领航员', name:'索拉 SORA', title:'最后一站，有人正在等你。', line:'波可已经在等这份包裹了。先拍下写着「茨木」的站名标识，确认我们到了正确的驿站。', ja:'ここは茨木駅です。', goal:'拍下包含「茨木 / Ibaraki」的车站标识。', targets:['station'], stamp:'平安送达', reply:'就是这里。把这封信和一路收集的心意，一起交给波可吧。', next:'交付最后的信', hint:'终点在站外 · 不需要进闸机或购买车票', scene:'station' }
@@ -37,24 +36,33 @@
     let progress = { index:0, cards:[], done:false, receipt:false, mode:'preview' };
     let root, map, markers, pendingPhoto = '', busy = false, aborter, position, watchId;
     let lastFocus, stage = '', mounted = false, scanSequence = 0;
+    const localTest=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+    const testStarts={welcome:'从头开始',reply:'准备写信','missing-pen':'找不到笔','photo-world':'解释照片传送',pen:'拍笔',letter:'写信① · 早餐',cute:'写信② · 路上的发现',drink:'写信③ · 午休饮品',ready:'信写好了 · 待寄出',sent:'信已寄出',shop:'便利店补给',park:'公园明信片',station:'车站送别',ending:'旅程结束'};
+    let testOrigin='welcome';
     const $ = selector => root.querySelector(selector);
     const current = () => steps[progress.index];
     const targets = () => SM.letterTutorial.isActive() ? [SM.letterTutorial.target()].filter(Boolean) : current().targets || [];
-    function save() {
-        try { localStorage.setItem(KEY, JSON.stringify(progress)); }
-        catch { $('#courier-status').textContent = '浏览器存储已满，本次进度仍保留在当前页面。'; }
-    }
-    function load() {
-        try {
-            const data = JSON.parse(localStorage.getItem(KEY));
-            if (data && Number.isInteger(data.index) && data.index >= 0 && data.index < 4 && Array.isArray(data.cards)) {
-                const cards = data.cards.filter(c => c && Number.isInteger(c.step) && c.step >= 0 && c.step < 4 && objects[c.object] && typeof c.word === 'string').slice(0,4);
-                if (cards.every((c,i) => c.step === i) && cards.length >= data.index) progress = {index:data.index,cards,done:!!data.done && cards.length===4,receipt:!!data.receipt && cards.length===data.index+1,mode:data.mode==='field'?'field':'preview'};
-            }
-        } catch { /* A missing or old save starts a fresh delivery. */ }
-    }
     function robot() {
-        return `<svg class="courier-robot" viewBox="0 0 240 200" role="img" aria-label="背着邮包的小机器人波可"><ellipse cx="120" cy="180" rx="62" ry="8" fill="#d8dfd1"/><path d="M73 151v22h24v-22m48 0v22h24v-22" fill="#c6d0bf" stroke="#536951" stroke-width="2"/><rect x="70" y="98" width="101" height="62" rx="21" fill="#e7eadc" stroke="#536951" stroke-width="2"/><path class="poco-arm-left" d="M67 107 52 136" fill="none" stroke="#536951" stroke-width="10" stroke-linecap="round"/><path class="poco-arm-wave" d="M172 107 187 128" fill="none" stroke="#536951" stroke-width="10" stroke-linecap="round"/><rect x="61" y="38" width="120" height="72" rx="26" fill="#f7f5e9" stroke="#536951" stroke-width="2"/><rect x="77" y="54" width="88" height="38" rx="16" fill="#d4dfcf"/><path class="poco-eyes" d="M98 68v9m43-9v9" stroke="#536951" stroke-width="5" stroke-linecap="round"/><path d="M113 79q8 8 16 0" fill="none" stroke="#536951" stroke-width="2"/><path d="M120 37V22" stroke="#536951" stroke-width="2"/><circle cx="120" cy="18" r="5" fill="#a8b892"/><path d="m83 106 76 42" stroke="#9ca988" stroke-width="9"/><rect x="125" y="128" width="45" height="32" rx="5" fill="#d4c7a5" stroke="#798267" stroke-width="2"/><path d="m126 130 21 16 22-16" fill="none" stroke="#798267" stroke-width="2"/><path d="M39 59h12m-6-6v12M194 84h10m-5-5v10" stroke="#a8b892" stroke-width="2"/></svg>`;
+        return `<svg class="courier-robot" viewBox="0 0 240 200" role="img" aria-label="背着邮包的小机器人波可"><ellipse cx="120" cy="180" rx="62" ry="8" fill="#d8dfd1"/><path d="M73 151v22h24v-22m48 0v22h24v-22" fill="#c6d0bf" stroke="#536951" stroke-width="2"/><rect x="70" y="98" width="101" height="62" rx="21" fill="#e7eadc" stroke="#536951" stroke-width="2"/><path class="poco-arm-left" d="M67 107 52 136" fill="none" stroke="#536951" stroke-width="10" stroke-linecap="round"/><path class="poco-arm-wave" d="M172 107 187 128" fill="none" stroke="#536951" stroke-width="10" stroke-linecap="round"/><rect x="61" y="38" width="120" height="72" rx="26" fill="#f7f5e9" stroke="#536951" stroke-width="2"/><rect x="77" y="54" width="88" height="38" rx="16" fill="#d4dfcf"/>${robotFace()}<path d="M120 37V22" stroke="#536951" stroke-width="2"/><circle cx="120" cy="18" r="5" fill="#a8b892"/><path d="m83 106 76 42" stroke="#9ca988" stroke-width="9"/><rect x="125" y="128" width="45" height="32" rx="5" fill="#d4c7a5" stroke="#798267" stroke-width="2"/><path d="m126 130 21 16 22-16" fill="none" stroke="#798267" stroke-width="2"/><path d="M39 59h12m-6-6v12M194 84h10m-5-5v10" stroke="#a8b892" stroke-width="2"/></svg>`;
+    }
+    function robotFace() {
+        return `<g class="poco-face" data-expression="smile"><path class="poco-brows" d="M92 60q6 -3 12 0 M135 60q6 -3 12 0" fill="none" stroke="#536951" stroke-width="2.2" stroke-linecap="round"/><g class="poco-eyes"><path class="poco-eye-lines" d="M98 68v9m43-9v9" stroke="#536951" stroke-width="5" stroke-linecap="round"/><g class="poco-eye-lights" fill="#fffdf1"><circle cx="98" cy="68" r="1.2"/><circle cx="141" cy="68" r="1.2"/></g></g><path class="poco-mouth" d="M113 79q8 8 16 0" fill="none" stroke="#536951" stroke-width="2" stroke-linecap="round"/><g class="poco-cheeks" fill="#a8bf93"><ellipse cx="88" cy="82" rx="4" ry="2"/><ellipse cx="151" cy="82" rx="4" ry="2"/></g></g>`;
+    }
+    function expression(svg,mood='smile') {
+        const face=svg?.querySelector('.poco-face');
+        if(!face||face.dataset.expression===mood)return;
+        const faces={
+            smile:{eyes:'M98 68v9m43-9v9',brows:'M92 60q6 -3 12 0 M135 60q6 -3 12 0',mouth:'M113 79q8 8 16 0',fill:'none',label:'微笑的波可'},
+            confused:{eyes:'M95 70v5 M137 68v9',brows:'M90 62q6 -5 12 -2 M133 58l11 2',mouth:'M116 82q4 -5 8 0q-4 5-8 0Z',fill:'#536951',label:'找不到笔、表情困惑的波可'},
+            happy:{eyes:'M98 67v11 M141 67v11',brows:'M92 58q6 -3 12 0 M135 58q6 -3 12 0',mouth:'M112 79q9 5 18 0q-9 15-18 0Z',fill:'#536951',label:'想到办法、开心的波可'}
+        };
+        const next=faces[mood]||faces.smile;
+        face.dataset.expression=mood;
+        face.querySelector('.poco-eye-lines').setAttribute('d',next.eyes);
+        face.querySelector('.poco-brows').setAttribute('d',next.brows);
+        face.querySelector('.poco-mouth').setAttribute('d',next.mouth);
+        face.querySelector('.poco-mouth').setAttribute('fill',next.fill);
+        svg.setAttribute('aria-label',next.label);
     }
     function scene() {
         if (progress.index===0 || progress.done) return robot();
@@ -63,7 +71,9 @@
     }
     function init() {
         if (mounted) return; mounted=true;
-        load(); document.body.classList.add('courier-mode'); document.documentElement.lang='zh-CN';
+        try { localStorage.removeItem('oic-courier-story-v2'); }
+        catch { /* Do not depend on browser storage to start a new session. */ }
+        document.body.classList.add('courier-mode'); document.documentElement.lang='zh-CN';
         root = document.createElement('main'); root.id='courier-app';
         root.innerHTML = `<header class="courier-header"><a class="courier-logo" href="./" aria-label="言葉ハンター 首页">${icon('mail')}<span>言葉ハンター<small>風の郵便局 · KAZE POST OFFICE</small></span></a><div class="courier-edition">OIC 漫游篇 <span>01</span></div><div class="courier-header-actions"><button class="courier-text" data-action="language">中文</button><button class="courier-text" data-action="journal">${icon('book')}<span>行程手帐</span></button></div></header>
         <section class="courier-world" aria-label="OIC 配送地图"><div id="courier-map"></div><div class="courier-map-heading"><span class="courier-eyebrow">一封信，一段小小的远行</span><h1>今天，替风送个信。</h1><p>立命馆 OIC → 岩仓公园 → JR 茨木站</p></div><button class="courier-map-reset" data-action="map" aria-label="查看整条路线">${icon('pin')}</button><div class="courier-map-note">地点连线示意 · 步行请沿实际道路</div><div class="courier-route-caption"><span>OIC / IBARAKI</span><span>4 次相遇 · 约 20–30 分钟（含互动）</span></div></section>
@@ -71,31 +81,62 @@
         <input id="courier-file" type="file" accept="image/*" capture="environment" hidden><div id="courier-status" role="status" aria-live="polite"></div><dialog id="courier-dialog"><header><h2 id="courier-dialog-title"></h2><button class="courier-icon-btn" data-action="close" aria-label="关闭">${icon('close')}</button></header><div id="courier-dialog-body"></div><footer id="courier-dialog-footer"></footer></dialog>`;
         document.body.append(root);
         SM.letterTutorial.init({
-            root:()=>root, robot, icon, render, scrollTop:()=>$('#courier-story-body').scrollTop=0,
+            root:()=>root, robot, expression, icon, render, scrollTop:()=>$('#courier-story-body').scrollTop=0,
             status:message=>$('#courier-status').textContent=message,
             photo:()=>{if(!busy)$('#courier-file').click();},
             startField:()=>{
                 progress={index:1,cards:[{step:0,object:'letter',demo:false,photo:'',word:'手紙',kana:'てがみ'}],done:false,receipt:false,mode:'field'};
-                save();render();if(!map)initMap();requestAnimationFrame(()=>map?.invalidateSize());locate();$('#courier-story-body').scrollTop=0;
+                render();if(!map)initMap();requestAnimationFrame(()=>map?.invalidateSize());locate();$('#courier-story-body').scrollTop=0;
             }
         });
+        window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
         root.addEventListener('click', handleClick);
         $('#courier-file').addEventListener('change', handlePhoto);
         $('#courier-dialog').addEventListener('close',()=>lastFocus?.focus());
         $('#courier-dialog').addEventListener('cancel',cancelScan);
         document.addEventListener('visibilitychange',()=>{ if(document.hidden && watchId!==undefined) {navigator.geolocation.clearWatch(watchId);watchId=undefined;} else if(!document.hidden && progress.mode==='field' && !SM.letterTutorial.isActive()) locate(); });
-        if(!SM.letterTutorial.isActive() && progress.index===0) {
-            progress.index=1;progress.cards=[{step:0,object:'letter',demo:false,photo:'',word:'手紙',kana:'てがみ'}];progress.mode='field';save();
+        if(localTest){
+            const menu=document.createElement('details');menu.className='courier-test-menu';
+            menu.innerHTML=`<summary>测试起点</summary><div class="courier-test-panel"><header><strong>从哪里开始测试？</strong><button type="button" data-action="close-test-menu" aria-label="关闭测试菜单">${icon('close')}</button></header><div class="courier-test-list">${Object.entries(testStarts).map(([key,label])=>`<button type="button" data-test-start="${key}">${label}</button>`).join('')}</div><footer><button type="button" data-action="replay-test">重新开始当前起点</button><small>仅本地 · 自动补齐测试数据 · 刷新重回所选起点</small></footer></div>`;
+            root.append(menu);
+            const requested=new URLSearchParams(location.search).get('test');
+            if(Object.hasOwn(testStarts,requested)||requested==='food')jumpToTest(requested,false);
+            else render();
+        }else render();
+        if(!SM.letterTutorial.isActive()) {if(!map)initMap();if(progress.mode==='field')locate();}
+    }
+    function jumpToTest(key,updateURL=true) {
+        if(!localTest||(!Object.hasOwn(testStarts,key)&&key!=='food'))return;
+        cancelScan();closeDialog();stage='';pendingPhoto='';position=undefined;
+        if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;
+        SM.letterTutorial.reset();
+        progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};
+        if(!SM.letterTutorial.testStart(key)){
+            const index={shop:1,park:2,station:3,ending:3}[key];
+            const cards=[{step:0,object:'letter',word:'手紙',kana:'てがみ',photo:'',demo:true}];
+            if(index>=2)cards.push({step:1,object:'battery',word:'電池',kana:'でんち',photo:'',demo:true});
+            if(index>=3)cards.push({step:2,object:'leaf',word:'葉っぱ',kana:'はっぱ',photo:'',demo:true});
+            if(key==='ending')cards.push({step:3,object:'station',word:'駅',kana:'えき',photo:'',demo:true});
+            progress={index,cards,done:key==='ending',receipt:false,mode:'preview'};
+            SM.letterTutorial.finishForTest();
         }
-        render();
-        if(!SM.letterTutorial.isActive()) {initMap();if(progress.mode==='field')locate();}
+        testOrigin=key;
+        if(updateURL){const url=new URL(location.href);url.searchParams.set('test',key);history.replaceState(null,'',url);}
+        $('.courier-test-menu').open=false;
+        $('.courier-test-menu summary').textContent='测试起点';
+        root.querySelectorAll('[data-test-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.testStart===(key==='food'?'letter':key))));
+        $('#courier-status').textContent='';
+        render();$('#courier-story-body').scrollTop=0;
+        if(!SM.letterTutorial.isActive()){
+            if(!map)initMap();requestAnimationFrame(()=>map?.invalidateSize());
+        }
     }
     function render() {
         document.documentElement.lang=SM.state.currentLang==='zh'?'zh-CN':'ja';
         $('[data-action="language"]').hidden=!SM.letterTutorial.isActive();
         $('[data-action="language"]').textContent=SM.state.currentLang==='zh'?'日本語':'中文';
         if(SM.letterTutorial.isActive()) {SM.letterTutorial.render();return;}
-        root.classList.remove('courier-tutorial');
+        root.classList.remove('courier-tutorial','courier-opening','courier-writing','letter-receiving','poco-cheer');
         $('.courier-mode-btn').hidden=false;
         $('.courier-world').setAttribute('aria-label','OIC 配送地图');
         $('.courier-edition').textContent='OIC 漫游篇';
@@ -108,7 +149,7 @@
     function renderTask() {
         const s=current();
         $('#courier-story-body').innerHTML=`<div class="courier-scene"><span class="scene-postmark">OIC<br><b>${String(progress.index+1).padStart(2,'0')}</b><br>小さな旅</span>${scene()}<span class="scene-caption">${s.role}</span></div><div class="courier-copy"><div class="courier-speaker">${s.name}<span>${icon('pin')}${s.place}</span></div><h2>${s.title}</h2><p class="courier-dialogue">${s.line}</p><div class="courier-targets">${targets().map(key=>`<span>${icon(objects[key].icon)}${objects[key].label}</span>`).join('<small>或</small>')}</div><details class="courier-language"><summary>听懂这句话 <span>日本語</span></summary><p>${s.ja}</p><small>${progress.index===0?'请借我一支笔。':progress.index===1?'我想要电池。':progress.index===2?'把绿色的回忆送过去吧。':'这里是茨木站。'}</small></details></div>`;
-        $('#courier-actions').innerHTML=`<p class="courier-action-hint">${s.goal}</p><button class="courier-primary" data-action="photo">${icon('camera')}拍照 / 选照片${icon('arrow')}</button><div class="courier-action-links">${progress.mode==='preview'?'<button class="courier-text" data-action="sample">先用演示拍摄体验</button>':'<button class="courier-text" data-action="navigate">查看步行导航 ↗</button>'}<button class="courier-text" data-action="journal">看看邮袋</button></div><small class="courier-footnote">${progress.mode==='preview'?'桌面体验不检查位置；演示卡片会单独标记。':s.hint}</small>`;
+        $('#courier-actions').innerHTML=`<p class="courier-action-hint">${s.goal}</p><button class="courier-primary" data-action="photo">${icon('camera')}拍照 / 选照片${icon('arrow')}</button><div class="courier-action-links">${progress.mode==='preview'?(localTest?'<button class="courier-text" data-action="sample">先用演示拍摄体验</button>':''):'<button class="courier-text" data-action="navigate">查看步行导航 ↗</button>'}<button class="courier-text" data-action="journal">看看邮袋</button></div><small class="courier-footnote">${progress.mode==='preview'?(localTest?'桌面体验不检查位置；演示卡片会单独标记。':'可以拍摄身边的物品，无需到达地图地点。'):s.hint}</small>`;
     }
     function renderReceipt() {
         const card=progress.cards[progress.index];
@@ -116,8 +157,8 @@
         $('#courier-actions').innerHTML=`<button class="courier-primary" data-action="next">${current().next}${icon('arrow')}</button><p class="courier-footnote">${progress.index<3?'下一站 · '+steps[progress.index+1].place:'还差一句话，就能把信交给它了。'}</p>`;
     }
     function renderEnding() {
-        $('#courier-story-body').innerHTML=`<div class="courier-scene ending-scene">${robot()}<span class="scene-caption">波可已经准备好出发了</span></div><div class="courier-copy"><div class="courier-eyebrow">DELIVERED · JR 茨木站</div><h2>你送来的，是出发的勇气。</h2><p class="courier-dialogue">「电池、家乡的风景，还有这封信，都收到了。最初一起写的那封回信，我也记得。下一次，换我从远方给你寄信吧。」</p><p class="courier-ending-ja">届けてくれて、ありがとう。</p><div class="courier-collected">${progress.cards.map(c=>`<span>${icon(objects[c.object].icon)}${escape(c.word)}</span>`).join('')}</div></div>`;
-        $('#courier-actions').innerHTML=`<button class="courier-primary" data-action="journal">${icon('book')}翻开这次旅途的手帐${icon('arrow')}</button><button class="courier-text courier-restart" data-action="restart">重新体验这封信的旅程</button><p class="courier-footnote">${progress.cards.some(c=>c.demo)?'本次包含演示拍摄，未记录为实地配送。':'本次旅程已保存在这台设备。'}</p>`;
+        $('#courier-story-body').innerHTML=`<div class="courier-scene ending-scene">${robot()}<span class="scene-caption">波可已经准备好出发了</span></div><div class="courier-copy"><div class="courier-eyebrow">DELIVERED · JR 茨木站</div><h2>你送来的，是出发的勇气。</h2><p class="courier-dialogue">「电池、家乡的风景，还有这封信，都收到了。最初一起写的那封信，我也记得。下一次，换我从远方给你寄信吧。」</p><p class="courier-ending-ja">届けてくれて、ありがとう。</p><div class="courier-collected">${progress.cards.map(c=>`<span>${icon(objects[c.object].icon)}${escape(c.word)}</span>`).join('')}</div></div>`;
+        $('#courier-actions').innerHTML=`<button class="courier-primary" data-action="journal">${icon('book')}翻开这次旅途的手帐${icon('arrow')}</button><button class="courier-text courier-restart" data-action="restart">重新体验这封信的旅程</button><p class="courier-footnote">${progress.cards.some(c=>c.demo)?'本次包含演示拍摄，未记录为实地配送。':'刷新或重新打开页面，会开始新的旅程。'}</p>`;
     }
     function initMap() {
         if (!window.L) { $('#courier-map').innerHTML='<p class="courier-map-error">地图暂时未加载，仍可体验右侧故事。</p>'; return; }
@@ -143,17 +184,17 @@
     function closeDialog(){ $('#courier-dialog').close(); }
     function openJournal() {
         if(SM.letterTutorial.isActive()) {
-            openDialog(SM.state.currentLang==='zh'?'第一封回信':'最初のお返事',SM.letterTutorial.journal(),'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
+            openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal(),'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
         }
-        openDialog('这封信的旅程',`<p class="courier-journal-intro">从校园的小小邮局，到一座通往远方的车站。<br>步行与互动预计 20–30 分钟。</p><ol class="courier-itinerary">${steps.map((s,i)=>{const card=progress.cards.find(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${card?'✓':i+1}</span><div><small>${card?'已收进邮袋':i===progress.index?'当前委托':'之后会遇见'}</small><h3>${s.short}</h3><p>${s.place}</p>${card?`<div class="courier-journal-word">${icon(objects[card.object].icon)}${escape(card.word)}<small>${card.demo?'演示卡片':'照片卡片'}</small></div>`:''}</div></li>`;}).join('')}</ol><p class="courier-footnote">地图点位是 demo 会合点，站外终点与步行路径以现场为准。</p>`,`<button class="courier-primary" data-action="close">继续旅程${icon('arrow')}</button>`);
+        openDialog('这封信的旅程',`<p class="courier-journal-intro">从校园的小小邮局，到一座通往远方的车站。<br>步行与互动预计 20–30 分钟。</p><ol class="courier-itinerary">${steps.map((s,i)=>{const card=progress.cards.find(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${card?'✓':i+1}</span><div><small>${card?'已收进邮袋':i===progress.index?'当前委托':'之后会遇见'}</small><h3>${s.short}</h3><p>${s.place}</p>${card?`<div class="courier-journal-word">${icon(objects[card.object].icon)}${escape(card.word)}<small>${card.demo?'演示卡片':'照片卡片'}</small></div>`:''}</div></li>`;}).join('')}</ol><p class="courier-footnote">会合地点、站外终点与步行路径以现场为准。</p>`,`<button class="courier-primary" data-action="close">继续旅程${icon('arrow')}</button>`);
     }
     function openSample() {
-        if(progress.mode!=='preview')return;
+        if(!localTest||progress.mode!=='preview')return;
         openDialog('演示拍摄',`<p class="courier-dialog-intro">不调用摄像头或 AI。选一个示例物品，看看角色会怎样回应。</p><div class="courier-sample-options">${targets().map(key=>`<button data-sample="${key}">${icon(objects[key].icon)}<span>${objects[key].label}</span></button>`).join('')}<button data-sample="wrong">${icon('mail')}<span>拍到其他东西</span></button></div>`, '<small class="courier-footnote">演示物品会在邮袋中标记为「演示卡片」。</small>');
     }
     function accept(object,{demo=false,photo='',word=objects[object].ja,kana=objects[object].kana}={}) {
         if(progress.receipt||progress.done)return;
-        progress.cards.push({step:progress.index,object,demo,photo,word,kana});progress.receipt=true;pendingPhoto='';save();closeDialog();render();$('#courier-story-body').scrollTop=0;
+        progress.cards.push({step:progress.index,object,demo,photo,word,kana});progress.receipt=true;pendingPhoto='';closeDialog();render();$('#courier-story-body').scrollTop=0;
     }
     function distance(a,b) {const rad=Math.PI/180;const x=(a.lat-b.lat)*rad;const y=(a.lng-b.lng)*rad;return 6371000*2*Math.asin(Math.sqrt(Math.sin(x/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(y/2)**2));}
     function canCapture() {
@@ -203,19 +244,26 @@
                 openDialog(tr('別の写真で試してみよう','再找找这件东西'),`<img class="courier-photo-review" src="${escape(pendingPhoto)}" alt="${tr('選んだ写真','刚刚选择的照片')}"><p class="courier-dialog-intro">${tr('この写真では、必要なものを確認できませんでした。','这张照片还没找到委托需要的物品。')}${tutorial?escape(SM.letterTutorial.goal()):current().goal}${tr('ものを大きく写して、もう一度試してみてね。','让目标占画面大一些，再试一次。')}</p>`,`<button class="courier-primary" data-action="retry-photo">${tr('もう一度撮る','重新拍摄')}</button>`);
             }
         } catch(error) {
-            if(busy&&scan===scanSequence)openDialog(tr('写真が届きませんでした','照片暂时没能送达'),`<p class="courier-dialog-intro">${tr('写真の読み込みか認識サービスを利用できませんでした。進み具合は変わっていません。もう一度、写真を撮るか選び直してね。',tutorial?'照片读取或识别服务暂时不可用，这一空还没有完成。可以重新拍摄或选择一张照片。':'照片读取或识别服务暂时不可用，任务还没有完成。可以换一张照片重试，或在桌面体验中使用明确标记的演示物品。')}</p>`,`<button class="courier-primary" data-action="retry-photo">${tr('もう一度試す','重试拍照')}</button>`+(!tutorial&&progress.mode==='preview'?'<button class="courier-text" data-action="sample">使用演示拍摄</button>':''));
+            if(busy&&scan===scanSequence)openDialog(tr('写真が届きませんでした','照片暂时没能送达'),`<p class="courier-dialog-intro">${tr('写真の読み込みか認識サービスを利用できませんでした。進み具合は変わっていません。もう一度、写真を撮るか選び直してね。',tutorial?'照片读取或识别服务暂时不可用，这一空还没有完成。可以重新拍摄或选择一张照片。':'照片读取或识别服务暂时不可用，任务还没有完成。可以重新拍摄或选择一张照片。')}</p>`,`<button class="courier-primary" data-action="retry-photo">${tr('もう一度試す','重试拍照')}</button>`+(localTest&&!tutorial&&progress.mode==='preview'?'<button class="courier-text" data-action="sample">使用演示拍摄</button>':''));
         }finally {if(scan===scanSequence){busy=false;aborter=null;}}
     }
     function cancelScan(){scanSequence++;busy=false;aborter?.abort();aborter=null;}
     function next() {
         if(!progress.receipt)return;
         if(progress.index===3){stage='letter';openDialog('把最后的心意交给它',`<div class="courier-letter">${icon('mail')}<p>これは、あなたへの <span>［ ? ］</span> です。</p><small>这是给你的信。</small></div><div class="courier-answer-options"><button data-answer="ticket">切符<small>车票</small></button><button data-answer="letter">手紙<small>信</small></button><button data-answer="battery">電池<small>电池</small></button></div><p id="courier-answer-feedback" role="status"></p>`);return;}
-        progress.index++;progress.receipt=false;save();render();$('#courier-story-body').scrollTop=0;
+        progress.index++;progress.receipt=false;render();$('#courier-story-body').scrollTop=0;
     }
     function handleClick(event) {
+        if(localTest){
+            const key=event.target.closest('[data-test-start]')?.dataset.testStart;
+            if(key){jumpToTest(key);return;}
+            const testAction=event.target.closest('[data-action]')?.dataset.action;
+            if(testAction==='replay-test'){jumpToTest(testOrigin);return;}
+            if(testAction==='close-test-menu'){$('.courier-test-menu').open=false;return;}
+        }
         if(event.target.closest('[data-letter-action], [data-letter-slot]')) {if(!busy)SM.letterTutorial.click(event);return;}
-        const sample=event.target.closest('[data-sample]');if(sample){if(progress.mode!=='preview')return;const key=sample.dataset.sample;if(key==='wrong') {$('#courier-dialog-title').textContent='这次还没找到';$('#courier-dialog-body').insertAdjacentHTML('beforeend','<p class="courier-sample-feedback">试着选一件委托中需要的物品吧。任务还没有完成。</p>');return;}if(targets().includes(key))accept(key,{demo:true});return;}
-        const answer=event.target.closest('[data-answer]');if(answer&&stage==='letter'){if(answer.dataset.answer!=='letter'){$('#courier-answer-feedback').textContent='我们要交给它的是「信」，再选一次吧。';return;}stage='';progress.done=true;progress.receipt=false;save();closeDialog();render();$('#courier-story-body').scrollTop=0;return;}
+        const sample=event.target.closest('[data-sample]');if(sample){if(!localTest||progress.mode!=='preview')return;const key=sample.dataset.sample;if(key==='wrong') {$('#courier-dialog-title').textContent='这次还没找到';$('#courier-dialog-body').insertAdjacentHTML('beforeend','<p class="courier-sample-feedback">试着选一件委托中需要的物品吧。任务还没有完成。</p>');return;}if(targets().includes(key))accept(key,{demo:true});return;}
+        const answer=event.target.closest('[data-answer]');if(answer&&stage==='letter'){if(answer.dataset.answer!=='letter'){$('#courier-answer-feedback').textContent='我们要交给它的是「信」，再选一次吧。';return;}stage='';progress.done=true;progress.receipt=false;closeDialog();render();$('#courier-story-body').scrollTop=0;return;}
         const action=event.target.closest('[data-action]')?.dataset.action;
         switch(action){
             case 'journal':openJournal();break;
@@ -227,11 +275,11 @@
             case 'next':next();break;
             case 'map':if(map?.fitBounds)map.fitBounds(steps.map(s=>[s.lat,s.lng]),{paddingTopLeft:[30,70],paddingBottomRight:[90,35]});else map?.setView([34.8124,135.5621],16);break;
             case 'navigate':{const s=current();window.open(`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking`,'_blank','noopener,noreferrer');break;}
-            case 'mode':openDialog('选择这次旅程的方式','<p class="courier-dialog-intro">先坐下来看看故事，或者带着手机去校园走一走。</p><button class="courier-mode-option" data-action="preview-mode"><strong>桌面体验</strong><span>随时拍照或使用示例，无需到现场。</span></button><button class="courier-mode-option" data-action="field-mode"><strong>实地探索</strong><span>教学后，到每个会合点约 150 米内拍摄；需要定位。</span></button>');break;
-            case 'preview-mode':progress.mode='preview';if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;$('#courier-status').textContent='';save();closeDialog();render();break;
-            case 'field-mode':progress.mode='field';save();closeDialog();render();locate();break;
+            case 'mode':openDialog('选择这次旅程的方式','<p class="courier-dialog-intro">先坐下来看看故事，或者带着手机去校园走一走。</p><button class="courier-mode-option" data-action="preview-mode"><strong>桌面体验</strong><span>拍摄身边的物品，无需到现场。</span></button><button class="courier-mode-option" data-action="field-mode"><strong>实地探索</strong><span>教学后，到每个会合点约 150 米内拍摄；需要定位。</span></button>');break;
+            case 'preview-mode':progress.mode='preview';if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;$('#courier-status').textContent='';closeDialog();render();break;
+            case 'field-mode':progress.mode='field';closeDialog();render();locate();break;
             case 'restart':openDialog('再陪它走一次？','<p class="courier-dialog-intro">这会清除本篇的四站进度与照片卡片，其他探索进度不受影响。</p>','<button class="courier-primary" data-action="confirm-restart">重新开始</button><button class="courier-text" data-action="close">保留这次旅程</button>');break;
-            case 'confirm-restart':cancelScan();if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};SM.letterTutorial.reset();stage='';save();closeDialog();render();break;
+            case 'confirm-restart':cancelScan();if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};SM.letterTutorial.reset();stage='';closeDialog();render();break;
         }
     }
     SM.courier={init};

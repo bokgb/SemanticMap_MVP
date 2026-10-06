@@ -14,8 +14,14 @@ const port = Number(process.env.PORT || 9321);
 const baseURL = `http://${host}:${port}`;
 
 const routes = [
-  { path: '/', title: '言葉ハンター · 拆开第一封信', readySelector: '.courier-story' },
-  { path: '/?preview=letter', title: '邮局回信 · 三处拍照填空', readySelector: '.courier-story', letterWriting: true },
+  { path: '/', title: '言葉ハンター · 认识波可', readySelector: '.courier-story' },
+  { path: '/?test=reply', title: '开场演出 · 拿出信纸准备写信', readySelector: '[data-opening-beat="reply"]' },
+  { path: '/?test=missing-pen', title: '找不到笔 · 波可的困惑表情', readySelector: '[data-expression="confused"]' },
+  { path: '/?preview=pen', title: '波可的对话 · 拍笔送到游戏世界', readySelector: '.courier-story', penDialogue: true },
+  { path: '/?test=letter', title: '写信页直达 · 本地测试', readySelector: '.reply-letter' },
+  { path: '/?test=drink', title: '任选测试起点 · 午休饮品', readySelector: '[data-letter-beat="drink"]' },
+  { path: '/?preview=letter-delivery', title: '词语送达 · 盖章与下一段展开', readySelector: '.courier-story', letterWriting: true, letterDelivery: true },
+  { path: '/?preview=letter-second', title: '逐段写信 · 第二个问题', readySelector: '.courier-story', letterWriting: true, letterSecond: true },
   { path: '/?preview=courier-park', title: 'OIC 漫游 · 公园明信片', readySelector: '.courier-story', courierPark: true },
   { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
   { path: '/cleaner.html', title: 'Data Cleaner', readySelector: '.container' }
@@ -86,6 +92,7 @@ async function installOfflineLeafletStubs(page) {
         window.L = {
           map: () => ({
             setView() { return this; },
+            invalidateSize() { return this; },
             on() { return this; },
             addLayer() { return this; },
             removeLayer() { return this; },
@@ -200,18 +207,42 @@ async function captureRoute(context, route) {
   const page = await context.newPage();
   await installOfflineLeafletStubs(page);
   if (route.letterWriting || route.courierPark) {
-    await page.addInitScript(({park})=>{
-      const canvas=document.createElement('canvas');canvas.width=2;canvas.height=2;
-      const photo=canvas.toDataURL('image/jpeg');
-      const pen={word:'ペン',kana:'ぺん',photo};
-      const captures=park?{pen,food:{word:'パン',kana:'ぱん',photo},cute:{word:'花',kana:'はな',photo},drink:{word:'お茶',kana:'おちゃ',photo}}:{pen};
-      localStorage.setItem('kotoba-hunter-letter-tutorial-v1',JSON.stringify({phase:park?'sent':'writing',captures,finished:park}));
-      if(park)localStorage.setItem('oic-courier-story-v2',JSON.stringify({index:1,cards:[{step:0,object:'letter',demo:false,photo:'',word:'手紙',kana:'てがみ'}],done:false,receipt:false,mode:'preview'}));
-    },{park:!!route.courierPark});
+    const words={pen:['ペン','ぺん'],food:['パン','ぱん'],cute:['花','はな'],drink:['お茶','おちゃ']};
+    await page.route('**/api/gemini',route=>{
+      const key=route.request().postDataJSON().contents[0].parts[0].text.match(/Current task key: (\w+)/)[1];
+      const [word,kana]=words[key];
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:true,object:key,word,kana})}]}}]})});
+    });
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForTimeout(750);
+  if (route.letterWriting || route.courierPark || route.penDialogue) {
+    for(let step=0;step<4;step++)await page.locator('[data-letter-action="open"]').click();
+    await page.locator('[data-letter-action="photo"]').waitFor();
+  }
+  if (route.letterWriting || route.courierPark) {
+    const fixture=path.join(root,'assets/lumi-avatar.png');
+    await page.locator('#courier-file').setInputFiles(fixture);
+    await page.locator('[data-letter-slot="food"]').first().waitFor();
+    if(route.letterDelivery||route.letterSecond){
+      await page.locator('#courier-file').setInputFiles(fixture);
+      await page.locator('.letter-word-stamp').waitFor();
+      if(route.letterSecond)await page.locator('[data-letter-beat="cute"]').waitFor();
+    }
+    if(route.courierPark){
+      for(const key of ['food','cute','drink']){
+        await page.locator('[data-letter-slot="'+key+'"]').first().click();
+        await page.locator('#courier-file').setInputFiles(fixture);
+        await page.locator('[data-letter-slot="'+key+'"].filled').waitFor();
+        await page.waitForFunction(()=>!document.querySelector('#courier-app').classList.contains('letter-receiving'));
+      }
+      await page.locator('[data-letter-action="send"]').click();
+      await page.locator('[data-letter-action="field"]').click();
+      await page.locator('[data-action="mode"]').click();
+      await page.locator('[data-action="preview-mode"]').click();
+    }
+  }
+  if(!route.letterDelivery)await page.waitForTimeout(750);
 
   if (route.courierPark) {
     for (const key of ['battery']) {
