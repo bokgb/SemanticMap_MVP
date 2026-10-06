@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import geminiHandler from './api/gemini.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 8000);
@@ -18,8 +19,31 @@ const types = {
     '.svg': 'image/svg+xml'
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${host}:${port}`);
+    if (url.pathname === '/api/gemini') {
+        res.status = code => { res.statusCode = code; return res; };
+        res.json = data => { res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify(data)); };
+        if (req.method !== 'POST') return geminiHandler(req, res);
+        try {
+            const chunks = [];
+            let bytes = 0;
+            for await (const chunk of req) {
+                bytes += chunk.length;
+                if (bytes > 5 * 1024 * 1024) {
+                    res.status(413).json({ error: { message: '图片请求过大' } });
+                    return;
+                }
+                chunks.push(chunk);
+            }
+            req.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        } catch {
+            res.status(400).json({ error: { message: '无效的 JSON 请求' } });
+            return;
+        }
+        await geminiHandler(req, res);
+        return;
+    }
     let file = decodeURIComponent(url.pathname);
     if (file === '/' || file === '') file = '/index.html';
 

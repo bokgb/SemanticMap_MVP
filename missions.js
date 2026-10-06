@@ -13,12 +13,12 @@
 
     const COPY = {
         zh: {
-            title: '修复计划',
+            title: '配送手帐',
             mission: 'Mission',
             main: '主线',
             daily: '每日',
             lockedTitle: '完成教学节点后解锁',
-            lockedBody: '先完成第一个崩坏节点。之后修复计划会开始记录你的探索目标。',
+            lockedBody: '先完成第一个驿站委托。之后配送手帐会开始记录你的探索目标。',
             current: '进行中',
             complete: '可领取',
             claimed: '已领取',
@@ -26,14 +26,14 @@
             claim: '领取',
             reward: '奖励',
             refresh: '明天重置',
-            unlockedToast: '修复计划已解锁',
+            unlockedToast: '配送手帐已解锁',
             claimedToast: '任务奖励已领取',
             mainTasks: [
-                { title: '完成教学节点', body: '拍照修复第一个崩坏节点。' },
+                { title: '完成教学节点', body: '拍照完成委托第一个驿站委托。' },
                 { title: '收集 3 张地点词卡', body: '完成现实地点任务，并把词卡收进背包。' },
-                { title: '净化任意 1 个区域', body: '推进区域修复值，第一次完成区域净化。' },
+                { title: '踏访任意 1 个区域', body: '推进区域旅途进度，第一次完成区域踏访。' },
                 { title: '帮助 1 位 NPC', body: '把背包里的词卡交给需要帮助的路人。' },
-                { title: '净化任意 3 个区域', body: '把修复行动扩展到更多地图区域。' }
+                { title: '踏访任意 3 个区域', body: '把完成委托行动扩展到更多地图区域。' }
             ],
             dailyTasks: {
                 foodCards: { title: '补给调查', body: '收集 3 张 Food 词卡。' },
@@ -42,12 +42,12 @@
             }
         },
         ja: {
-            title: '修復計画',
+            title: '配達手帳',
             mission: 'Mission',
             main: 'メイン',
             daily: 'デイリー',
             lockedTitle: 'チュートリアル後に解放',
-            lockedBody: '最初の崩壊ノードを修復すると、修復計画が探索目標を記録します。',
+            lockedBody: '最初の配達依頼を配達すると、配達手帳が探索目標を記録します。',
             current: '進行中',
             complete: '受取可',
             claimed: '受取済み',
@@ -55,14 +55,14 @@
             claim: '受け取る',
             reward: '報酬',
             refresh: '明日リセット',
-            unlockedToast: '修復計画が解放されました',
+            unlockedToast: '配達手帳が解放されました',
             claimedToast: 'ミッション報酬を受け取りました',
             mainTasks: [
-                { title: 'チュートリアルノードを修復', body: '写真で最初の崩壊ノードを修復します。' },
+                { title: 'チュートリアルノードを配達', body: '写真で最初の配達依頼を配達します。' },
                 { title: '場所語彙カードを3枚集める', body: '現地タスクを完了し、カードをバッグへ保存します。' },
-                { title: '任意のエリアを1つ浄化', body: '修復値を進め、初めてのエリア浄化を達成します。' },
+                { title: '任意のエリアを1つ踏破', body: '旅の進捗を進め、初めてのエリア踏破を達成します。' },
                 { title: 'NPCを1人助ける', body: 'バッグの語彙カードを、困っている人に渡します。' },
-                { title: '任意のエリアを3つ浄化', body: '修復行動をさらに広い地図へ広げます。' }
+                { title: '任意のエリアを3つ踏破', body: '配達行動をさらに広い地図へ広げます。' }
             ],
             dailyTasks: {
                 foodCards: { title: '補給調査', body: 'Foodカードを3枚集めます。' },

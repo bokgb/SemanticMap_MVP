@@ -14,7 +14,9 @@ const port = Number(process.env.PORT || 9321);
 const baseURL = `http://${host}:${port}`;
 
 const routes = [
-  { path: '/', title: 'Home', readySelector: '#ui-layer' },
+  { path: '/', title: '风间邮局 · 第一张照片', readySelector: '.courier-story' },
+  { path: '/?preview=courier-park', title: 'OIC 漫游 · 公园明信片', readySelector: '.courier-story', courierPark: true },
+  { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
   { path: '/cleaner.html', title: 'Data Cleaner', readySelector: '.container' }
 ];
 
@@ -199,6 +201,36 @@ async function captureRoute(context, route) {
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForTimeout(750);
+
+  if (route.courierPark) {
+    for (const key of ['pen', 'battery']) {
+      await page.locator('[data-action="sample"]').click();
+      await page.locator(`[data-sample="${key}"]`).click();
+      await page.locator('[data-action="next"]').click();
+    }
+    await page.locator('#courier-story-body').evaluate(el => { el.scrollTop = el.scrollHeight; });
+    const photo = await page.locator('[data-action="photo"]').boundingBox();
+    if (!photo || photo.y < 0 || photo.y + photo.height > page.viewportSize().height) throw new Error('Courier photo control is outside the viewport');
+    await page.locator('#courier-story-body').evaluate(el => { el.scrollTop = 0; });
+  }
+
+  if (route.resident) {
+    await page.evaluate(() => {
+      window.SemanticMap.state.currentLang = 'zh';
+      window.SemanticMap.map.openQuestUI({
+        rarity: 'N', text: '[ ? ] の近くを歩きます。', config: { color: '#647e68' },
+        instruction: '拍摄公园里可以作为参照物的自然物或设施。', requiredTag: 'Nature', rewardCount: 1
+      }, { id: 'preview-garden', name: '风间花园', type: 'park', lat: 34.81036, lng: 135.56108 }, null);
+    });
+    await page.locator('.place-resident').waitFor({ state: 'visible' });
+    const controlsVisible = await page.evaluate(() => {
+      const body = document.querySelector('.quest-content');
+      body.scrollTop = body.scrollHeight;
+      const rect = document.querySelector('#btn-close-quest').getBoundingClientRect();
+      return rect.top >= 0 && rect.bottom <= innerHeight && document.documentElement.scrollWidth <= innerWidth;
+    });
+    if (!controlsVisible) throw new Error('Resident panel controls overflow the mobile viewport');
+  }
 
   const buffer = await page.screenshot({
     fullPage: true,

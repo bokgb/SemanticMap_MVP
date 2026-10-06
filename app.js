@@ -24,7 +24,11 @@
     }
 
     function init() {
-        initClickEffects();
+        if (new URLSearchParams(location.search).get('mode') !== 'explore') {
+            SM.courier.init();
+            return;
+        }
+        if (state.devMode) initClickEffects();
         SM.quests.init();
         SM.inventory.init();
         SM.i18n.init();

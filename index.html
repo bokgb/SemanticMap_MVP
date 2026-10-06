@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Semantic Map LBS Prototype</title>
+    <title>风间邮局 · 异世界漫游</title>
     <style>
         * {
             touch-action: manipulation;
@@ -15,10 +15,12 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <link rel="stylesheet" href="style.css?v=grammar-71">
+    <link rel="stylesheet" href="style.css?v=courier-1">
+    <link rel="stylesheet" href="courier.css?v=1">
 </head>
 <body>
     <div id="map"></div>
+    <header class="journey-brand"><span class="journey-emblem" aria-hidden="true">✉</span><div><strong data-zh="风间邮局" data-ja="風の郵便局">风间邮局</strong><span data-zh="走走停停，把心意送到。" data-ja="歩いて、出会って、想いを届ける。">走走停停，把心意送到。</span></div></header>
     <div id="toast-layer" aria-live="polite" aria-atomic="true"></div>
 
     <div id="level-onboarding-layer" class="hidden">
@@ -67,8 +69,8 @@
     </div>
 
 
-    <button id="mission-btn" type="button" aria-label="修复计划">
-        <span class="mission-btn-title">修复计划</span>
+    <button id="mission-btn" type="button" aria-label="配送手帐">
+        <span class="mission-btn-title">配送手帐</span>
         <span id="mission-btn-progress">0/1</span>
     </button>
 
@@ -78,7 +80,7 @@
                 <div class="mission-panel-header">
                     <div>
                         <div class="mission-kicker">Mission</div>
-                        <h2 id="mission-title">修复计划</h2>
+                        <h2 id="mission-title">配送手帐</h2>
                     </div>
                     <button id="mission-close-btn" type="button" aria-label="关闭">×</button>
                 </div>
@@ -96,7 +98,7 @@
         </div>
         <button id="lang-toggle-btn" onclick="toggleLanguage()" type="button">JP</button>
 
-        <h2 data-zh="系统信息" data-ja="システム情報">系统信息</h2>
+        <h2 data-zh="旅途设置" data-ja="旅の設定">旅途设置</h2>
         <p id="status-text" data-zh="正在获取 GPS 定位..." data-ja="GPS位置情報を取得中...">正在获取 GPS 定位...</p>
         
         <select id="level-selector">
@@ -127,8 +129,8 @@
             </div>
 
             <div class="quest-content">
-                <h3 data-zh="文型语义缺失！" data-ja="文型セマンティクス欠落！">文型语义缺失！</h3>
-                <div class="repair-reward-chip" id="quest-repair-points" data-zh="修复值 +1" data-ja="修復値 +1">修复值 +1</div>
+                <h3 data-zh="有一份委托等着你" data-ja="新しいお届けもの">有一份委托等着你</h3>
+                <div class="repair-reward-chip" id="quest-repair-points" data-zh="旅途进度 +1" data-ja="旅の進捗 +1">旅途进度 +1</div>
                 <div class="sentence-preview">
                     <span class="slot-box" id="quest-slot">?</span>
                     <span class="fixed-text">を たべる</span>
@@ -175,6 +177,7 @@
     <script src="vision.js?v=grammar-67"></script>
     <script src="map.js?v=grammar-71"></script>
     <script src="missions.js?v=mission-1"></script>
-    <script src="app.js?v=grammar-54"></script>
+    <script src="courier.js?v=1"></script>
+    <script src="app.js?v=courier-2"></script>
 </body>
 </html>

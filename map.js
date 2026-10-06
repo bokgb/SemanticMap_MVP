@@ -57,12 +57,12 @@
     };
     const CAT_NEARBY_AREA_RADIUS_METERS = 900;
     const GAME_AREAS = [
-        // 修复区按“步行可达的语义场景”组织，而不是行政区。
+        // 配送区按“步行可达的语义场景”组织，而不是行政区。
         {
             id: 'ritsumeikan_oic',
             name: {
-                zh: '立命馆 OIC 修复区',
-                ja: '立命館OIC修復エリア'
+                zh: '立命馆 OIC 配送区',
+                ja: '立命館OIC配達エリア'
             },
             center: [34.81036015042446, 135.5610787988949],
             radius: 420,
@@ -76,8 +76,8 @@
         {
             id: 'ibarakishi_station_west',
             name: {
-                zh: '茨木站修复区',
-                ja: '茨木駅修復エリア'
+                zh: '茨木站配送区',
+                ja: '茨木駅配達エリア'
             },
             center: [34.81525, 135.56220],
             radius: 360,
@@ -91,8 +91,8 @@
         {
             id: 'aeon_ibaraki',
             name: {
-                zh: 'AEON 茨木生活修复区',
-                ja: 'イオン茨木生活修復エリア'
+                zh: 'AEON 茨木生活配送区',
+                ja: 'イオン茨木生活配達エリア'
             },
             center: [34.81255, 135.55845],
             radius: 300,
@@ -106,8 +106,8 @@
         {
             id: 'minami_ibaraki_station',
             name: {
-                zh: '南茨木站修复区',
-                ja: '南茨木駅修復エリア'
+                zh: '南茨木站配送区',
+                ja: '南茨木駅配達エリア'
             },
             center: [34.80255, 135.56535],
             radius: 360,
@@ -121,8 +121,8 @@
         {
             id: 'tenroku',
             name: {
-                zh: '天六商店街修复区',
-                ja: '天六商店街修復エリア'
+                zh: '天六商店街配送区',
+                ja: '天六商店街配達エリア'
             },
             center: [34.7106, 135.5108],
             radius: 480,
@@ -135,8 +135,8 @@
         {
             id: 'ogimachi_park',
             name: {
-                zh: '扇町公园修复区',
-                ja: '扇町公園修復エリア'
+                zh: '扇町公园配送区',
+                ja: '扇町公園配達エリア'
             },
             center: [34.70413, 135.50915],
             radius: 430,
@@ -149,8 +149,8 @@
         {
             id: 'nakazakicho',
             name: {
-                zh: '中崎町路地修复区',
-                ja: '中崎町路地修復エリア'
+                zh: '中崎町路地配送区',
+                ja: '中崎町路地配達エリア'
             },
             center: [34.7068, 135.5051],
             radius: 430,
@@ -163,8 +163,8 @@
         {
             id: 'umeda',
             name: {
-                zh: '梅田地下街修复区',
-                ja: '梅田地下街修復エリア'
+                zh: '梅田地下街配送区',
+                ja: '梅田地下街配達エリア'
             },
             center: [34.7025, 135.4959],
             radius: 560,
@@ -177,8 +177,8 @@
         {
             id: 'minamimorimachi',
             name: {
-                zh: '南森町生活修复区',
-                ja: '南森町生活修復エリア'
+                zh: '南森町生活配送区',
+                ja: '南森町生活配達エリア'
             },
             center: [34.6977, 135.5115],
             radius: 460,
@@ -191,8 +191,8 @@
         {
             id: 'kyoto_station',
             name: {
-                zh: '京都站交通修复区',
-                ja: '京都駅交通修復エリア'
+                zh: '京都站交通配送区',
+                ja: '京都駅交通配達エリア'
             },
             center: [34.9858, 135.7588],
             radius: 540,
@@ -205,8 +205,8 @@
         {
             id: 'nishiki_market',
             name: {
-                zh: '锦市场商店街修复区',
-                ja: '錦市場商店街修復エリア'
+                zh: '锦市场商店街配送区',
+                ja: '錦市場商店街配達エリア'
             },
             center: [35.0050, 135.7648],
             radius: 500,
@@ -219,8 +219,8 @@
         {
             id: 'gion',
             name: {
-                zh: '祇园街路修复区',
-                ja: '祇園街路修復エリア'
+                zh: '祇园街路配送区',
+                ja: '祇園街路配達エリア'
             },
             center: [35.0037, 135.7750],
             radius: 480,
@@ -233,8 +233,8 @@
         {
             id: 'fushimi_inari',
             name: {
-                zh: '伏见稻荷修复区',
-                ja: '伏見稲荷修復エリア'
+                zh: '伏见稻荷配送区',
+                ja: '伏見稲荷配達エリア'
             },
             center: [34.9671, 135.7727],
             radius: 560,
@@ -247,8 +247,8 @@
         {
             id: 'nijo_castle',
             name: {
-                zh: '二条城周边修复区',
-                ja: '二条城周辺修復エリア'
+                zh: '二条城周边配送区',
+                ja: '二条城周辺配達エリア'
             },
             center: [35.0142, 135.7480],
             radius: 560,
@@ -471,7 +471,7 @@
             clearTitle: '\u30b3\u30f3\u30d3\u30cb\u306e\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3 CLEAR!',
             clearLines: [
                 '\u30b3\u30f3\u30d3\u30cb\u30a8\u30ea\u30a2\u306e\u610f\u5473\u30c7\u30fc\u30bf\u3001\u5b89\u5b9a\u3057\u307e\u3057\u305f\u3002',
-                '\u99c5\u30a8\u30ea\u30a2\u3078\u306e\u30a2\u30af\u30bb\u30b9\u3092\u958b\u653e\u3057\u307e\u3059\u3002\u6b21\u306e\u5d29\u58ca\u30ce\u30fc\u30c9\u3078\u5411\u304b\u3044\u307e\u3057\u3087\u3046\u3002'
+                '\u99c5\u30a8\u30ea\u30a2\u3078\u306e\u30a2\u30af\u30bb\u30b9\u3092\u958b\u653e\u3057\u307e\u3059\u3002\u6b21\u306e配達依頼\u3078\u5411\u304b\u3044\u307e\u3057\u3087\u3046\u3002'
             ],
             close: '\u9589\u3058\u308b',
             next: '\u6b21\u3078',
@@ -479,16 +479,16 @@
             clear: '\u89e3\u653e\u3059\u308b',
             objectiveKicker: '\u7b2c1\u7ae0',
             convenienceObjectiveTitle: '\u30b3\u30f3\u30d3\u30cb\u30a8\u30ea\u30a2',
-            convenienceObjectiveBody: '\u8fd1\u304f\u306e\u30b3\u30f3\u30d3\u30cb\u3067\u5d29\u58ca\u53cd\u5fdc\u3002\u5d29\u58ca\u30ce\u30fc\u30c9\u3092\u4fee\u5fa9\u3057\u3066\u3001\u8a9e\u5f59\u30ab\u30fc\u30c9\u30923\u679a\u96c6\u3081\u307e\u3057\u3087\u3046\u3002',
+            convenienceObjectiveBody: '\u8fd1\u304f\u306e\u30b3\u30f3\u30d3\u30cb\u3067新しい依頼\u3002配達依頼\u3092配達\u3057\u3066\u3001\u8a9e\u5f59\u30ab\u30fc\u30c9\u30923\u679a\u96c6\u3081\u307e\u3057\u3087\u3046\u3002',
             dungeonObjectiveTitle: '\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3\u89e3\u653e',
             dungeonObjectiveBody: '\u30b3\u30f3\u30d3\u30cb\u8a9e\u5f59\u304c\u96c6\u307e\u308a\u307e\u3057\u305f\u3002\u8a00\u8449\u30c0\u30f3\u30b8\u30e7\u30f3\u3067\u6574\u7406\u3059\u308b\u3068\u3001\u99c5\u30a8\u30ea\u30a2\u304c\u958b\u304d\u307e\u3059\u3002',
             stationObjectiveTitle: '\u99c5\u30a8\u30ea\u30a2\u89e3\u653e',
-            stationObjectiveBody: '\u6b21\u306f\u99c5\u5468\u8fba\u306e\u5d29\u58ca\u30ce\u30fc\u30c9\u3092\u63a2\u3057\u307e\u3057\u3087\u3046\u3002\u4ea4\u901a\u306e\u8a9e\u5f59\u30c7\u30fc\u30bf\u3092\u56de\u53ce\u3057\u307e\u3059\u3002',
+            stationObjectiveBody: '\u6b21\u306f\u99c5\u5468\u8fba\u306e配達依頼\u3092\u63a2\u3057\u307e\u3057\u3087\u3046\u3002\u4ea4\u901a\u306e\u8a9e\u5f59\u30c7\u30fc\u30bf\u3092\u56de\u53ce\u3057\u307e\u3059\u3002',
             cardProgress: '\u30b3\u30f3\u30d3\u30cb\u8a9e\u5f59\u30ab\u30fc\u30c9 {count}/{required}',
             stationProgress: '\u99c5\u30a8\u30ea\u30a2\u63a2\u7d22\u4e2d',
             chapterStartLines: [
-                '\u5468\u56f2\u3092\u78ba\u8a8d\u3057\u307e\u3057\u305f\u3002\u8fd1\u304f\u306e\u30b3\u30f3\u30d3\u30cb\u3067\u5d29\u58ca\u53cd\u5fdc\u304c\u51fa\u3066\u3044\u307e\u3059\u3002',
-                '\u307e\u305a\u306f\u30b3\u30f3\u30d3\u30cb\u306e\u5d29\u58ca\u30ce\u30fc\u30c9\u3092\u4fee\u5fa9\u3057\u3066\u3001\u8a9e\u5f59\u30ab\u30fc\u30c9\u30923\u679a\u96c6\u3081\u307e\u3057\u3087\u3046\u3002'
+                '\u5468\u56f2\u3092\u78ba\u8a8d\u3057\u307e\u3057\u305f\u3002\u8fd1\u304f\u306e\u30b3\u30f3\u30d3\u30cb\u3067新しい依頼\u304c\u51fa\u3066\u3044\u307e\u3059\u3002',
+                '\u307e\u305a\u306f\u30b3\u30f3\u30d3\u30cb\u306e配達依頼\u3092配達\u3057\u3066\u3001\u8a9e\u5f59\u30ab\u30fc\u30c9\u30923\u679a\u96c6\u3081\u307e\u3057\u3087\u3046\u3002'
             ]
         };
         if (isJa) return ja;
@@ -496,16 +496,16 @@
             ...ja,
             objectiveKicker: '第 1 章',
             convenienceObjectiveTitle: '便利店区域',
-            convenienceObjectiveBody: '你周围的便利店好像发生了崩坏反应。去附近的崩壊ノード看看，收集 3 张便利店词卡。',
+            convenienceObjectiveBody: '附近的杂货铺掌柜正在准备旅途补给。去拜访他，收集 3 张便利店词卡。',
             dungeonObjectiveTitle: '言葉ダンジョン已解锁',
             dungeonObjectiveBody: '便利店词汇已经收集完成。进入言葉ダンジョン整理数据后，就能解锁车站区域。',
             stationObjectiveTitle: '车站区域已解锁',
-            stationObjectiveBody: '接下来去车站附近调查崩壊ノード，回收交通场景的词汇数据。',
+            stationObjectiveBody: '下一站去拜访驿站领航员，收集路上的交通词卡。',
             cardProgress: '便利店词卡 {count}/{required}',
             stationProgress: '车站区域探索中',
             chapterStartLines: [
-                '我确认了周围信号。附近的便利店好像发生了崩坏反应。',
-                '先去便利店的崩壊ノード看看，收集 3 张便利店词卡吧。'
+                '附近杂货铺的掌柜有几件事想请你帮忙。',
+                '先去杂货铺打个招呼，完成 3 份小委托吧。'
             ]
         };
     }
@@ -623,6 +623,107 @@
         return photo.startsWith('data:image/') ? photo : '';
     }
 
+    function getCaptureWordSearchText(card) {
+        return [
+            card?.word?.text,
+            card?.word?.kana,
+            card?.word?.zh,
+            card?.tag,
+            card?.quest?.requiredTag
+        ].filter(Boolean).join(' ').toLowerCase();
+    }
+
+    function getCaptureItemKind(card) {
+        const text = getCaptureWordSearchText(card);
+        if (/mouse|マウス|鼠标|滑鼠/.test(text)) return 'mouse';
+        if (/水|water|お茶|茶|coffee|コーヒー|juice|ジュース|drink|飲/.test(text)) return 'drink';
+        if (/パン|bread|おにぎり|ごはん|rice|food|食|弁当|サンド/.test(text)) return 'food';
+        if (/pen|ペン|marker|マーカー|鉛筆|筆/.test(text)) return 'pen';
+        if (/book|本|ノート|card|カード|ticket|切符/.test(text)) return 'paper';
+        if (/bag|袋|かばん|バッグ/.test(text)) return 'bag';
+        if (/flower|花|木|tree|leaf|葉|nature/.test(text)) return 'nature';
+        if (/train|電車|駅|ticket|transit|自転車|bike/.test(text)) return 'transit';
+        if (/health|薬|medicine|mask|マスク/.test(text)) return 'health';
+        return 'item';
+    }
+
+    function getCaptureItemSvg(kind) {
+        const colors = {
+            mouse: ['#f8fafc', '#aeb7c2', '#34404d', '#22c7b8'],
+            drink: ['#e0f7ff', '#38bdf8', '#075985', '#f8fafc'],
+            food: ['#fff7cc', '#f59e0b', '#7c2d12', '#fffaf0'],
+            pen: ['#dbeafe', '#2563eb', '#111827', '#f8fafc'],
+            paper: ['#f8fafc', '#94a3b8', '#0f766e', '#e2e8f0'],
+            bag: ['#fee2e2', '#b91c1c', '#7f1d1d', '#fff7f7'],
+            nature: ['#dcfce7', '#16a34a', '#854d0e', '#f8fafc'],
+            transit: ['#e0f2fe', '#0369a1', '#111827', '#f8fafc'],
+            health: ['#fee2e2', '#dc2626', '#f8fafc', '#111827'],
+            item: ['#e0f2f1', '#0f766e', '#134e4a', '#f8fafc']
+        }[kind] || ['#e0f2f1', '#0f766e', '#134e4a', '#f8fafc'];
+        const [base, main, dark, light] = colors;
+        const shapes = {
+            mouse: `
+                <path d="M30 17c0-8.4 5.8-14 14-14s14 5.6 14 14v12c0 9-5.7 15-14 15s-14-6-14-15V17Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="M44 5v16" stroke="${dark}" stroke-width="3" stroke-linecap="round"/>
+                <rect x="40" y="9" width="8" height="9" rx="4" fill="${main}"/>
+                <path d="M34 27c4 3 16 3 20 0" stroke="${main}" stroke-width="3" stroke-linecap="round"/>
+                <path d="M44 2c0-5 4-8 9-8" stroke="${dark}" stroke-width="3" stroke-linecap="round" fill="none"/>
+            `,
+            drink: `
+                <path d="M28 12h32l-4 36H32L28 12Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="M32 24h24l-2 19H34l-2-19Z" fill="${main}" opacity="0.92"/>
+                <path d="M35 18h18" stroke="${light}" stroke-width="4" stroke-linecap="round"/>
+                <path d="M53 8l8-8" stroke="${dark}" stroke-width="3" stroke-linecap="round"/>
+            `,
+            food: `
+                <path d="M20 34c0-10 9-18 24-18s24 8 24 18v8H20v-8Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="M24 42h40v8H24z" fill="${main}" stroke="${dark}" stroke-width="3"/>
+                <circle cx="35" cy="29" r="3" fill="${main}"/><circle cx="47" cy="27" r="3" fill="${main}"/><circle cx="55" cy="32" r="3" fill="${main}"/>
+            `,
+            pen: `
+                <path d="M18 48 49 17l8 8-31 31-12 4 4-12Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="m49 17 5-5 8 8-5 5" fill="${main}" stroke="${dark}" stroke-width="3"/>
+                <path d="M21 47 29 55" stroke="${main}" stroke-width="3"/>
+            `,
+            paper: `
+                <path d="M25 10h28l10 10v38H25V10Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="M53 10v10h10" fill="${light}" stroke="${dark}" stroke-width="3"/>
+                <path d="M33 28h20M33 38h22M33 48h14" stroke="${main}" stroke-width="3" stroke-linecap="round"/>
+            `,
+            bag: `
+                <path d="M23 24h42v34H23V24Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="M33 24v-5c0-7 22-7 22 0v5" fill="none" stroke="${dark}" stroke-width="3"/>
+                <path d="M28 35h32" stroke="${main}" stroke-width="4" stroke-linecap="round"/>
+            `,
+            nature: `
+                <path d="M44 54V33" stroke="${dark}" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="35" cy="27" r="12" fill="${main}" stroke="${dark}" stroke-width="3"/>
+                <circle cx="51" cy="22" r="13" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <circle cx="53" cy="38" r="10" fill="${main}" stroke="${dark}" stroke-width="3"/>
+            `,
+            transit: `
+                <rect x="23" y="11" width="42" height="38" rx="8" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <rect x="29" y="18" width="12" height="11" rx="2" fill="${light}"/><rect x="47" y="18" width="12" height="11" rx="2" fill="${light}"/>
+                <circle cx="34" cy="41" r="4" fill="${dark}"/><circle cx="54" cy="41" r="4" fill="${dark}"/>
+                <path d="M30 55h28" stroke="${main}" stroke-width="4" stroke-linecap="round"/>
+            `,
+            health: `
+                <path d="M36 14h16v16h16v16H52v16H36V46H20V30h16V14Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="M39 20h10v16h14v8H49v14H39V44H25v-8h14V20Z" fill="${main}"/>
+            `,
+            item: `
+                <path d="M24 22 44 10l20 12v28L44 62 24 50V22Z" fill="${base}" stroke="${dark}" stroke-width="3"/>
+                <path d="M24 22 44 34l20-12M44 34v28" stroke="${main}" stroke-width="3" fill="none"/>
+                <path d="M33 17 53 29" stroke="${light}" stroke-width="3" opacity="0.8"/>
+            `
+        };
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88"><defs><filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#020617" flood-opacity="0.28"/></filter></defs><circle cx="44" cy="44" r="37" fill="rgba(248,250,252,0.94)"/><circle cx="44" cy="44" r="35" fill="rgba(236,253,245,0.82)" stroke="#9de7dc" stroke-width="3"/><g filter="url(#s)">${shapes[kind] || shapes.item}</g></svg>`;
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
+    function getCapturedWordItemIcon(card) {
+        return getCaptureItemSvg(getCaptureItemKind(card));
+    }
     function renderCapturePopup(card) {
         const escapeHtml = SM.inventory?.escapeHtml || escapeAttribute;
         const word = SM.inventory?.renderRubyWord?.(card.word) || escapeHtml(card?.word?.text || '');
@@ -641,22 +742,28 @@
 
     function createCapturedWordMarker(card) {
         const escapeHtml = SM.inventory?.escapeHtml || escapeAttribute;
+        const itemIcon = getCapturedWordItemIcon(card);
         const photo = getSafeCapturePhoto(card);
         const wordText = card?.word?.text || '?';
+        const photoLayer = photo
+            ? `<span class="item-badge-photo" style="background-image:url('${escapeHtml(photo)}')"></span>`
+            : '';
+        const iconLayer = itemIcon
+            ? `<img class="captured-word-item-icon" src="${escapeHtml(itemIcon)}" alt="">`
+            : `<span>${escapeHtml(wordText).slice(0, 1)}</span>`;
         const icon = L.divIcon({
             className: 'custom-marker captured-word-marker',
             html: `
-                <div class="captured-word-pin">
-                    ${photo
-                        ? `<img src="${escapeHtml(photo)}" alt="">`
-                        : `<span>${escapeHtml(wordText).slice(0, 1)}</span>`}
+                <div class="captured-word-pin item-badge-pin">
+                    ${photoLayer}
+                    <span class="item-badge-core"></span>
+                    ${iconLayer}
                 </div>
             `,
             iconSize: [52, 58],
             iconAnchor: [26, 50],
             popupAnchor: [0, -48]
-        });
-        const marker = L.marker([Number(card.capture.lat), Number(card.capture.lng)], {
+        });        const marker = L.marker([Number(card.capture.lat), Number(card.capture.lng)], {
             icon,
             zIndexOffset: 240
         });
@@ -1089,12 +1196,12 @@
                     required: area.requiredPoints
                 });
             layer.setStyle?.({
-                color: record.purified ? '#0f766e' : '#b7791f',
+                color: '#849381',
                 fillColor: record.purified ? '#d7e8e4' : '#f6e7c8',
                 fillOpacity: record.purified ? 0.08 : 0.025
             });
             layer.bindTooltip(label, {
-                permanent: true,
+                permanent: false,
                 direction: 'top',
                 className: 'area-label',
                 interactive: false,
@@ -1825,7 +1932,7 @@
             : '0 0 0 3px rgba(255,255,255,0.42), 0 0 14px rgba(225,29,72,0.72), 0 4px 14px rgba(0,0,0,0.34)';
         const markerTextShadow = isSrMarker || isTutorialMarker ? '0 1px 3px rgba(0,0,0,0.35)' : 'none';
         const markerOpacity = isInteractable ? '1' : '0.62';
-        const collapseZoneHtml = spot.type !== 'npc_cat' ? createCollapseErrorZoneHtml(spot, isTutorialMarker) : '';
+        const collapseZoneHtml = '';
         const sparkleHtml = isSrMarker
             ? '<span style="position:absolute; top:3px; right:5px; font-size:10px; line-height:1; color:#fff8b8; text-shadow:0 0 5px rgba(255,255,255,0.9);">✦</span>'
             : '';
@@ -1847,8 +1954,8 @@
                 text-shadow: ${markerTextShadow};
                 box-shadow: ${markerShadow};
                 opacity: ${markerOpacity};">
-                <span style="position: relative; z-index: 1;">${isTutorialMarker ? '!' : markerQuestData.rarity}</span>
-                ${sparkleHtml}
+                <span style="position: relative; z-index: 1;">✉</span>
+
                 </div>
             </div>`;
         }
@@ -1863,10 +1970,7 @@
         const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
         marker.spotData = spot;
         marker.questData = markerQuestData;
-        if (spot.type !== 'npc_cat') {
-            marker.collapseErrorZone = true;
-            marker.on('add', () => updateCollapseZoneSize(marker));
-        }
+
 
         marker.on('click', () => {
             if (!isInteractable) {
@@ -1945,15 +2049,16 @@
         }
 
         function updateHeader() {
+            renderPlaceResident(questLayer, spot);
             const completedCount = choices.filter(isChoiceDone).length;
-            questTitle.innerText = isJa ? '\u30b3\u30f3\u30d3\u30cb\u306e\u5d29\u58ca\u30ce\u30fc\u30c9' : '\u4fbf\u5229\u5e97\u7684\u5d29\u574f\u8282\u70b9';
+            questTitle.innerText = isJa ? '\u30b3\u30f3\u30d3\u30cb\u306e配達依頼' : '\u4fbf\u5229\u5e97\u7684驿站委托';
             questTitle.style.color = 'var(--accent-dark)';
             if (repairPointsChip) {
                 repairPointsChip.hidden = false;
                 repairPointsChip.classList.remove('outside', 'special');
                 repairPointsChip.innerText = isJa
-                    ? `\u4fee\u5fa9 ${completedCount}/${CONVENIENCE_DUNGEON_REQUIRED_CARDS}`
-                    : `\u4fee\u590d ${completedCount}/${CONVENIENCE_DUNGEON_REQUIRED_CARDS}`;
+                    ? `配達 ${completedCount}/${CONVENIENCE_DUNGEON_REQUIRED_CARDS}`
+                    : `完成委托 ${completedCount}/${CONVENIENCE_DUNGEON_REQUIRED_CARDS}`;
             }
         }
 
@@ -2001,7 +2106,7 @@
             const isLongSentence = rawSentenceLength > 10;
             const instructionText = getQuestInstructionText(choice?.questData, isJa);
             const slotHtml = done
-                ? '<span class="completed-slot">\u4fee\u5fa9\u6e08\u307f</span>'
+                ? '<span class="completed-slot">配達\u6e08\u307f</span>'
                 : '<button class="slot-box camera-slot convenience-camera-slot icon-only" type="button" aria-label="\u5199\u771f\u3067\u5165\u529b"><span class="slot-camera-icon" aria-hidden="true"></span></button>';
             const sentenceLayout = `
                 <div class="sentence-fill-layout sentence-inline-layout">
@@ -2053,6 +2158,29 @@
         questLayer.classList.remove('hidden');
         SM.ui?.hideGuideMessage?.();
     }
+    function renderPlaceResident(layer, spot) {
+        const isJa = getLangForChapterCopy() === 'ja';
+        const roles = {
+            convenience: ['杂货铺掌柜', '雑貨店の店主', '旅途的补给就拜托你了。帮我找一件清单上的东西吧。', '旅の準備を手伝って。リストの品物を探してくれる？'],
+            park: ['林间园丁', '森の庭師', '我想把这里的风景寄给远方的朋友。替我找一份自然的礼物吧。', '遠くの友達に、この庭の景色を届けたいんだ。'],
+            station: ['驿站领航员', '駅の案内人', '下一班旅程快开始了，帮我确认路上的线索吧。', '次の旅が始まるよ。道の手がかりを一緒に確かめよう。'],
+            pharmacy: ['草药师', '薬草師', '谢谢你绕路过来。找一件旅途中用得上的补给吧。', '寄ってくれてありがとう。旅に役立つ品を探してほしいな。'],
+            tutorial_pen: ['邮局领路人', '郵便局の案内役', '第一份委托很简单：拍下身边的东西，完成这张寄语卡。', '身近なものを撮って、最初のメッセージカードを作ろう。']
+        };
+        const role = roles[spot.type] || ['旅途居民', '旅の住人', '有一份小小的委托，想请你帮忙。', '小さなお願いがあるんだ。'];
+        const names = isJa ? ['ミナ', 'ノア', 'リリ', 'ソラ', 'エル', 'フィン'] : ['米娜', '诺亚', '莉莉', '索拉', '艾尔', '芬恩'];
+        const key = String(spot.id || `${spot.name}:${spot.lat}:${spot.lng}`);
+        const hash = Array.from(key).reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 0);
+        const name = spot.type === 'tutorial_pen' ? 'Lumi' : names[hash % names.length];
+        let resident = layer.querySelector('.place-resident');
+        if (!resident) {
+            resident = document.createElement('section');
+            resident.className = 'place-resident';
+            layer.querySelector('.quest-content').prepend(resident);
+        }
+        resident.innerHTML = `<span class="resident-portrait" aria-hidden="true">${escapeAttribute(name.slice(0, 1))}</span><div><span class="resident-role">${escapeAttribute(role[isJa ? 1 : 0])}</span><h4>${escapeAttribute(name)}</h4></div><p>${escapeAttribute(role[isJa ? 3 : 2])}</p>`;
+    }
+
     function openQuestUI(data, spot, marker) {
         if (isConvenienceMultiQuestSpot(spot) && !Number.isInteger(data?.chapterTaskIndex)) {
             openConvenienceTaskChoice(spot, marker);
@@ -2073,6 +2201,7 @@
             : getSpotArea(spot);
 
         questTitle.innerText = isTutorialQuest ? tr('tutorialQuestTitle') : tr('questTitle', { rarity: data.rarity });
+        renderPlaceResident(questLayer, spot);
         questTitle.style.color = data.config.color;
         if (repairPointsChip) {
             repairPointsChip.hidden = isTutorialQuest;
@@ -2122,7 +2251,7 @@
 
         document.querySelector('.location-tag').innerText = isTutorialQuest
             ? spot.name
-            : `${tr('collapseNodeName')} ${data.rarity}`;
+            : spot.name;
         SM.ui?.setBagHudHidden?.(true, 'quest-panel');
         questLayer.classList.remove('hidden');
         if (isTutorialQuest) {
@@ -2191,7 +2320,7 @@
                 tr('levelChoiceLead')
             ], {
                 type: 'info',
-                curtain: true,
+                curtain: false,
                 finalButtonLabel: tr('levelChoiceButton'),
                 onComplete: () => {
                     SM.vision?.showLevelChoice?.(() => {
@@ -2211,8 +2340,8 @@
             tr('mimiIntroLine4')
         ], {
             type: 'info',
-            curtain: true,
-            alertIndex: SM.vision?.hasSelectedLevel?.() && state.levelChoiceAskedThisSession ? 1 : 2,
+            curtain: false,
+
             revealOnComplete: true,
             onComplete: markTutorialPenSeen
         });
@@ -2587,13 +2716,13 @@
         if (!uiToggleBtn || !uiLayer) return;
 
         uiLayer.classList.add('collapsed');
-        uiToggleBtn.innerText = '▼';
+        uiToggleBtn.innerText = '☰';
         localStorage.setItem('uiLayerCollapsed', '1');
         updateFloatingControlPositions();
 
         uiToggleBtn.addEventListener('click', () => {
             const isCollapsed = uiLayer.classList.toggle('collapsed');
-            uiToggleBtn.innerText = isCollapsed ? '▼' : '▲';
+            uiToggleBtn.innerText = isCollapsed ? '☰' : '×';
             localStorage.setItem('uiLayerCollapsed', isCollapsed ? '1' : '0');
             updateFloatingControlPositions();
             window.setTimeout(updateFloatingControlPositions, 360);
@@ -2737,7 +2866,7 @@
         updateChapterObjectiveHud();
         updatePlayerProgressDisplay();
         updateChapterDungeonButton();
-        initFogCanvas();
+        // Keep the journey map bright and clear.
         updateRadarDisplay();
         initAreas();
         updateMapBounds(initialCenter[0], initialCenter[1]);
