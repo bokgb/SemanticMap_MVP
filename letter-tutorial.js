@@ -1,7 +1,7 @@
 (function () {
     const SM = window.SemanticMap = window.SemanticMap || {};
     const KEY = 'kotoba-hunter-letter-tutorial-v1';
-    const phases = ['welcome', 'incoming', 'pen', 'writing', 'sent'];
+    const phases = ['welcome', 'intro', 'incoming', 'pen', 'writing', 'sent'];
     const slotOrder = ['food', 'cute', 'drink'];
     const slots = {
         pen: { ja:'ペンを撮って、ポコに届けよう。', zh:'拍下一支笔，让波可开始写信。', icon:'pen' },
@@ -13,7 +13,7 @@
     let host, opening=false;
     const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const t = (ja, zh) => SM.state.currentLang === 'zh' ? zh : ja;
-    function fresh() { return { phase:'welcome', captures:{}, finished:false }; }
+    function fresh() { return { phase:'welcome', introStep:0, introduced:false, captures:{}, finished:false }; }
     function init(api) {
         host = api;
         try {
@@ -27,7 +27,8 @@
                     }
                 }
                 const complete = slotOrder.every(key => captures[key]) && captures.pen;
-                state = { phase:saved.phase, captures, finished:!!saved.finished && !!complete && saved.phase==='sent' };
+                state = { phase:saved.phase, introStep:saved.introStep===1?1:0, introduced:saved.introduced===true||!!captures.pen, captures, finished:!!saved.finished && !!complete && saved.phase==='sent' };
+                if (state.phase==='incoming'&&!state.introduced) state.phase='welcome';
                 if (['writing', 'sent'].includes(state.phase) && !captures.pen) state.phase='pen';
                 if (state.phase==='sent' && !complete) state.phase='writing';
             }
@@ -40,6 +41,7 @@
     }
     function setPhase(phase) { state.phase=phase; notice=''; save(); host.render(); host.scrollTop(); }
     function isActive() { return !state.finished; }
+    function isOpening() { return state.phase==='welcome'||state.phase==='intro'; }
     function target() { return state.phase==='pen' ? 'pen' : state.phase==='writing' ? active : null; }
     function goal() { const key=target(); return key ? t(slots[key].ja,slots[key].zh) : ''; }
     function prompt() {
@@ -61,12 +63,12 @@
     }
     function desk() {
         const cards=slotOrder.filter(key=>state.captures[key]);
-        return `<section class="tutorial-room" aria-label="${t('ポコの郵便局','波可的邮局')}">${state.phase==='welcome'?`<div class="opening-title"><p>風の郵便局</p><h1>言葉ハンター</h1><div class="opening-title-rule" aria-hidden="true"><span></span>${host.icon('mail')}<span></span></div></div><div class="opening-motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>`:''}<div class="tutorial-room-label">風の郵便局 <span>ポコの机</span></div><div class="tutorial-window"><span></span><i></i></div>${state.phase==='welcome'?`<button type="button" class="tutorial-poco opening-poco" data-letter-action="greet" aria-label="${t('ポコにあいさつする','和波可打招呼')}">${host.robot()}<span class="poco-hello" aria-hidden="true">♪</span></button>`:`<div class="tutorial-poco">${host.robot()}</div>`}<div class="tutorial-table">${state.phase==='welcome'?`<button type="button" class="tutorial-envelope sealed opening-envelope" data-letter-action="open-envelope" aria-label="${t('友だちからの手紙を開く','拆开朋友的来信')}"><span class="envelope-flap" aria-hidden="true"></span><span class="envelope-seal" aria-hidden="true">P</span><span class="envelope-paper" aria-hidden="true"></span><span class="envelope-spark" aria-hidden="true">✦</span><span class="envelope-spark second" aria-hidden="true">✦</span></button>`:`<div class="tutorial-envelope opened">${host.icon('mail')}<span>${state.phase==='sent'?t('投函しました','已寄出'):t('友だちからの手紙','朋友的来信')}</span></div>`}${state.captures.pen?'<div class="tutorial-desk-pen">'+host.icon('pen')+'<span>ペン</span></div>':''}</div><div class="tutorial-materialized" aria-live="polite">${cards.map(key=>`<figure class="materialized-item"><img src="${escape(state.captures[key].photo)}" alt="${escape(state.captures[key].word)}"><figcaption>${escape(state.captures[key].word)}</figcaption><span>${host.icon(slots[key].icon)}</span></figure>`).join('')}</div><p class="tutorial-room-caption">${cards.length?t('写真の中のものが、ポコの世界に届きました。','照片里的物品，已经来到波可的世界。'):t('あなたの写真が、この世界につながる。','你的照片，连接着这个世界。')}</p></section>`;
+        return `<section class="tutorial-room" aria-label="${t('ポコの郵便局','波可的邮局')}">${isOpening()?`<div class="opening-title"><p>風の郵便局</p><h1>言葉ハンター</h1><div class="opening-title-rule" aria-hidden="true"><span></span>${host.icon('mail')}<span></span></div></div><div class="opening-motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>`:''}<div class="tutorial-room-label">風の郵便局 <span>ポコの机</span></div><div class="tutorial-window"><span></span><i></i></div>${isOpening()?`<button type="button" class="tutorial-poco opening-poco" data-letter-action="greet" aria-label="${t('ポコにあいさつする','和波可打招呼')}">${host.robot()}<span class="poco-hello" aria-hidden="true">♪</span></button>`:`<div class="tutorial-poco">${host.robot()}</div>`}<div class="tutorial-table">${isOpening()?`<button type="button" class="tutorial-envelope sealed opening-envelope" data-letter-action="open-envelope" aria-label="${state.phase==='intro'&&state.introStep===1?t('友だちからの手紙を開く','拆开朋友的来信'):t('ポコの話を聞く','听波可说')}"><span class="envelope-flap" aria-hidden="true"></span><span class="envelope-seal" aria-hidden="true">P</span><span class="envelope-paper" aria-hidden="true"></span><span class="envelope-spark" aria-hidden="true">✦</span><span class="envelope-spark second" aria-hidden="true">✦</span></button>`:`<div class="tutorial-envelope opened">${host.icon('mail')}<span>${state.phase==='sent'?t('投函しました','已寄出'):t('友だちからの手紙','朋友的来信')}</span></div>`}${state.captures.pen?'<div class="tutorial-desk-pen">'+host.icon('pen')+'<span>ペン</span></div>':''}</div><div class="tutorial-materialized" aria-live="polite">${cards.map(key=>`<figure class="materialized-item"><img src="${escape(state.captures[key].photo)}" alt="${escape(state.captures[key].word)}"><figcaption>${escape(state.captures[key].word)}</figcaption><span>${host.icon(slots[key].icon)}</span></figure>`).join('')}</div><p class="tutorial-room-caption">${cards.length?t('写真の中のものが、ポコの世界に届きました。','照片里的物品，已经来到波可的世界。'):t('あなたの写真が、この世界につながる。','你的照片，连接着这个世界。')}</p></section>`;
     }
     function render() {
         const root=host.root();
         root.classList.add('courier-tutorial');
-        root.classList.toggle('courier-opening',state.phase==='welcome');
+        root.classList.toggle('courier-opening',isOpening());
         root.classList.remove('opening-mail','poco-cheer');
         root.querySelector('.courier-world').setAttribute('aria-label',t('郵便局の机','邮局桌面'));
         let room=root.querySelector('#letter-tutorial-room');
@@ -80,9 +82,14 @@
         const footer=root.querySelector('#courier-actions');
         const button=(action,label,icon='arrow')=>`<button type="button" class="courier-primary" data-letter-action="${action}">${host.icon(icon)}<span>${label}</span>${host.icon('arrow')}</button>`;
         const kicker=`<div class="courier-speaker">ポコ POCO <span>${t('見習いの郵便屋さん','见习邮差')}</span></div>`;
-        if(state.phase==='welcome') {
-            body.innerHTML=`<div class="tutorial-opening"><p class="opening-invite">${t('ねえ、一緒に開けてみよう。','嘿，一起拆开看看吧。')}</p></div>`;
-            footer.innerHTML=button('open',t('手紙を開く','拆开这封信'),'mail');
+        if(isOpening()) {
+            const message=state.phase==='welcome'
+                ?t('こんにちは！ぼくはポコ。ここの郵便屋さんだよ。','你好！我是波可，这里的邮差。')
+                :state.introStep===0
+                    ?t('きみの写真に写ったものは、こっちの世界に届けられるんだ。','你拍下的东西，可以送到我的世界里来。')
+                    :t('さっき、友だちから手紙が届いたんだ。一緒に読んでみない？','刚收到一封朋友的来信。要和我一起看看吗？');
+            body.innerHTML=`<div class="tutorial-opening"><div class="opening-invite" role="status"><span class="opening-speaker">ポコ</span><p>${message}</p></div></div>`;
+            footer.innerHTML=button('open',state.phase==='intro'&&state.introStep===1?t('一緒に手紙を開く','一起拆信'):t('つづける','继续'),'mail');
         } else if(state.phase==='incoming') {
             body.innerHTML=`<article class="reply-letter incoming-letter" lang="ja"><div class="letter-date">届いたお手紙</div><p>ポコへ</p><p>最近、元気にしてる？<br>こっちは相変わらずだよ。</p><p>この前、一緒に歩いたときのことを思い出して、手紙を書いてみたよ。</p><p>最近、おいしいものを食べたり、おもしろいものを見つけたりした？<br>今度のお返事で、ポコの一日も聞かせてね。</p><p>また会えるのを楽しみにしてるよ。</p><p class="letter-signature">遠くの友だちより</p></article><div class="tutorial-poco-note">${kicker}<p>${t('今日はきみと出会えたことも、書いてみようかな。一緒に返事を書こう。','今天遇见你的事，也可以写进去。我们一起回信吧。')}</p></div>`;
             footer.innerHTML=button('reply',t('一緒に返事を書く','一起回信'),'pen');
@@ -122,12 +129,16 @@
         if(!action)return false;
         switch(action) {
             case 'open':case 'open-envelope':
-                if(state.phase==='welcome'&&!opening){
-                    opening=true;host.root().classList.add('opening-mail');
-                    setTimeout(()=>{opening=false;if(state.phase==='welcome')setPhase('incoming');},window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:420);
+                if(isOpening()&&!opening){
+                    if(state.phase==='welcome') { state.introStep=0;setPhase('intro'); }
+                    else if(state.introStep===0) { state.introStep=1;save();host.render(); }
+                    else {
+                        opening=true;host.root().classList.add('opening-mail');
+                        setTimeout(()=>{opening=false;if(state.phase==='intro'){state.introduced=true;setPhase('incoming');}},window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:420);
+                    }
                 }break;
             case 'greet':
-                if(state.phase==='welcome'&&!opening){
+                if(isOpening()&&!opening){
                     const root=host.root();root.classList.remove('poco-cheer');void root.offsetWidth;root.classList.add('poco-cheer');
                     setTimeout(()=>root.classList.remove('poco-cheer'),800);
                 }break;

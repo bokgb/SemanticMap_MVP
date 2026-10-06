@@ -34,8 +34,21 @@ function mockPhotos(page) {
     });
     return control;
 }
-async function openWriting(page) {
+async function meetPoco(page) {
+    assert.match(await page.locator('.opening-invite').innerText(),/ぼくはポコ/);
     await page.locator('[data-letter-action="open"]').click();
+    assert.equal(await page.locator('.incoming-letter').count(),0);
+    assert.match(await page.locator('.opening-invite').innerText(),/写真/);
+    await page.reload({waitUntil:'networkidle'});
+    assert.match(await page.locator('.opening-invite').innerText(),/写真/);
+    await page.locator('[data-letter-action="open"]').click();
+    assert.equal(await page.locator('.incoming-letter').count(),0);
+    assert.match(await page.locator('.opening-invite').innerText(),/友だち/);
+    await page.locator('[data-letter-action="open"]').click();
+    await page.locator('.incoming-letter').waitFor();
+}
+async function openWriting(page) {
+    await meetPoco(page);
     await page.locator('[data-letter-action="reply"]').click();
     await page.locator('#courier-file').setInputFiles(fixture);
     await page.locator('[data-letter-slot="food"]').first().waitFor();
@@ -51,7 +64,7 @@ try {
     assert.equal(await p.locator('[data-action="sample"], [data-action="alternate"]').count(),0);
     assert.equal(await p.evaluate(()=>window.gpsRequests),0);
     await p.screenshot({path:'screenshots/letter-opening-desktop.png'});
-    await p.locator('[data-letter-action="open"]').click();
+    await meetPoco(p);
     assert.match(await p.locator('.incoming-letter').innerText(),/ポコへ/);
     await p.locator('[data-letter-action="reply"]').click();
     mock.mismatch=true;await p.locator('#courier-file').setInputFiles(fixture);
@@ -119,5 +132,5 @@ try {
     await mobile.locator('#courier-story-body').evaluate(el=>el.scrollTop=el.scrollHeight);
     rect=await mobile.locator('[data-letter-action="send"]').boundingBox();assert(rect.y+rect.height<=568);
     assert.deepEqual(errors,[]);
-    console.log('PASS: opening/incoming letter; required pen; 3 open photo slots; mismatch/service error; out-of-order fills and retake; persistence; no GPS until explicit field start; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');
+    console.log('PASS: POCO introduction before letter with reload persistence; opening/incoming letter; required pen; 3 open photo slots; mismatch/service error; out-of-order fills and retake; persistence; no GPS until explicit field start; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');
 } finally {await browser.close();}

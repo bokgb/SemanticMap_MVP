@@ -398,3 +398,16 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 @keyframes poco-blink { 0%,43%,47%,100%{transform:scaleY(1)} 45%{transform:scaleY(.12)} }
 
 .courier-opening:not(.opening-mail) .opening-envelope:is(:hover,:focus-visible) { animation-play-state:paused; }
+
+/* One short spoken line at a time, before opening the friend's letter. */
+.opening-invite { width:100%; text-align:left; padding:14px 19px; }
+.opening-speaker { display:block; font-size:10px; font-weight:700; letter-spacing:1px; color:#698556; margin-bottom:5px; }
+.opening-invite p { margin:0; font-size:14px; line-height:1.7; text-wrap:pretty; }
+@media(max-width:760px) { .opening-invite { padding:12px 17px; } .opening-invite p { font-size:13px; } }
+@media(max-height:660px) { .opening-invite { padding:10px 14px; margin-bottom:12px; } .opening-speaker { margin-bottom:3px; } }
+
+@media(max-height:660px) and (max-width:760px) {
+    .courier-opening .tutorial-table { height:45%; }
+    .courier-opening .tutorial-poco { bottom:42%; }
+    .courier-opening .opening-envelope { width:106px; height:70px; top:-45px; }
+}
