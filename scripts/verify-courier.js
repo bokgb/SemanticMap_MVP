@@ -26,7 +26,8 @@ function mockPhotos(page) {
         const text=payload.contents[0].parts[0].text;
         const key=text.match(/Current task key: (\w+)/)?.[1];
         assert(key&&names[key]);assert(payload.contents[0].parts[1].inline_data.data);
-        if(key==='cute')assert(text.includes('Cuteness is subjective'));
+        assert.deepEqual(payload.generationConfig.response_schema.required,['match','object','word','kana']);
+        assert(payload.generationConfig.response_schema.properties.object.enum.includes(key));
         control.requests.push(key);
         const [word,kana]=names[key];
         await route.fulfill({status:control.status,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:!control.mismatch,object:control.mismatch?'other':key,word:control.wordOverride||word,kana})}]}}]})});
