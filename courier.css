@@ -318,11 +318,11 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .courier-opening .tutorial-table { height:31%; transform:skewY(-2deg); border-top-width:12px; background:repeating-linear-gradient(0deg,transparent 0 60px,#b4a77c12 61px),#dbcead; }
 #courier-app .courier-opening { color:inherit; }
 .courier-opening .tutorial-poco { z-index:2; bottom:28%; right:27%; transform:rotate(3deg); }
-#courier-app.courier-opening .tutorial-poco .courier-robot { width:clamp(240px,29vw,400px); height:auto; animation:poco-breathe 3.8s ease-in-out infinite; }
+#courier-app.courier-opening .tutorial-poco .courier-robot { width:clamp(240px,29vw,400px); height:auto; animation:poco-breathe 2.7s ease-in-out infinite; }
 #courier-app .opening-poco { border:0; padding:0; background:none; color:#637c5b; transition:filter .2s; }
 .opening-poco:hover { filter:brightness(1.04); }
 .poco-hello { opacity:0; position:absolute; top:10%; right:12%; color:#768d5f; font-size:38px; pointer-events:none; }
-.courier-opening .opening-envelope { z-index:3; left:29%; top:-58px; width:210px; height:132px; padding:0; border-radius:7px; background:#fffbeb; border:2px solid #d5c9a5; box-shadow:0 14px 0 -7px #97895828,0 19px 25px #7b724022; animation:envelope-idle 4.2s ease-in-out infinite; transform-origin:50% 80%; isolation:isolate; }
+.courier-opening .opening-envelope { z-index:3; left:29%; top:-58px; width:210px; height:132px; padding:0; border-radius:7px; background:#fffbeb; border:2px solid #d5c9a5; box-shadow:0 14px 0 -7px #97895828,0 19px 25px #7b724022; animation:envelope-idle 2.8s ease-in-out infinite; transform-origin:50% 80%; isolation:isolate; }
 .opening-envelope::after { inset:10px; border-color:#dccdae; border-radius:3px; }
 .opening-envelope .envelope-flap { position:absolute; z-index:2; inset:0; clip-path:polygon(0 0,100% 0,50% 65%); background:#efe5c6; transform-origin:top; transition:transform .3s; }
 .opening-envelope .envelope-seal { position:absolute; z-index:3; top:42%; left:calc(50% - 18px); width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:#8a9e6d; color:#fcf8e9; font:italic 23px Georgia,serif; box-shadow:0 3px 0 #698052; }
@@ -353,8 +353,8 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .poco-cheer .poco-hello { animation:hello-pop .8s both; }
 .courier-tutorial:not(.courier-opening) .incoming-letter { animation:letter-arrive .4s ease-out; }
 @keyframes opening-rise { from {opacity:0;translate:0 16px} to {opacity:1;translate:0 0} }
-@keyframes poco-breathe { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-9px) rotate(1deg)} }
-@keyframes envelope-idle { 0%,65%,100%{transform:rotate(-9deg) translateY(0)} 72%{transform:rotate(-5deg) translateY(-7px)} 79%{transform:rotate(-11deg) translateY(-3px)} 86%{transform:rotate(-7deg) translateY(-5px)} }
+@keyframes poco-breathe { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-16px) rotate(4deg)} }
+@keyframes envelope-idle { 0%,20%,100%{transform:rotate(-16deg) translateY(0)} 40%{transform:rotate(7deg) translateY(-14px)} 60%{transform:rotate(-20deg) translateY(-4px)} 80%{transform:rotate(2deg) translateY(-10px)} }
 @keyframes spark-shine { 0%,100%{opacity:.3;scale:.7} 50%{opacity:1;scale:1.1} }
 @keyframes paper-drift { 0%,100%{transform:translate(0,0) rotate(-20deg);opacity:.3} 50%{transform:translate(24px,-38px) rotate(70deg);opacity:.7} }
 @keyframes envelope-open { 0%{transform:rotate(-9deg)} 40%{transform:rotate(3deg) scale(1.08)} 100%{transform:rotate(0) scale(1.12);opacity:0} }
@@ -388,3 +388,13 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
     .courier-opening .courier-story { bottom:22px; }
     .opening-invite { padding:8px 14px; margin-bottom:14px; }
 }
+
+/* POCO waves from its shoulder while the whole character gently rocks. */
+.courier-opening .poco-arm-wave { transform-box:view-box; transform-origin:172px 107px; animation:poco-wave 3.2s ease-in-out infinite; }
+.courier-opening .poco-arm-left { transform-box:view-box; transform-origin:67px 107px; animation:poco-arm-sway 2.7s ease-in-out infinite; }
+.courier-opening .poco-eyes { transform-box:fill-box; transform-origin:center; animation:poco-blink 5.2s infinite; }
+@keyframes poco-wave { 0%,12%,88%,100%{transform:rotate(0deg)} 28%,52%,72%{transform:rotate(-120deg)} 40%,62%{transform:rotate(-85deg)} }
+@keyframes poco-arm-sway { 0%,100%{transform:rotate(8deg)} 50%{transform:rotate(-12deg)} }
+@keyframes poco-blink { 0%,43%,47%,100%{transform:scaleY(1)} 45%{transform:scaleY(.12)} }
+
+.courier-opening:not(.opening-mail) .opening-envelope:is(:hover,:focus-visible) { animation-play-state:paused; }
