@@ -14,7 +14,8 @@ const port = Number(process.env.PORT || 9321);
 const baseURL = `http://${host}:${port}`;
 
 const routes = [
-  { path: '/', title: '风间邮局 · 第一张照片', readySelector: '.courier-story' },
+  { path: '/', title: '言葉ハンター · 拆开第一封信', readySelector: '.courier-story' },
+  { path: '/?preview=letter', title: '邮局回信 · 三处拍照填空', readySelector: '.courier-story', letterWriting: true },
   { path: '/?preview=courier-park', title: 'OIC 漫游 · 公园明信片', readySelector: '.courier-story', courierPark: true },
   { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
   { path: '/cleaner.html', title: 'Data Cleaner', readySelector: '.container' }
@@ -198,12 +199,22 @@ function openFile(filePath) {
 async function captureRoute(context, route) {
   const page = await context.newPage();
   await installOfflineLeafletStubs(page);
+  if (route.letterWriting || route.courierPark) {
+    await page.addInitScript(({park})=>{
+      const canvas=document.createElement('canvas');canvas.width=2;canvas.height=2;
+      const photo=canvas.toDataURL('image/jpeg');
+      const pen={word:'ペン',kana:'ぺん',photo};
+      const captures=park?{pen,food:{word:'パン',kana:'ぱん',photo},cute:{word:'花',kana:'はな',photo},drink:{word:'お茶',kana:'おちゃ',photo}}:{pen};
+      localStorage.setItem('kotoba-hunter-letter-tutorial-v1',JSON.stringify({phase:park?'sent':'writing',captures,finished:park}));
+      if(park)localStorage.setItem('oic-courier-story-v2',JSON.stringify({index:1,cards:[{step:0,object:'letter',demo:false,photo:'',word:'手紙',kana:'てがみ'}],done:false,receipt:false,mode:'preview'}));
+    },{park:!!route.courierPark});
+  }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForTimeout(750);
 
   if (route.courierPark) {
-    for (const key of ['pen', 'battery']) {
+    for (const key of ['battery']) {
       await page.locator('[data-action="sample"]').click();
       await page.locator(`[data-sample="${key}"]`).click();
       await page.locator('[data-action="next"]').click();
