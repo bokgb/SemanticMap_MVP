@@ -136,7 +136,7 @@
         $('[data-action="language"]').hidden=!SM.letterTutorial.isActive();
         $('[data-action="language"]').textContent=SM.state.currentLang==='zh'?'日本語':'中文';
         if(SM.letterTutorial.isActive()) {SM.letterTutorial.render();return;}
-        root.classList.remove('courier-tutorial','courier-opening','courier-writing','letter-receiving','poco-cheer');
+        root.classList.remove('courier-tutorial','courier-opening','courier-writing','courier-sent','letter-receiving','poco-cheer');
         $('.courier-mode-btn').hidden=false;
         $('.courier-world').setAttribute('aria-label','OIC 配送地图');
         $('.courier-edition').textContent='OIC 漫游篇';

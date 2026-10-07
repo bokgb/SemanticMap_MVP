@@ -14,7 +14,8 @@
     let arrival = null, deliveryTimer, inkFrame, inkTail = 0;
     let reward = null, rewardTimer, rewardAnimation;
     let rewardInert = [];
-    let openingReset = true;
+    let openingReset = true, sentPresented = false;
+    let completionObserver;
     const inkRuns = new Map();
     let host;
     const localTest = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
@@ -24,11 +25,11 @@
     function init(api) {
         host = api;
         clearDelivery(); inkRuns.clear(); inkTail=0;
-        state=fresh(); active='food'; notice=''; openingReset=true;
+        state=fresh(); active='food'; notice=''; openingReset=true; sentPresented=false;
         try { localStorage.removeItem('kotoba-hunter-letter-tutorial-v1'); }
         catch { /* Storage may be unavailable; the session still starts fresh. */ }
     }
-    function clearDelivery() { clearTimeout(deliveryTimer); cancelAnimationFrame(inkFrame); arrival=null; clearReward(); }
+    function clearDelivery() { clearTimeout(deliveryTimer); cancelAnimationFrame(inkFrame); completionObserver?.disconnect(); completionObserver=null; arrival=null; clearReward(); }
     function clearReward() {
         clearTimeout(rewardTimer); rewardAnimation?.cancel(); rewardAnimation=null; reward=null;
         host?.root().querySelector('.letter-word-reward')?.remove();
@@ -236,11 +237,36 @@
         const cards=slotOrder.filter(key=>state.captures[key]);
         return `<section class="tutorial-room" aria-label="${t('ポコの郵便局','波可的邮局')}">${isOpening()?`<div class="opening-title"><p>風の郵便局</p><h1>言葉ハンター</h1><div class="opening-title-rule" aria-hidden="true"><span></span>${host.icon('mail')}<span></span></div></div><div class="opening-motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>`:''}<div class="tutorial-room-label">風の郵便局 <span>ポコの机</span></div><div class="tutorial-window"><span></span><i></i></div>${isOpening()?`<div class="tutorial-poco tutorial-poco-speaking">${openingSpeech()}<button type="button" class="opening-poco" data-letter-action="greet" aria-label="${t('ポコにあいさつする','和波可打招呼')}">${host.robot()}<span class="poco-hello" aria-hidden="true">♪</span></button></div>`:`<div class="tutorial-poco">${host.robot()}</div>`}<div class="tutorial-table">${isOpening()?`<button type="button" class="tutorial-envelope opening-envelope opening-stationery" data-letter-action="${state.phase==='pen'?'greet':'open-envelope'}" aria-label="${state.phase==='pen'?t('ポコにあいさつする','和波可打招呼'):state.phase==='intro'&&state.introStep===0?t('一緒に手紙を書く','一起写信'):t('ポコの話を聞く','听波可说')}"><span class="envelope-flap" aria-hidden="true"></span><span class="envelope-seal" aria-hidden="true">P</span><span class="envelope-paper" aria-hidden="true"></span><span class="envelope-spark" aria-hidden="true">✦</span><span class="envelope-spark second" aria-hidden="true">✦</span></button>`:`<div class="tutorial-envelope opened">${host.icon('mail')}<span>${state.phase==='sent'?t('投函しました','已寄出'):t('これから書く手紙','准备写的信')}</span></div>`}${state.captures.pen?'<div class="tutorial-desk-pen">'+host.icon('pen')+'<span>ペン</span></div>':''}</div><div class="tutorial-materialized" aria-live="polite">${cards.map(key=>`<figure class="materialized-item"><img src="${escape(state.captures[key].photo)}" alt="${escape(state.captures[key].word)}"><figcaption>${escape(state.captures[key].word)}</figcaption><span>${host.icon(slots[key].icon)}</span></figure>`).join('')}</div><p class="tutorial-room-caption">${cards.length?t('写真の中のものが、ポコの世界に届きました。','照片里的物品，已经来到波可的世界。'):t('あなたの写真が、この世界につながる。','你的照片，连接着这个世界。')}</p></section>`;
     }
+    function sentSummary(enter) {
+        const thanks=t('ありがとう！きみが届けてくれたもの、全部書けたよ。友だちも、きっと喜んでくれるね。','谢谢你！你送来的东西，全都写进信里了。朋友收到一定会很开心。');
+        const dialogue=`<aside class="completion-poco" aria-label="${t('ポコのひとこと','波可的话')}"><div class="completion-poco-avatar" aria-hidden="true">${host.robot()}<span class="completion-avatar-spark">✦</span><span class="completion-avatar-spark second">✦</span></div><div class="completion-poco-bubble"><span class="completion-poco-name">${t('ポコ','波可')}</span><p>${Array.from(thanks,(char,index)=>`<span class="completion-speech-char" style="--speech-delay:${180+index*24}ms">${escape(char)}</span>`).join('')}</p></div></aside>`;
+        const labels=[t('朝ごはん','早餐'),t('道での発見','路上的发现'),t('ひと休み','午休')];
+        const cards=slotOrder.map((key,index)=>{
+            const card=state.captures[key];
+            return `<figure class="completion-card" style="--card-angle:${[-5,2,6][index]}deg;--card-delay:${420+index*160}ms"><div class="completion-photo"><img src="${escape(card.photo)}" alt="${escape(card.word)}"></div><figcaption><ruby lang="ja">${escape(card.word)}<rt>${escape(card.kana)}</rt></ruby><span>${labels[index]}</span></figcaption></figure>`;
+        }).join('');
+        return `<section class="letter-completion ${enter?'completion-entrance':''}" aria-labelledby="completion-title"><div class="completion-hero"><div class="completion-sparks" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i></i><i></i><i></i></div><div class="completion-postmark" aria-hidden="true">${host.icon('check')}<span>${t('投函完了','已寄出')}</span></div><p class="completion-kicker" role="status">${t('委託完了','委托完成')}</p><h2 id="completion-title">${t('はじめての手紙、<br>できあがり！','第一封信，<br>完成啦！')}</h2><p class="completion-subtitle">${t('きみの写真が、一通の手紙になりました。','你拍下的照片，变成了一封完整的信。')}</p></div><div class="completion-collection"><div class="completion-collection-label"><span>${t('届けたことば','你送来的词语')}</span><span>3 / 3 ${host.icon('check')}</span></div><div class="completion-card-tray">${cards}</div></div>${dialogue}<section class="completion-letter" aria-label="${t('完成した手紙','完成的信件')}"><h3>${host.icon('mail')}<span>${t('完成した手紙','完成的信件')}</span></h3>${letter(true)}</section></section>`;
+    }
+    function animateCompletionDialogue(body) {
+        completionObserver?.disconnect();completionObserver=null;
+        const dialogue=body.querySelector('.completion-poco');
+        const avatar=dialogue.querySelector('.courier-robot');
+        avatar.setAttribute('viewBox','30 5 180 165');
+        host.expression(avatar,'happy');
+        if(!window.IntersectionObserver||matchMedia('(prefers-reduced-motion: reduce)').matches){dialogue.classList.add('dialogue-playing');return;}
+        completionObserver=new IntersectionObserver(entries=>{
+            if(entries.some(entry=>entry.isIntersecting)){
+                dialogue.classList.add('dialogue-playing');completionObserver?.disconnect();completionObserver=null;
+            }
+        },{root:body,threshold:.25});
+        completionObserver.observe(dialogue);
+    }
     function render() {
         const root=host.root();
         root.classList.add('courier-tutorial');
         root.classList.toggle('courier-opening',isOpening());
         root.classList.toggle('courier-writing',state.phase==='writing');
+        root.classList.toggle('courier-sent',state.phase==='sent');
         root.classList.toggle('letter-receiving',!!arrival||!!reward);
         root.classList.toggle('word-reward-active',!!reward);
         root.classList.remove('poco-cheer');
@@ -249,14 +275,13 @@
         if(!room) { room=document.createElement('div'); room.id='letter-tutorial-room'; root.querySelector('.courier-world').append(room); }
         if(isOpening())openingRoom(room);
         else {room.innerHTML=desk();room.dataset.mode='desk';}
-        root.querySelector('#courier-chapter').innerHTML=`<span class="courier-progress-number">${state.phase==='writing'?`${slotOrder.filter(key=>state.captures[key]).length}/3`:'✉'}</span><span>${t('はじまりの手紙','启程前的一封信')}</span>`;
+        root.querySelector('#courier-chapter').innerHTML=`<span class="courier-progress-number">${state.phase==='sent'?'✓':state.phase==='writing'?`${slotOrder.filter(key=>state.captures[key]).length}/3`:'✉'}</span><span>${t('はじまりの手紙','启程前的一封信')}</span>`;
         const mode=root.querySelector('.courier-mode-btn'); mode.hidden=true;
         root.querySelector('[data-action="journal"] span').textContent=t('旅の手帳','行程手帐');
         root.querySelector('.courier-edition').textContent=t('郵便局での小さな出会い','邮局里的初次相遇');
         const body=root.querySelector('#courier-story-body');
         const footer=root.querySelector('#courier-actions');
         const button=(action,label,icon='arrow')=>`<button type="button" class="courier-primary" data-letter-action="${action}">${host.icon(icon)}<span>${label}</span>${host.icon('arrow')}</button>`;
-        const kicker=`<div class="courier-speaker">ポコ POCO <span>${t('見習いの郵便屋さん','见习邮差')}</span></div>`;
         if(isOpening()) {
             body.innerHTML='';
             footer.innerHTML=state.phase==='pen'
@@ -269,8 +294,10 @@
             footer.innerHTML=reward?`<div class="letter-delivery-feedback" role="status">${host.icon('check')}<span>${t('写真から、ことばが届きました。','照片里的词语已送达。')}</span></div>`:arrival?`<div class="letter-delivery-feedback" role="status">${host.icon('check')}<span>${escape(arrival.word)} ${t('を手紙に書いています…','正在写进信里…')}</span></div>`
                 :`<p class="letter-feedback" role="status">${escape(notice || (finished?t('手紙が書けました。友だちに届けましょう。','信写好了，把它寄给朋友吧。'):card?t('この写真を撮り直すこともできます。','你也可以重拍这一张。'):goal()))}</p>`+(finished?button('send',t('この手紙を投函する','寄出这封信'),'mail'):button('photo',card?t('この写真を撮り直す','重拍当前照片'):t('写真を撮る','拍照'),'camera'))+(localTest&&!card&&!finished?`<button type="button" class="courier-text letter-test-answer" data-letter-action="test-answer">${t('テスト：この一文を完成','测试：完成这一题')}</button>`:'')+(card?`<button type="button" class="courier-text letter-retake" data-letter-action="retake">${t('この写真を撮り直す','重拍当前照片')}</button>`:'');
         } else {
-            body.innerHTML=`<div class="tutorial-sent-heading"><div class="tutorial-postmark">${host.icon('check')}<span>POSTED</span></div>${kicker}<h2>${t('最初の手紙、<br>ちゃんと届くよ。','第一封信，<br>已经寄出。')}</h2><p>${t('手伝ってくれてありがとう。きみが届けてくれたもの、全部書けたよ。','谢谢你帮忙。你送来的东西，都写进信里了。')}</p></div>${letter(true)}<div class="tutorial-next-note"><h3>${t('次は、外の世界へ。','接下来，到外面走走。')}</h3><p>${t('旅の準備を手伝ってくれる？次の委託は、キャンパスのコンビニで。','愿意帮波可准备旅行吗？下一份委托在校园便利店。')}</p></div>`;
-            footer.innerHTML=button('field',t('実地探索を始める','开始实地探索'),'pin')+`<button type="button" class="courier-text letter-stay" data-letter-action="stay">${t('今日はここまで','今天先到这里')}</button>`;
+            body.innerHTML=sentSummary(!sentPresented);sentPresented=true;
+            animateCompletionDialogue(body);
+            host.expression(room.querySelector('.courier-robot'),'happy');
+            footer.innerHTML=`<p class="completion-next">${t('次の委託：旅の準備。キャンパスのコンビニへ。','下一份委托：准备旅行，前往校园便利店。')}</p>`+button('field',t('実地探索を始める','开始实地探索'),'pin')+`<button type="button" class="courier-text letter-stay" data-letter-action="stay">${t('今日はここまで','今天先到这里')}</button>`;
         }
         followInk();
     }
@@ -331,11 +358,11 @@
             case 'retake':if(state.phase==='writing'&&state.captures[active])host.photo(true);break;
             case 'send':if(state.phase==='writing'&&slotOrder.every(key=>state.captures[key]))setPhase('sent');break;
             case 'stay':notice=t('手伝ってくれてありがとう。また、ポコに会いに来てね。','谢谢你帮忙，下次再来找波可吧。');host.status(notice);break;
-            case 'field':if(state.phase==='sent'){state.finished=true;host.startField(state.captures);}break;
+            case 'field':if(state.phase==='sent'){clearDelivery();state.finished=true;host.startField(state.captures);}break;
         }
         return true;
     }
-    function reset() { clearDelivery(); inkRuns.clear(); inkTail=0; state=fresh(); active='food'; notice=''; openingReset=true; }
+    function reset() { clearDelivery(); inkRuns.clear(); inkTail=0; state=fresh(); active='food'; notice=''; openingReset=true; sentPresented=false; }
     function journal() { return state.captures.pen ? letter(true) : `<p class="courier-journal-intro">${t('ポコにペンを届けて、最初の手紙を書きましょう。','给波可送来一支笔，开始写第一封信。')}</p>`; }
     function retakeTarget() { return state.phase==='writing' ? active : null; }
     SM.letterTutorial={init,render,click,accept,target,retakeTarget,goal,prompt,isActive,reset,journal,testStart,finishForTest,finished:()=>state.finished};

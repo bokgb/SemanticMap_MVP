@@ -21,6 +21,8 @@ const routes = [
   { path: '/?test=letter', title: '写信页直达 · 本地测试', readySelector: '.reply-letter' },
   { path: '/?test=letter&preview=word', title: '词语特写 · 照片与日语单词卡', readySelector: '[data-letter-slot="food"]', wordReward: true },
   { path: '/?test=drink', title: '任选测试起点 · 午休饮品', readySelector: '[data-letter-beat="drink"]' },
+  { path: '/?test=sent', title: '委托完成 · 拍摄卡片与完整信件', readySelector: '.letter-completion' },
+  { path: '/?test=sent&preview=poco', title: '波可的感谢 · 角色头像与漫画对话', readySelector: '.completion-poco', completionDialogue: true },
   { path: '/?preview=letter-delivery', title: '词语送达 · 盖章与下一段展开', readySelector: '.courier-story', letterWriting: true, letterDelivery: true },
   { path: '/?preview=letter-second', title: '逐段写信 · 第二个问题', readySelector: '.courier-story', letterWriting: true, letterSecond: true },
   { path: '/?preview=courier-park', title: 'OIC 漫游 · 公园明信片', readySelector: '.courier-story', courierPark: true },
@@ -217,6 +219,11 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.completionDialogue){
+    await page.locator('.completion-poco').scrollIntoViewIfNeeded();
+    await page.locator('.completion-poco.dialogue-playing').waitFor();
+    await page.waitForTimeout(1800);
+  }
   if(route.wordReward){
     await page.locator('#courier-file').setInputFiles(path.join(root,'assets/lumi-avatar.png'));
     await page.locator('.letter-word-reward').waitFor();

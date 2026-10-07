@@ -19,7 +19,7 @@ async function fresh(viewport={width:1440,height:1000}) {
     return page;
 }
 function mockPhotos(page) {
-    const control={status:200,mismatch:false,wordOverride:null,requests:[]};
+    const control={status:200,mismatch:false,wordOverride:null,kanaOverride:null,requests:[]};
     const names={pen:['ペン','ぺん'],food:['りんご','りんご'],cute:['花','はな'],drink:['牛乳','ぎゅうにゅう']};
     page.route('**/api/gemini',async route=>{
         const payload=route.request().postDataJSON();
@@ -30,7 +30,7 @@ function mockPhotos(page) {
         assert(payload.generationConfig.response_schema.properties.object.enum.includes(key));
         control.requests.push(key);
         const [word,kana]=names[key];
-        await route.fulfill({status:control.status,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:!control.mismatch,object:control.mismatch?'other':key,word:control.wordOverride||word,kana})}]}}]})});
+        await route.fulfill({status:control.status,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:!control.mismatch,object:control.mismatch?'other':key,word:control.wordOverride||word,kana:control.kanaOverride||kana})}]}}]})});
     });
     return control;
 }
@@ -69,6 +69,28 @@ async function capture(page,key) {
     await page.waitForFunction(()=>!document.querySelector('#courier-app').classList.contains('letter-receiving'));
 }
 async function sample(page,key){await page.locator('[data-action="sample"]').click();await page.locator(`[data-sample="${key}"]`).click();}
+async function checkCompletion(page) {
+    await page.locator('.letter-completion').waitFor();
+    assert.equal(await page.locator('.completion-card').count(),3);
+    assert.equal(await page.locator('.completion-photo img').count(),3);
+    assert.deepEqual(await page.locator('.completion-photo img').evaluateAll(images=>images.map(img=>img.getAttribute('src'))),await page.locator('.materialized-item img').evaluateAll(images=>images.map(img=>img.getAttribute('src'))));
+    assert.equal(await page.locator('.completion-card rt').count(),3);
+    assert.match(await page.locator('.completion-kicker').innerText(),/委託完了|委托完成/);
+    assert.match(await page.locator('.completion-letter .reply-letter').innerText(),/友だちへ[\s\S]*そっちは、最近どう？[\s\S]*ポコ/);
+    assert.equal(await page.locator('.letter-completion .letter-slot').count(),0);
+    assert.equal(await page.locator('.tutorial-poco [data-expression="happy"]').count(),1);
+    assert.equal(await page.locator('.completion-poco-avatar [data-expression="happy"]').count(),1);
+    assert.equal(await page.evaluate(()=>window.gpsRequests),0);
+    const top=await page.locator('[data-letter-action="field"]').boundingBox();
+    await page.locator('#courier-story-body').evaluate(el=>el.scrollTop=el.scrollHeight);
+    const bottom=await page.locator('[data-letter-action="field"]').boundingBox();
+    assert.equal(top.y,bottom.y);
+    assert(bottom.y>=0&&bottom.y+bottom.height<=page.viewportSize().height);
+    const header=await page.locator('.courier-story-header').boundingBox();
+    assert(header.y>=0&&header.y+header.height<=page.viewportSize().height);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.locator('#courier-story-body').evaluate(el=>el.scrollTop=0);
+}
 try {
     const p=await fresh();const mock=mockPhotos(p);
     assert.equal(await p.locator('[data-action="sample"], [data-action="alternate"]').count(),0);
@@ -101,14 +123,21 @@ try {
     await capture(p,'drink');
     assert.equal(await p.locator('.materialized-item').count(),3);
     assert.match(await p.locator('.reply-letter').innerText(),/今朝は、\s*りんご/);
-    mock.wordOverride='パン';await p.locator('[data-letter-slot="food"]').first().click();
+    mock.wordOverride='パン';mock.kanaOverride='ぱん';await p.locator('[data-letter-slot="food"]').first().click();
     await p.locator('[data-letter-action="retake"]').click();
     await p.locator('#courier-file').setInputFiles(fixture);
     await p.waitForFunction(()=>document.querySelector('[data-letter-slot="food"]').textContent.includes('パン'));
     await p.waitForFunction(()=>!document.querySelector('#courier-app').classList.contains('letter-receiving'));
-    assert.equal(await p.locator('.letter-slot.filled').count(),3);mock.wordOverride=null;
+    assert.equal(await p.locator('.letter-slot.filled').count(),3);mock.wordOverride=null;mock.kanaOverride=null;
     await p.screenshot({path:'screenshots/letter-completed-desktop.png'});
     await p.locator('[data-letter-action="send"]').click();
+    await checkCompletion(p);
+    assert.equal(await p.locator('.completion-card ruby').nth(0).evaluate(el=>el.firstChild.textContent),'パン');
+    assert.equal(await p.locator('.completion-card rt').nth(0).innerText(),'ぱん');
+    assert.equal(await p.locator('.completion-card ruby').nth(1).evaluate(el=>el.firstChild.textContent),'花');
+    assert.equal(await p.locator('.completion-card rt').nth(1).innerText(),'はな');
+    assert.equal(await p.locator('.completion-card ruby').nth(2).evaluate(el=>el.firstChild.textContent),'牛乳');
+    assert.equal(await p.locator('.completion-card rt').nth(2).innerText(),'ぎゅうにゅう');
     assert.equal(await p.locator('[data-letter-action="field"]').count(),1);
     assert.equal(await p.evaluate(()=>window.gpsRequests),0);
     await p.locator('[data-letter-action="stay"]').click();
@@ -156,6 +185,18 @@ try {
     for(const key of ['food','cute','drink'])await capture(mobile,key);
     await mobile.locator('#courier-story-body').evaluate(el=>el.scrollTop=el.scrollHeight);
     rect=await mobile.locator('[data-letter-action="send"]').boundingBox();assert(rect.y+rect.height<=568);
+    await mobile.locator('[data-letter-action="send"]').click();
+    await checkCompletion(mobile);
+    await mobile.waitForTimeout(1500);
+    await mobile.screenshot({path:'screenshots/letter-sent-mobile.png'});
+    await mobile.emulateMedia({reducedMotion:'reduce'});
+    await mobile.reload({waitUntil:'networkidle'});
+    await mobile.evaluate(()=>{window.SemanticMap.letterTutorial.testStart('sent');document.querySelector('[data-action="language"]').click();});
+    await checkCompletion(mobile);
+    assert.equal(await mobile.locator('.completion-postmark').evaluate(el=>getComputedStyle(el).animationName),'none');
+    await mobile.locator('[data-letter-action="field"]').click();
+    assert.equal(await mobile.locator('#courier-app.courier-sent').count(),0);
+    assert.equal(await mobile.evaluate(()=>window.gpsRequests),1);
     assert.deepEqual(errors,[]);
     console.log('PASS: POCO conversation and pen; one photo question at a time; delivery celebration then next paragraph; mismatch/service error; retake; reload resets introduction, photos and legacy field progress; no progress persisted; no GPS until explicit field start; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');
 } finally {await browser.close();}
