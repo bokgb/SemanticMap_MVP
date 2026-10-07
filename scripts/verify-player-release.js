@@ -45,8 +45,11 @@ try {
     assert.equal(await page.locator('[data-letter-slot]').count(),1);
     for(const key of ['food','cute','drink']){
         await noTestControls();
-        await page.locator(`[data-letter-slot="${key}"]`).click();
-        await page.locator('#courier-file').setInputFiles('assets/lumi-avatar.png');
+        const chooserPromise=page.waitForEvent('filechooser');
+        await page.locator(`[data-letter-slot="${key}"] .letter-slot-empty`).click();
+        const chooser=await chooserPromise;
+        assert.equal(await chooser.element().getAttribute('id'),'courier-file');
+        await chooser.setFiles('assets/lumi-avatar.png');
         await page.locator(`[data-letter-slot="${key}"].filled`).waitFor();
         await page.waitForFunction(()=>!document.querySelector('#courier-app').classList.contains('letter-receiving'));
     }

@@ -19,6 +19,7 @@ const routes = [
   { path: '/?test=missing-pen', title: '找不到笔 · 波可的困惑表情', readySelector: '[data-expression="confused"]' },
   { path: '/?preview=pen', title: '波可的对话 · 拍笔送到游戏世界', readySelector: '.courier-story', penDialogue: true },
   { path: '/?test=letter', title: '写信页直达 · 本地测试', readySelector: '.reply-letter' },
+  { path: '/?test=letter&preview=word', title: '词语特写 · 照片与日语单词卡', readySelector: '[data-letter-slot="food"]', wordReward: true },
   { path: '/?test=drink', title: '任选测试起点 · 午休饮品', readySelector: '[data-letter-beat="drink"]' },
   { path: '/?preview=letter-delivery', title: '词语送达 · 盖章与下一段展开', readySelector: '.courier-story', letterWriting: true, letterDelivery: true },
   { path: '/?preview=letter-second', title: '逐段写信 · 第二个问题', readySelector: '.courier-story', letterWriting: true, letterSecond: true },
@@ -206,7 +207,7 @@ function openFile(filePath) {
 async function captureRoute(context, route) {
   const page = await context.newPage();
   await installOfflineLeafletStubs(page);
-  if (route.letterWriting || route.courierPark) {
+  if (route.letterWriting || route.courierPark || route.wordReward) {
     const words={pen:['ペン','ぺん'],food:['パン','ぱん'],cute:['花','はな'],drink:['お茶','おちゃ']};
     await page.route('**/api/gemini',route=>{
       const key=route.request().postDataJSON().contents[0].parts[0].text.match(/Current task key: (\w+)/)[1];
@@ -216,6 +217,10 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.wordReward){
+    await page.locator('#courier-file').setInputFiles(path.join(root,'assets/lumi-avatar.png'));
+    await page.locator('.letter-word-reward').waitFor();
+  }
   if (route.letterWriting || route.courierPark || route.penDialogue) {
     for(let step=0;step<4;step++)await page.locator('[data-letter-action="open"]').click();
     await page.locator('[data-letter-action="photo"]').waitFor();

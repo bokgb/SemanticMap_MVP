@@ -342,6 +342,38 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .letter-word-sparks i:nth-child(3) { --spark-x:30px; --spark-y:30px; animation-delay:.1s; }
 .letter-word-sparks i:nth-child(4) { --spark-x:-28px; --spark-y:24px; animation-delay:.07s; }
 .letter-delivery-feedback { display:flex; align-items:center; justify-content:center; gap:10px; min-height:75px; color:#5c794b; font-size:13px; animation:letter-unfold .35s both; }
+/* A photo becomes a word before it lands in the letter. */
+.letter-word-reward { position:fixed; z-index:850; inset:0; display:grid; place-items:center; padding:24px; background:#394b3880; backdrop-filter:blur(5px); animation:word-reward-backdrop .25s both; }
+.letter-reward-panel { position:relative; display:flex; flex-direction:column; width:min(320px,100%); max-height:calc(100dvh - 48px); gap:18px; }
+.letter-reward-heading { display:flex; flex-shrink:0; align-items:center; justify-content:center; gap:9px; color:#fffdf0; text-shadow:0 2px 8px #26382466; font:600 15px "Yu Gothic","Microsoft YaHei",sans-serif; letter-spacing:.12em; animation:word-reward-title .35s .18s both; }
+#courier-app .letter-reward-heading svg { width:23px; height:23px; padding:3px; border:1px solid #e9f1d88c; border-radius:50%; }
+.letter-reward-card { position:relative; z-index:1; min-height:0; overflow-y:auto; margin:0; padding:14px 14px 0; border:1px solid #f7f4e5; border-radius:6px; background:#fffdf2; box-shadow:0 8px 0 -3px #d9d1b9,0 20px 50px #21311c55; transform:rotate(-3deg); transform-origin:center; animation:word-reward-pop .5s cubic-bezier(.16,1,.3,1) both; }
+.letter-reward-photo { position:relative; width:100%; height:clamp(120px,28dvh,248px); display:grid; place-items:center; background:#e6e9d9; border:1px solid #d8deca; }
+.letter-reward-photo img { position:absolute; inset:0; display:block; min-width:0; min-height:0; width:100%; height:100%; object-fit:contain; }
+.letter-reward-seal { position:absolute; right:-8px; bottom:-14px; display:flex; flex-direction:column; align-items:center; justify-content:center; width:63px; height:63px; border:3px double #eef3de; border-radius:50%; background:#708858; color:#fffdf2; transform:rotate(12deg); box-shadow:0 3px 0 #465d3c33; animation:letter-stamp-hit .4s .35s both; }
+#courier-app .letter-reward-seal svg { width:25px; height:25px; }
+.letter-reward-seal>span { font:7px "Yu Gothic",sans-serif; letter-spacing:.06em; }
+.letter-reward-card figcaption { padding:24px 12px 22px; text-align:center; color:#425e38; }
+.letter-reward-reading { display:block; min-height:21px; font:13px/1.6 "Yu Gothic",sans-serif; letter-spacing:.13em; }
+.letter-reward-card strong { display:block; font:600 36px/1.45 "Yu Mincho","SimSun",serif; overflow-wrap:anywhere; text-wrap:balance; }
+.letter-reward-rule { display:block; width:36px; height:2px; margin:15px auto 0; background:#a4b887; }
+.letter-reward-actions { flex-shrink:0; position:relative; z-index:2; }
+#courier-app .letter-reward-actions button { display:flex; align-items:center; justify-content:center; gap:12px; width:100%; min-height:49px; padding:11px 15px; border:1px solid #d9e5c2; border-bottom:4px solid #46603a; border-radius:10px; background:#708957; color:#fffdf0; font:600 13px "Yu Gothic","Microsoft YaHei",sans-serif; box-shadow:0 6px 14px #293a2533; }
+#courier-app .letter-reward-actions svg { width:18px; height:18px; }
+.letter-reward-burst { position:absolute; z-index:2; inset:15% -20px 15%; pointer-events:none; }
+.letter-reward-burst i { position:absolute; left:0; top:20%; font:27px Georgia,serif; color:#e4e9b8; animation:word-reward-spark .85s .12s both; }
+.letter-reward-burst i:nth-child(2) { left:auto; right:0; top:65%; font-size:19px; animation-delay:.2s; }
+.letter-reward-burst i:nth-child(3) { left:10%; top:85%; font-size:16px; animation-delay:.28s; }
+.letter-reward-burst i:nth-child(4) { left:auto; right:3%; top:7%; animation-delay:.15s; }
+.letter-reward-burst i:nth-child(5),.letter-reward-burst i:nth-child(6) { width:8px; height:15px; background:#cddda9; border-radius:1px; left:5%; top:55%; rotate:-25deg; }
+.letter-reward-burst i:nth-child(6) { left:auto; right:8%; top:35%; rotate:30deg; animation-delay:.25s; }
+.reward-flying { background:transparent; backdrop-filter:none; transition:background .5s,backdrop-filter .5s; }
+.reward-flying .letter-reward-heading,.reward-flying .letter-reward-actions,.reward-flying .letter-reward-burst { visibility:hidden; }
+@keyframes word-reward-backdrop { from { opacity:0; } to { opacity:1; } }
+@keyframes word-reward-pop { from { opacity:0; transform:translateY(50px) scale(.65) rotate(-12deg); } 65% { opacity:1; transform:translateY(-10px) scale(1.06) rotate(1deg); } to { opacity:1; transform:translateY(0) scale(1) rotate(-3deg); } }
+@keyframes word-reward-title { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+@keyframes word-reward-spark { from { opacity:0; transform:scale(.2) translateY(20px); } 35% { opacity:1; transform:scale(1.2) translateY(-12px); } to { opacity:0; transform:scale(.7) translateY(-35px); } }
+@media(max-height:660px) { .letter-reward-panel { gap:12px; } .letter-reward-photo { height:clamp(95px,26dvh,170px); } .letter-reward-card figcaption { padding:16px 8px 14px; } .letter-reward-card strong { font-size:30px; } .letter-reward-rule { margin-top:10px; } }
 #courier-app .letter-test-answer { display:flex; margin:7px auto 0; padding:5px 0; font-size:10px; text-decoration:underline; text-underline-offset:3px; }
 .courier-writing .courier-primary { border-bottom:4px solid #4d6843 !important; border-radius:11px !important; transition:transform .16s,background .16s; }
 .courier-writing .courier-primary:active { transform:translateY(3px); }

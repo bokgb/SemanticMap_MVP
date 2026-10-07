@@ -12,6 +12,8 @@
     };
     let state = fresh(), active = 'food', notice = '';
     let arrival = null, deliveryTimer, inkFrame, inkTail = 0;
+    let reward = null, rewardTimer, rewardAnimation;
+    let rewardInert = [];
     let openingReset = true;
     const inkRuns = new Map();
     let host;
@@ -26,7 +28,57 @@
         try { localStorage.removeItem('kotoba-hunter-letter-tutorial-v1'); }
         catch { /* Storage may be unavailable; the session still starts fresh. */ }
     }
-    function clearDelivery() { clearTimeout(deliveryTimer); cancelAnimationFrame(inkFrame); arrival=null; }
+    function clearDelivery() { clearTimeout(deliveryTimer); cancelAnimationFrame(inkFrame); arrival=null; clearReward(); }
+    function clearReward() {
+        clearTimeout(rewardTimer); rewardAnimation?.cancel(); rewardAnimation=null; reward=null;
+        host?.root().querySelector('.letter-word-reward')?.remove();
+        rewardInert.forEach(element=>element.inert=false); rewardInert=[];
+        host?.root().classList.remove('word-reward-active');
+    }
+    function showReward(key, card, advance) {
+        reward={key,card,advance,closing:false};
+        host.render();
+        const root=host.root();
+        const overlay=document.createElement('section');
+        overlay.className='letter-word-reward';
+        overlay.setAttribute('role','dialog');
+        overlay.setAttribute('aria-modal','true');
+        overlay.setAttribute('aria-labelledby','letter-reward-word');
+        overlay.innerHTML=`<div class="letter-reward-panel"><header class="letter-reward-heading">${host.icon('check')}<span>${t('ことばが届いた','词语送达')}</span></header><figure class="letter-reward-card"><div class="letter-reward-photo"><img src="${escape(card.photo)}" alt="${escape(card.word)}"><span class="letter-reward-seal" aria-hidden="true">${host.icon('check')}<span>POCO POST</span></span></div><figcaption><span class="letter-reward-reading" lang="ja">${escape(card.kana)}</span><strong id="letter-reward-word" lang="ja">${escape(card.word)}</strong><span class="letter-reward-rule" aria-hidden="true"></span></figcaption></figure><div class="letter-reward-burst" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i></i><i></i></div><footer class="letter-reward-actions"><button type="button" data-letter-action="place-word">${host.icon(key==='pen'?'mail':'pen')}<span>${key==='pen'?t('ポコに届ける','送给波可'):t('手紙に書く','写进信里')}</span>${host.icon('arrow')}</button></footer></div>`;
+        root.append(overlay);
+        rewardInert=Array.from(root.querySelectorAll('.courier-header,.courier-world,.courier-story')).filter(element=>!element.inert);
+        rewardInert.forEach(element=>element.inert=true);
+        const button=overlay.querySelector('button');button.focus({preventScroll:true});
+        overlay.addEventListener('keydown',event=>{
+            if(event.key==='Escape'){event.preventDefault();finishReward();}
+            if(event.key==='Tab'){event.preventDefault();button.focus();}
+        });
+        rewardTimer=setTimeout(finishReward,2400);
+    }
+    function finishReward() {
+        if(!reward||reward.closing)return;
+        const current=reward;current.closing=true;clearTimeout(rewardTimer);
+        const root=host.root(), overlay=root.querySelector('.letter-word-reward');
+        const card=overlay?.querySelector('.letter-reward-card');
+        const destination=root.querySelector(`[data-letter-slot="${current.key}"]`)||root.querySelector('.opening-poco');
+        const commit=()=>{
+            if(reward!==current)return;
+            clearReward();deliverCard(current.key,current.card,current.advance);
+            root.querySelector('#courier-story-body')?.focus({preventScroll:true});
+        };
+        if(!card||!destination||matchMedia('(prefers-reduced-motion: reduce)').matches){commit();return;}
+        destination.scrollIntoView({block:'nearest',behavior:'instant'});
+        const from=card.getBoundingClientRect(),to=destination.getBoundingClientRect();
+        const x=to.x+to.width/2-from.x-from.width/2,y=to.y+to.height/2-from.y-from.height/2;
+        const scale=Math.min(.28,to.width/from.width,to.height/from.height);
+        overlay.classList.add('reward-flying');
+        rewardAnimation=card.animate([
+            {transform:'translate(0,0) scale(1) rotate(-3deg)',opacity:1},
+            {transform:`translate(${x*.3}px,${y*.3-28}px) scale(.74) rotate(6deg)`,opacity:1,offset:.35},
+            {transform:`translate(${x}px,${y}px) scale(${scale}) rotate(0deg)`,opacity:.12}
+        ],{duration:560,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+        rewardAnimation.onfinish=commit;
+    }
     function testCard(key) {
         const word={pen:'ペン',food:'パン',cute:'花',drink:'お茶'}[key];
         const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="180" height="140" viewBox="0 0 180 140"><rect width="180" height="140" fill="#e9edde"/><text x="90" y="72" text-anchor="middle" fill="#526c4c" font-size="28">${word}</text><text x="90" y="116" text-anchor="middle" fill="#7b876e" font-size="10">TEST</text></svg>`;
@@ -189,7 +241,8 @@
         root.classList.add('courier-tutorial');
         root.classList.toggle('courier-opening',isOpening());
         root.classList.toggle('courier-writing',state.phase==='writing');
-        root.classList.toggle('letter-receiving',!!arrival);
+        root.classList.toggle('letter-receiving',!!arrival||!!reward);
+        root.classList.toggle('word-reward-active',!!reward);
         root.classList.remove('poco-cheer');
         root.querySelector('.courier-world').setAttribute('aria-label',t('郵便局の机','邮局桌面'));
         let room=root.querySelector('#letter-tutorial-room');
@@ -213,7 +266,7 @@
             const card=state.captures[active];
             const finished=complete()&&!arrival;
             body.innerHTML=letter();
-            footer.innerHTML=arrival?`<div class="letter-delivery-feedback" role="status">${host.icon('check')}<span>${escape(arrival.word)} ${t('を手紙に書いています…','正在写进信里…')}</span></div>`
+            footer.innerHTML=reward?`<div class="letter-delivery-feedback" role="status">${host.icon('check')}<span>${t('写真から、ことばが届きました。','照片里的词语已送达。')}</span></div>`:arrival?`<div class="letter-delivery-feedback" role="status">${host.icon('check')}<span>${escape(arrival.word)} ${t('を手紙に書いています…','正在写进信里…')}</span></div>`
                 :`<p class="letter-feedback" role="status">${escape(notice || (finished?t('手紙が書けました。友だちに届けましょう。','信写好了，把它寄给朋友吧。'):card?t('この写真を撮り直すこともできます。','你也可以重拍这一张。'):goal()))}</p>`+(finished?button('send',t('この手紙を投函する','寄出这封信'),'mail'):button('photo',card?t('この写真を撮り直す','重拍当前照片'):t('写真を撮る','拍照'),'camera'))+(localTest&&!card&&!finished?`<button type="button" class="courier-text letter-test-answer" data-letter-action="test-answer">${t('テスト：この一文を完成','测试：完成这一题')}</button>`:'')+(card?`<button type="button" class="courier-text letter-retake" data-letter-action="retake">${t('この写真を撮り直す','重拍当前照片')}</button>`:'');
         } else {
             body.innerHTML=`<div class="tutorial-sent-heading"><div class="tutorial-postmark">${host.icon('check')}<span>POSTED</span></div>${kicker}<h2>${t('最初の手紙、<br>ちゃんと届くよ。','第一封信，<br>已经寄出。')}</h2><p>${t('手伝ってくれてありがとう。きみが届けてくれたもの、全部書けたよ。','谢谢你帮忙。你送来的东西，都写进信里了。')}</p></div>${letter(true)}<div class="tutorial-next-note"><h3>${t('次は、外の世界へ。','接下来，到外面走走。')}</h3><p>${t('旅の準備を手伝ってくれる？次の委託は、キャンパスのコンビニで。','愿意帮波可准备旅行吗？下一份委托在校园便利店。')}</p></div>`;
@@ -223,9 +276,12 @@
     }
     function accept(card) {
         const key=target();
-        if(!key||arrival)return;
+        if(!key||arrival||reward)return;
         const advance=!state.captures[key];
-        state.captures[key]={ word:card.word, kana:card.kana||'', photo:card.photo, ...(card.test?{test:true}:{}) };
+        showReward(key,{word:card.word,kana:card.kana||'',photo:card.photo,...(card.test?{test:true}:{})},advance);
+    }
+    function deliverCard(key,card,advance) {
+        state.captures[key]=card;
         if(key==='pen') {
             inkRuns.clear(); inkTail=0;
             state.phase='writing'; active='food'; notice=card.test?t('テスト：ペンの撮影をスキップしました。','测试：已跳过拍笔。'):t('ペンが届きました。最初の言葉を写真で届けてね。','笔已送达。接下来，用照片完成第一处填空。');
@@ -245,10 +301,13 @@
     }
     function click(event) {
         if(!isActive())return false;
-        if(arrival&&event.target.closest('[data-letter-slot],[data-letter-action]'))return true;
+        if(reward&&event.target.closest('[data-letter-action="place-word"]')){finishReward();return true;}
+        if((arrival||reward)&&event.target.closest('[data-letter-slot],[data-letter-action]'))return true;
         const slot=event.target.closest('[data-letter-slot]')?.dataset.letterSlot;
         if(slot && state.phase==='writing' && slotOrder.includes(slot) && (state.captures[slot]||slotOrder[frontier()]===slot)) {
-            active=slot; notice=''; render(); return true;
+            active=slot; notice=''; render();
+            if(!state.captures[slot])host.photo();
+            return true;
         }
         const action=event.target.closest('[data-letter-action]')?.dataset.letterAction;
         if(!action)return false;
