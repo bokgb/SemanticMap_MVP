@@ -17,6 +17,7 @@ const routes = [
   { path: '/', title: '言葉ハンター · 认识波可', readySelector: '.courier-story' },
   { path: '/?test=reply', title: '开场演出 · 拿出信纸准备写信', readySelector: '[data-opening-beat="reply"]' },
   { path: '/?test=missing-pen', title: '找不到笔 · 波可的困惑表情', readySelector: '[data-expression="confused"]' },
+  { path: '/?test=pen-thanks', title: '笔已送达 · 波可开心道谢', readySelector: '[data-opening-beat="thanks"]' },
   { path: '/?preview=pen', title: '波可的对话 · 拍笔送到游戏世界', readySelector: '.courier-story', penDialogue: true },
   { path: '/?test=letter', title: '写信页直达 · 本地测试', readySelector: '.reply-letter' },
   { path: '/?test=letter&preview=word', title: '词语特写 · 照片与日语单词卡', readySelector: '[data-letter-slot="food"]', wordReward: true },
@@ -25,7 +26,13 @@ const routes = [
   { path: '/?test=sent&preview=poco', title: '波可的感谢 · 角色头像与漫画对话', readySelector: '.completion-poco', completionDialogue: true },
   { path: '/?preview=letter-delivery', title: '词语送达 · 盖章与下一段展开', readySelector: '.courier-story', letterWriting: true, letterDelivery: true },
   { path: '/?preview=letter-second', title: '逐段写信 · 第二个问题', readySelector: '.courier-story', letterWriting: true, letterSecond: true },
-  { path: '/?preview=courier-park', title: 'OIC 漫游 · 公园明信片', readySelector: '.courier-story', courierPark: true },
+  { path: '/?test=departure', title: '准备送信 · 波可收好信封', readySelector: '.journey-departure-stage' },
+  { path: '/?test=route', title: '送信地图 · 明确车站终点与便利店', readySelector: '.journey-travel' },
+  { path: '/?test=shop-arrival', title: '便利店相遇 · 米娜登场', readySelector: '.journey-shop-stage' },
+  { path: '/?test=shop', title: '便利店委托 · 自由挑选旅途食物', readySelector: '.journey-quest-ticket' },
+  { path: '/?test=shop-receipt', title: '补给特写 · 等待装进邮包', readySelector: '.journey-item-card' },
+  { path: '/?test=shop-receipt&preview=packed', title: '补给完成 · 邮包与地点邮戳', readySelector: '.journey-item-card', supplyPacked: true },
+  { path: '/?test=park', title: 'OIC 送信途中 · 公园风景', readySelector: '.journey-quest-ticket', courierPark: true },
   { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
   { path: '/cleaner.html', title: 'Data Cleaner', readySelector: '.container' }
 ];
@@ -209,7 +216,7 @@ function openFile(filePath) {
 async function captureRoute(context, route) {
   const page = await context.newPage();
   await installOfflineLeafletStubs(page);
-  if (route.letterWriting || route.courierPark || route.wordReward) {
+  if (route.letterWriting || route.wordReward) {
     const words={pen:['ペン','ぺん'],food:['パン','ぱん'],cute:['花','はな'],drink:['お茶','おちゃ']};
     await page.route('**/api/gemini',route=>{
       const key=route.request().postDataJSON().contents[0].parts[0].text.match(/Current task key: (\w+)/)[1];
@@ -219,6 +226,7 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.supplyPacked){await page.locator('[data-action="pack"]').click();await page.locator('.supply-packed').waitFor();await page.waitForTimeout(1200);}
   if(route.completionDialogue){
     await page.locator('.completion-poco').scrollIntoViewIfNeeded();
     await page.locator('.completion-poco.dialogue-playing').waitFor();
@@ -228,40 +236,24 @@ async function captureRoute(context, route) {
     await page.locator('#courier-file').setInputFiles(path.join(root,'assets/lumi-avatar.png'));
     await page.locator('.letter-word-reward').waitFor();
   }
-  if (route.letterWriting || route.courierPark || route.penDialogue) {
+  if (route.letterWriting || route.penDialogue) {
     for(let step=0;step<4;step++)await page.locator('[data-letter-action="open"]').click();
     await page.locator('[data-letter-action="photo"]').waitFor();
   }
-  if (route.letterWriting || route.courierPark) {
+  if (route.letterWriting) {
     const fixture=path.join(root,'assets/lumi-avatar.png');
     await page.locator('#courier-file').setInputFiles(fixture);
+    await page.locator('[data-letter-action="start-writing"]').click();
     await page.locator('[data-letter-slot="food"]').first().waitFor();
     if(route.letterDelivery||route.letterSecond){
       await page.locator('#courier-file').setInputFiles(fixture);
       await page.locator('.letter-word-stamp').waitFor();
       if(route.letterSecond)await page.locator('[data-letter-beat="cute"]').waitFor();
     }
-    if(route.courierPark){
-      for(const key of ['food','cute','drink']){
-        await page.locator('[data-letter-slot="'+key+'"]').first().click();
-        await page.locator('#courier-file').setInputFiles(fixture);
-        await page.locator('[data-letter-slot="'+key+'"].filled').waitFor();
-        await page.waitForFunction(()=>!document.querySelector('#courier-app').classList.contains('letter-receiving'));
-      }
-      await page.locator('[data-letter-action="send"]').click();
-      await page.locator('[data-letter-action="field"]').click();
-      await page.locator('[data-action="mode"]').click();
-      await page.locator('[data-action="preview-mode"]').click();
-    }
   }
   if(!route.letterDelivery)await page.waitForTimeout(750);
 
   if (route.courierPark) {
-    for (const key of ['battery']) {
-      await page.locator('[data-action="sample"]').click();
-      await page.locator(`[data-sample="${key}"]`).click();
-      await page.locator('[data-action="next"]').click();
-    }
     await page.locator('#courier-story-body').evaluate(el => { el.scrollTop = el.scrollHeight; });
     const photo = await page.locator('[data-action="photo"]').boundingBox();
     if (!photo || photo.y < 0 || photo.y + photo.height > page.viewportSize().height) throw new Error('Courier photo control is outside the viewport');

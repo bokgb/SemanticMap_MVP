@@ -29,7 +29,7 @@ try {
         await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:true,object:key,word,kana})}]}}]})});
     });
     async function noTestControls(){
-        assert.equal(await page.locator('.courier-test-menu,[data-test-start],[data-letter-action="skip-pen"],[data-letter-action="test-answer"],[data-action="sample"],[data-sample]').count(),0);
+        assert.equal(await page.locator('.courier-test-menu,[data-test-start],[data-letter-action="skip-pen"],[data-letter-action="test-answer"],[data-action="sample"],[data-action="skip-photo"],[data-sample]').count(),0);
         assert(!/テスト|测试|TEST|DEMO/.test(await page.locator('#courier-app').innerText()));
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
@@ -40,6 +40,10 @@ try {
     for(let n=0;n<4;n++){await page.locator('[data-letter-action="open"]').click();await noTestControls();}
     assert.equal(await page.evaluate(()=>window.gpsRequests),0);
     await page.locator('#courier-file').setInputFiles('assets/lumi-avatar.png');
+    await page.locator('[data-letter-action="start-writing"]').waitFor();
+    assert.match(await page.locator('.opening-invite').innerText(),/ありがとう.*手紙が書ける/);
+    await noTestControls();
+    await page.locator('[data-letter-action="start-writing"]').click();
     await page.locator('[data-letter-slot="food"]').waitFor();
     assert.match(await page.locator('.letter-photo-hint').innerText(),/パンや果物/);
     assert.equal(await page.locator('[data-letter-slot]').count(),1);
@@ -57,12 +61,26 @@ try {
     await page.locator('[data-letter-action="send"]').click();
     await noTestControls();
     await page.locator('[data-letter-action="field"]').click();
-    await page.locator('.courier-copy').waitFor();
+    await page.locator('.journey-departure-stage').waitFor();
+    assert.equal(await page.evaluate(()=>window.gpsRequests),0);
+    await page.locator('[data-action="departure-next"]').click();
+    await page.locator('[data-action="departure-next"]').click();
+    await page.locator('[data-action="journey-map"]').click();
+    await page.locator('.journey-travel').waitFor();
     assert.equal(await page.evaluate(()=>window.gpsRequests),1);
     await noTestControls();
     await page.locator('[data-action="mode"]').click();
     await page.locator('[data-action="preview-mode"]').click();
+    await page.locator('[data-action="arrive"]').click();
+    await page.locator('[data-action="shop-talk"]').click();
     await noTestControls();
+    await page.locator('#courier-actions').evaluate(el=>{
+        const button=document.createElement('button');button.dataset.action='skip-photo';button.id='injected-test-skip';el.append(button);
+    });
+    await page.locator('#injected-test-skip').click();
+    assert.equal(await page.locator('.journey-item-card').count(),0);
+    assert.equal(await page.locator('.journey-quest-ticket').count(),1);
+    await page.locator('#injected-test-skip').evaluate(el=>el.remove());
     failPhoto=true;
     await page.locator('#courier-file').setInputFiles('assets/lumi-avatar.png');
     await page.locator('[data-action="retry-photo"]').waitFor();

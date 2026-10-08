@@ -566,6 +566,12 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .courier-opening [data-opening-beat="search"] .poco-arm-wave { animation:poco-search-arm 1.25s ease-in-out both; }
 .courier-opening [data-opening-beat="idea"] .opening-poco { animation:poco-idea-hop .8s cubic-bezier(.2,.8,.3,1) both; }
 .courier-opening [data-opening-beat="pen"] .poco-arm-wave { animation:poco-offer-hand 1s ease-in-out both; }
+.courier-opening [data-opening-beat="thanks"] .opening-title { opacity:0; pointer-events:none; }
+.courier-opening [data-opening-beat="thanks"] .opening-poco { animation:poco-idea-hop .8s cubic-bezier(.2,.8,.3,1) both; }
+.courier-opening [data-opening-beat="thanks"] .poco-hello { animation:hello-pop .8s .1s both; }
+.courier-opening [data-opening-beat="thanks"] .tutorial-desk-pen { animation:pen-received .65s cubic-bezier(.2,.8,.3,1) both; }
+.courier-opening [data-opening-beat="thanks"] .poco-stage-mark { animation:poco-idea-pop 1s .15s both; }
+@keyframes pen-received { from { opacity:0; translate:0 -35px; scale:.5; } 70% { opacity:1; translate:0 3px; scale:1.1; } to { opacity:1; translate:0 0; scale:1; } }
 .poco-stage-mark { position:absolute; top:10%; right:0; font:700 30px "Yu Mincho",serif; color:#849464; pointer-events:none; opacity:0; }
 .poco-brows,.poco-eye-lights,.poco-cheeks { opacity:0; transition:opacity .18s; }
 .poco-face[data-expression="confused"] .poco-brows,.poco-face[data-expression="happy"] .poco-brows,.poco-face[data-expression="happy"] .poco-eye-lights,.poco-face[data-expression="happy"] .poco-cheeks { opacity:1; }

@@ -60,6 +60,7 @@ async function meetPoco(page) {
 async function openWriting(page) {
     await meetPoco(page);
     await page.locator('#courier-file').setInputFiles(fixture);
+    await page.locator('[data-letter-action="start-writing"]').click();
     await page.locator('[data-letter-slot="food"]').first().waitFor();
 }
 async function capture(page,key) {
@@ -107,6 +108,7 @@ try {
     assert.equal(await p.locator('[data-action="sample"]').count(),0);
     await p.locator('#courier-dialog [data-action="close"]').click();
     mock.status=200;await p.locator('#courier-file').setInputFiles(fixture);
+    await p.locator('[data-letter-action="start-writing"]').click();
     await p.locator('[data-letter-slot="food"]').waitFor();
     assert.equal(await p.locator('.letter-slot').count(),1);
     assert.equal(await p.locator('[data-letter-slot="cute"],[data-letter-slot="drink"]').count(),0);
@@ -144,17 +146,21 @@ try {
     assert.match(await p.locator('#courier-status').innerText(),/ありがとう/);
     await p.locator('[data-letter-action="field"]').click();
     assert.equal(await p.locator('#courier-app.courier-tutorial').count(),0);
+    assert.equal(await p.evaluate(()=>window.gpsRequests),0);
+    await p.locator('[data-action="departure-next"]').click();
+    await p.locator('[data-action="departure-next"]').click();
+    await p.locator('[data-action="journey-map"]').click();
     assert.equal(await p.evaluate(()=>window.gpsRequests),1);
-    assert.match(await p.locator('.courier-copy h2').innerText(),/能量/);
-    await p.locator('[data-action="photo"]').click();
-    assert.match(await p.locator('#courier-status').innerText(),/位置|定位/);
+    assert.match(await p.locator('.journey-stop-card').innerText(),/Seven-Eleven/);
+    await p.locator('[data-action="arrive"]').click();
+    await p.locator('[data-action="shop-talk"]').click();
     await p.locator('[data-action="mode"]').click();await p.locator('[data-action="preview-mode"]').click();
-    await sample(p,'battery');await p.locator('[data-action="next"]').click();
+    await sample(p,'drink');await p.locator('[data-action="pack"]').click();await p.locator('[data-action="next"]').click();await p.locator('[data-action="arrive"]').click();
     await p.screenshot({path:'screenshots/oic-courier-park.png'});
-    await sample(p,'leaf');await p.locator('[data-action="next"]').click();
+    await sample(p,'leaf');await p.locator('[data-action="next"]').click();await p.locator('[data-action="arrive"]').click();
     await sample(p,'station');await p.locator('[data-action="next"]').click();
-    await p.locator('[data-answer="letter"]').click();
-    assert.equal(await p.locator('.courier-collected>span').count(),4);
+    await p.locator('[data-action="deliver-letter"]').first().click();
+    assert.equal(await p.locator('.journey-collected>span').count(),4);
     await p.locator('[data-action="restart"]').click();await p.locator('[data-action="confirm-restart"]').click();
     assert.equal(await p.locator('[data-letter-action="open"]').count(),1);
     await p.evaluate(()=>{
@@ -196,6 +202,10 @@ try {
     assert.equal(await mobile.locator('.completion-postmark').evaluate(el=>getComputedStyle(el).animationName),'none');
     await mobile.locator('[data-letter-action="field"]').click();
     assert.equal(await mobile.locator('#courier-app.courier-sent').count(),0);
+    assert.equal(await mobile.evaluate(()=>window.gpsRequests),0);
+    await mobile.locator('[data-action="departure-next"]').click();
+    await mobile.locator('[data-action="departure-next"]').click();
+    await mobile.locator('[data-action="journey-map"]').click();
     assert.equal(await mobile.evaluate(()=>window.gpsRequests),1);
     assert.deepEqual(errors,[]);
     console.log('PASS: POCO conversation and pen; one photo question at a time; delivery celebration then next paragraph; mismatch/service error; retake; reload resets introduction, photos and legacy field progress; no progress persisted; no GPS until explicit field start; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');

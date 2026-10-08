@@ -44,6 +44,16 @@ try {
     await page.locator('#courier-file').setInputFiles('assets/lumi-avatar.png');
     await reward(page,'ペン');assert.equal(await page.locator('.reply-letter').count(),0);
     await page.locator('[data-letter-action="place-word"]').click();
+    await page.locator('[data-opening-beat="thanks"]').waitFor();
+    assert.match(await page.locator('.opening-invite').innerText(),/ありがとう.*手紙が書ける/);
+    assert.equal(await page.locator('.courier-robot:visible').count(),1);
+    assert.equal(await page.locator('[data-expression="happy"]').count(),1);
+    assert.equal(await page.locator('.tutorial-desk-pen').count(),1);
+    assert.equal(await page.locator('.reply-letter').count(),0);
+    assert.equal(await page.evaluate(()=>window.SemanticMap.letterTutorial.target()),null);
+    await page.waitForTimeout(1000);
+    await page.screenshot({path:'work/pen-thanks-390.png'});
+    await page.locator('[data-letter-action="start-writing"]').click();
     await page.locator('[data-letter-slot="food"]').waitFor();
     for(const key of ['food','cute','drink']){
         const chooserPromise=page.waitForEvent('filechooser');
