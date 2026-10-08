@@ -372,6 +372,7 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .letter-finished { animation:letter-ready .7s cubic-bezier(.16,1,.3,1) both; }
 .letter-closing { position:relative; }
 .letter-ink-char { animation:letter-ink-write .14s var(--ink-delay,0ms) both; }
+.letter-ink-char.ink-written { animation:none; opacity:1; }
 .letter-ink-pen { position:absolute; z-index:3; width:29px; height:29px; color:#617a4f; pointer-events:none; transform:rotate(-24deg); }
 #courier-app .letter-ink-pen svg { width:29px; height:29px; animation:letter-pen-scribble .18s ease-in-out infinite alternate; }
 .letter-ink-pen[hidden] { display:none; }
@@ -382,7 +383,7 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .letter-receiving .tutorial-poco .courier-robot { animation:letter-poco-hop .65s cubic-bezier(.3,0,.3,1) both; }
 .letter-receiving .poco-arm-wave { transform-box:view-box; transform-origin:172px 107px; animation:poco-wave .6s ease-in-out; }
 @keyframes letter-unfold { from { opacity:0; transform:translateY(22px) rotateX(-12deg); clip-path:inset(0 0 100%); } to { opacity:1; transform:translateY(0) rotateX(0); clip-path:inset(0 0 0); } }
-@keyframes letter-ink-write { from { opacity:0; filter:blur(.8px); } to { opacity:1; filter:blur(0); } }
+@keyframes letter-ink-write { from { opacity:0; } to { opacity:1; } }
 @keyframes letter-slot-appear { from { opacity:0; } to { opacity:1; } }
 @keyframes letter-pen-scribble { from { transform:rotate(-6deg) translateY(1px); } to { transform:rotate(5deg) translateY(-1px); } }
 @keyframes letter-slot-breathe { 0%,100% { background:#f9fbee; border-color:#8ea775; box-shadow:0 4px 0 #aaba8524,0 0 0 0 #b9d39b00; } 50% { background:#e6f0d6; border-color:#6b8c51; box-shadow:0 4px 0 #aaba8538,0 0 15px 5px #a9c48638; } }

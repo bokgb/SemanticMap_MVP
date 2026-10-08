@@ -189,7 +189,7 @@
             inkTail=at+120; inkRuns.set(key,run);
         }
         const now=performance.now();
-        return `<span class="letter-ink-run" data-ink-run="${escape(id)}">${run.map(glyph=>`<span class="letter-ink-char" data-ink-at="${glyph.at}" style="--ink-delay:${Math.round(glyph.at-now)}ms">${escape(glyph.char)}</span>`).join('')}</span>`;
+        return `<span class="letter-ink-run" data-ink-run="${escape(id)}">${run.map(glyph=>`<span class="letter-ink-char${glyph.at+140<=now?' ink-written':''}" data-ink-at="${glyph.at}"${glyph.at+140<=now?'':` style="--ink-delay:${Math.round(glyph.at-now)}ms"`}>${escape(glyph.char)}</span>`).join('')}</span>`;
     }
     function followInk() {
         cancelAnimationFrame(inkFrame);
@@ -197,8 +197,14 @@
         const pen=paper?.querySelector('.letter-ink-pen');
         if(!pen)return;
         const glyphs=Array.from(paper.querySelectorAll('[data-ink-at]')).sort((a,b)=>Number(a.dataset.inkAt)-Number(b.dataset.inkAt));
+        let settled=0;
         function tick(now){
             if(!paper.isConnected)return;
+            while(settled<glyphs.length&&Number(glyphs[settled].dataset.inkAt)+140<=now){
+                glyphs[settled].classList.add('ink-written');
+                glyphs[settled].style.removeProperty('--ink-delay');
+                settled++;
+            }
             const current=glyphs.findLast(glyph=>Number(glyph.dataset.inkAt)<=now);
             const writing=now<inkTail;
             pen.hidden=!writing||!current;
