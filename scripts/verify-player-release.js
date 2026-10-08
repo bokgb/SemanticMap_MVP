@@ -5,7 +5,7 @@ const liveOrigin=process.env.PLAYER_RELEASE_ORIGIN;
 const origin=liveOrigin||'http://player.game';
 const browser=await chromium.launch();
 const errors=[];
-const names={pen:['ペン','ぺん'],food:['パン','ぱん'],cute:['花','はな'],drink:['お茶','おちゃ']};
+const names={pen:['ペン','ぺん'],food:['パン','ぱん'],cute:['花','はな'],drink:['お茶','おちゃ'],tree:['木','き'],station:['駅','えき']};
 try {
     const page=await browser.newPage({viewport:{width:390,height:844}});
     page.setDefaultTimeout(15000);
@@ -13,6 +13,7 @@ try {
     await page.addInitScript(()=>{
         window.gpsRequests=0;
         navigator.geolocation.watchPosition=()=>{window.gpsRequests++;return 1;};
+        navigator.geolocation.getCurrentPosition=()=>{window.gpsRequests++;throw Error('Unexpected GPS request');};
         navigator.geolocation.clearWatch=()=>{};
     });
     if(!liveOrigin)await page.route('http://player.game/**',async route=>{
@@ -23,7 +24,7 @@ try {
     await page.route('**/api/gemini',async route=>{
         if(failPhoto){await route.fulfill({status:503,body:'Service unavailable'});return;}
         const request=route.request().postDataJSON();
-        const key=request.contents[0].parts[0].text.match(/Current task key: (\w+)/)?.[1];
+        const key=request.contents[0].parts[0].text.match(/Current (?:task|journey) key: (\w+)/)?.[1];
         assert(names[key]);
         const [word,kana]=names[key];
         await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:true,object:key,word,kana})}]}}]})});
@@ -67,10 +68,10 @@ try {
     await page.locator('[data-action="departure-next"]').click();
     await page.locator('[data-action="journey-map"]').click();
     await page.locator('.journey-travel').waitFor();
-    assert.equal(await page.evaluate(()=>window.gpsRequests),1);
+    assert.equal(await page.evaluate(()=>window.gpsRequests),0);
     await noTestControls();
     await page.locator('[data-action="mode"]').click();
-    await page.locator('[data-action="preview-mode"]').click();
+    await page.locator('[data-action="field-mode"]').click();
     await page.locator('[data-action="arrive"]').click();
     await page.locator('[data-action="shop-talk"]').click();
     await noTestControls();
@@ -85,6 +86,19 @@ try {
     await page.locator('#courier-file').setInputFiles('assets/lumi-avatar.png');
     await page.locator('[data-action="retry-photo"]').waitFor();
     await noTestControls();
+    await page.locator('#courier-dialog>header [data-action="close"]').click();
+    failPhoto=false;
+    for(const key of ['drink','tree','station']){
+        const chooserPromise=page.waitForEvent('filechooser');await page.locator('[data-action="photo"]').click();
+        await(await chooserPromise).setFiles('assets/lumi-avatar.png');
+        await page.locator('.journey-item-card').waitFor();assert.match(await page.locator('.journey-item-card').innerText(),new RegExp(names[key][0]));
+        await noTestControls();
+        if(key==='drink')await page.locator('[data-action="pack"]').click();
+        await page.locator('[data-action="next"]').click();
+        if(key!=='station')await page.locator('[data-action="arrive"]').click();
+    }
+    await page.locator('.journey-envelope-button').click();await page.locator('.journey-ending').waitFor();await noTestControls();
+    assert.equal(await page.locator('.journey-collected>span').count(),4);assert.equal(await page.evaluate(()=>window.gpsRequests),0);
     assert.deepEqual(errors,[]);
-    console.log('PASS: player host ignores test URLs; no debug, skip, auto-answer or demo buttons across introduction, photo letter, sent letter, field map, desktop mode and recognition failure; hint and mobile layout work; GPS starts only on explicit field entry. Recognition mocked.');
+    console.log('PASS: player host ignores test URLs; no test/skip/sample controls; full introduction → photo letter → field map → uploaded drink/tree/station → handoff, with no GPS or location data; mismatch/service failure preserved. Recognition mocked.');
 } finally {await browser.close();}

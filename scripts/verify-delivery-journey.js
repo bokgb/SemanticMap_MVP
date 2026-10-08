@@ -6,7 +6,7 @@ const browser=await chromium.launch(),errors=[];
 await fs.mkdir('work',{recursive:true});
 async function fresh(viewport={width:390,height:844},test='sent'){
     const page=await browser.newPage({viewport});page.setDefaultTimeout(12000);page.on('pageerror',e=>errors.push(e.message));
-    await page.addInitScript(()=>{window.gpsRequests=0;navigator.geolocation.watchPosition=success=>{window.gpsRequests++;success({coords:{latitude:34.8104582,longitude:135.5618457,accuracy:400}});return 1;};navigator.geolocation.clearWatch=()=>{};});
+    await page.addInitScript(()=>{window.gpsRequests=0;navigator.geolocation.watchPosition=()=>{window.gpsRequests++;throw Error('Unexpected GPS request');};navigator.geolocation.getCurrentPosition=()=>{window.gpsRequests++;throw Error('Unexpected GPS request');};navigator.geolocation.clearWatch=()=>{};});
     await page.goto(origin+'/?test='+test,{waitUntil:'networkidle'});return page;
 }
 async function fixed(page,selector){
@@ -21,9 +21,12 @@ try{
     const p=await fresh();let match=true,status=200,object='drink';const requests=[];
     await p.route('**/api/gemini',async route=>{
         const payload=route.request().postDataJSON(),prompt=payload.contents[0].parts[0].text;
-        const key=prompt.match(/Current journey key: (\w+)/)?.[1];requests.push(key);assert.equal(key,'drink');assert.match(prompt,/non-alcoholic drink suitable to drink cold/);assert.match(prompt,/without visible ice or proof of temperature/);assert.match(prompt,/Reject visibly hot\/steaming drinks/);assert.match(prompt,/Name the actual drink/);
-        assert(payload.contents[0].parts[1].inline_data.data);assert(payload.generationConfig.response_schema.properties.object.enum.includes('drink'));assert(!payload.generationConfig.response_schema.properties.object.enum.includes('food'));
-        await route.fulfill({status,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match,object:match?object:'other',word:object==='food'?'パン':'お茶',kana:object==='food'?'ぱん':'おちゃ'})}]}}]})});
+        const key=prompt.match(/Current journey key: (\w+)/)?.[1];requests.push(key);assert(['drink','tree','station'].includes(key));
+        if(key==='drink'){assert.match(prompt,/non-alcoholic drink suitable to drink cold/);assert.match(prompt,/without visible ice or proof of temperature/);assert.match(prompt,/Reject visibly hot\/steaming drinks/);assert.match(prompt,/Name the actual drink/);assert(!payload.generationConfig.response_schema.properties.object.enum.includes('food'));}
+        assert(payload.contents[0].parts[1].inline_data.data);assert(payload.generationConfig.response_schema.properties.object.enum.includes(key));
+        const selected=key==='drink'?object:key;
+        const [word,kana]=selected==='food'?['パン','ぱん']:key==='tree'?['木','き']:key==='station'?['駅','えき']:['お茶','おちゃ'];
+        await route.fulfill({status,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match,object:match?selected:'other',word,kana})}]}}]})});
     });
     assert(!/已寄出|投函完了/.test(await p.locator('.completion-postmark').innerText()));
     await p.locator('[data-letter-action="field"]').click();
@@ -32,7 +35,7 @@ try{
     await fixed(p,'[data-action="departure-next"]');await p.waitForTimeout(1100);await p.screenshot({path:'work/journey-departure.png'});
     await p.locator('[data-action="departure-next"]').click();await p.locator('[data-action="departure-next"]').click();
     assert.equal(await p.evaluate(()=>window.gpsRequests),0);await p.locator('[data-action="journey-map"]').click();
-    assert.equal(await p.evaluate(()=>window.gpsRequests),1);
+    assert.equal(await p.evaluate(()=>window.gpsRequests),0);
     assert.match(await p.locator('.courier-map-heading').innerText(),/ソラ|索拉/);await fixed(p,'[data-action="arrive"]');await p.waitForTimeout(900);await p.screenshot({path:'work/journey-map.png'});
     await p.locator('[data-action="arrive"]').click();
     await p.locator('[data-encounter="greeting"]').waitFor();assert.equal(await p.locator('[data-action="photo"]').count(),0);
@@ -50,10 +53,10 @@ try{
     await p.locator('[data-action="pack"]').click();await p.locator('.supply-packed').waitFor();await p.locator('.journey-clear-stamp').waitFor();await fixed(p,'[data-action="next"]');await p.waitForTimeout(1300);await p.screenshot({path:'work/journey-packed.png'});
     assert.match(await p.locator('.journey-receipt .journey-bubble').innerText(),/のどが渇いても/);
     await p.locator('[data-action="next"]').click();assert.match(await p.locator('.journey-stop-card').innerText(),/岩倉|岩仓/);await p.locator('[data-action="arrive"]').click();
-    await p.locator('[data-action="mode"]').click();await p.locator('[data-action="preview-mode"]').click();
-    await p.locator('[data-action="sample"]').click();await p.locator('[data-sample="leaf"]').click();await p.locator('[data-action="next"]').click();
-    await p.locator('[data-action="arrive"]').click();await p.locator('[data-action="sample"]').click();await p.locator('[data-sample="station"]').click();await p.locator('[data-action="next"]').click();
+    await photo(p);await p.locator('.journey-item-card').waitFor();assert.match(await p.locator('.journey-item-card').innerText(),/木/);await p.locator('[data-action="next"]').click();
+    await p.locator('[data-action="arrive"]').click();await photo(p);await p.locator('.journey-item-card').waitFor();assert.match(await p.locator('.journey-item-card').innerText(),/駅/);await p.locator('[data-action="next"]').click();
     await p.locator('.journey-envelope-button').click();await p.locator('.journey-ending').waitFor();assert.match(await p.locator('.journey-ending').innerText(),/配達完了|送信完成/);assert.equal(await p.locator('.journey-collected>span').count(),4);
+    assert.equal(await p.evaluate(()=>window.gpsRequests),0);
     await p.locator('[data-action="restart"]').click();await p.locator('[data-action="confirm-restart"]').click();await p.locator('.opening-invite').waitFor();assert.equal(await p.locator('#courier-app.courier-journey').count(),0);
     await p.close();
     for(const viewport of [{width:320,height:568},{width:602,height:1244},{width:1440,height:900}]){
@@ -63,6 +66,6 @@ try{
         await page.locator('[data-action="language"]').click();assert.match(await page.locator('.journey-quest-ticket').innerText(),/冷饮/);await page.waitForTimeout(1000);await page.screenshot({path:`work/journey-shop-${viewport.width}.png`});
         await page.emulateMedia({reducedMotion:'reduce'});await page.reload({waitUntil:'networkidle'});assert.equal(await page.locator('.journey-departure-poco .courier-robot').evaluate(el=>getComputedStyle(el).animationName),'none');await page.close();
     }
-    assert.equal(requests.length,4);assert.deepEqual(errors,[]);
-    console.log('PASS: letter → departure/map → hot-day dialogue → cold drink quest → mismatch/out-of-category food/service error → uploaded drink card → manual packing/stamp → park/station/handoff/restart; JP/ZH, 320/390/602/1440px fixed controls and reduced motion. Recognition mocked; no live temperature or model accuracy claim.');
+    assert.deepEqual(requests,['drink','drink','drink','drink','tree','station']);assert.deepEqual(errors,[]);
+    console.log('PASS: full field journey with no position/GPS requests → cold drink quest/errors/uploaded card → packing → uploaded park/station photos → handoff/restart; no test skip or preview switch used; JP/ZH, 320/390/602/1440px fixed controls and reduced motion. Recognition mocked.');
 }finally{await browser.close();}

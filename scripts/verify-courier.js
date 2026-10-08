@@ -150,7 +150,7 @@ try {
     await p.locator('[data-action="departure-next"]').click();
     await p.locator('[data-action="departure-next"]').click();
     await p.locator('[data-action="journey-map"]').click();
-    assert.equal(await p.evaluate(()=>window.gpsRequests),1);
+    assert.equal(await p.evaluate(()=>window.gpsRequests),0);
     assert.match(await p.locator('.journey-stop-card').innerText(),/Seven-Eleven/);
     await p.locator('[data-action="arrive"]').click();
     await p.locator('[data-action="shop-talk"]').click();
@@ -206,7 +206,7 @@ try {
     await mobile.locator('[data-action="departure-next"]').click();
     await mobile.locator('[data-action="departure-next"]').click();
     await mobile.locator('[data-action="journey-map"]').click();
-    assert.equal(await mobile.evaluate(()=>window.gpsRequests),1);
+    assert.equal(await mobile.evaluate(()=>window.gpsRequests),0);
     assert.deepEqual(errors,[]);
-    console.log('PASS: POCO conversation and pen; one photo question at a time; delivery celebration then next paragraph; mismatch/service error; retake; reload resets introduction, photos and legacy field progress; no progress persisted; no GPS until explicit field start; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');
+    console.log('PASS: POCO conversation and pen; one photo question at a time; delivery celebration then next paragraph; mismatch/service error; retake; reload resets introduction, photos and legacy field progress; no progress persisted; no GPS in recording mode; route and ending; restart; 320px fixed controls; no runtime errors. Photo recognition mocked.');
 } finally {await browser.close();}

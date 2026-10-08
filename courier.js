@@ -46,6 +46,8 @@
     let root, map, markers, pendingPhoto = '', busy = false, aborter, position, watchId;
     let lastFocus, stage = '', mounted = false, scanSequence = 0, playerMarker;
     const localTest=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+    // Temporarily allow recording the full journey without visiting OIC.
+    const locationChecksEnabled=false;
     const testStarts={welcome:'最初から',reply:'手紙を書こう','missing-pen':'ペンが見つからない','photo-world':'写真の力を知る',pen:'ペンを撮る',letter:'手紙① · 朝ごはん',cute:'手紙② · 道での発見',drink:'手紙③ · ひと休み',ready:'手紙完成 · 封筒へ',sent:'封筒の準備完了',shop:'コンビニの委託',park:'公園の思い出',station:'駅で待ち合わせ',ending:'配達完了'};
     let testOrigin='welcome';
     Object.assign(testStarts,{departure:'ポコと出発',route:'配達マップ · コンビニ', 'shop-arrival':'ミナに会う','shop-receipt':'おともをバッグへ'});
@@ -230,6 +232,7 @@
     function canCapture() {
         if(SM.letterTutorial.isActive())return !!SM.letterTutorial.target();
         if(progress.done||progress.receipt||progress.phase!=='encounter'||(progress.index===1&&!progress.encounterStep))return false;
+        if(!locationChecksEnabled)return true;
         // Indoor shop arrival is explicitly confirmed by the player; GPS can be unreliable in A棟.
         if(progress.index===1)return true;
         if(progress.mode==='preview'||progress.index===0)return true;
@@ -238,6 +241,7 @@
         if(meters>150){$('#courier-status').textContent=tr(`待ち合わせ場所まで、あと約${Math.round(meters)}m。近くで撮るか、「その場で体験」を選んでね。`,`距会合点约 ${Math.round(meters)} 米。走到附近再拍，或切换到原地体验。`);return false;}return true;
     }
     function locate() {
+        if(!locationChecksEnabled)return;
         if(!navigator.geolocation){$('#courier-status').textContent=tr('このブラウザでは位置情報を使えません。「その場で体験」を選んでね。','浏览器不支持定位，可以使用原地体验。');return;}
         if(watchId!==undefined) navigator.geolocation.clearWatch(watchId);
         watchId=navigator.geolocation.watchPosition(p=>{position={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,at:Date.now()};const label=$('[data-journey-distance]');if(label)label.textContent=position.accuracy>150?tr('館内の案内も見ながら、お店へ。','可按楼内指引前往店铺。'):tr('あと約 ','距离这一站约 ')+Math.round(distance(position,current()))+tr(' m',' 米');if(map&&L.marker&&position.accuracy<=150){if(!playerMarker)playerMarker=L.marker([position.lat,position.lng],{icon:L.divIcon({className:'journey-player-marker',html:`<span></span><b>${tr('いまここ','你在这里')}</b>`,iconSize:[18,18],iconAnchor:[9,9]})}).addTo(map);else playerMarker.setLatLng?.([position.lat,position.lng]);}},()=>{$('#courier-status').textContent=tr('位置が見つかりません。コンビニはA棟1Fです。ほかの場所は「その場で体験」も選べます。','定位暂不可用。便利店在 A 栋 1F；其他地点也可切换到原地体验。');},{enableHighAccuracy:true,timeout:15000,maximumAge:15000});
@@ -314,7 +318,7 @@
             case 'photo':case 'retry-photo':if(busy||!canCapture())return;closeDialog();$('#courier-file').click();break;
             case 'next':next();break;
             case 'map':if(map?.fitBounds)map.fitBounds(steps.map(s=>[s.lat,s.lng]),{paddingTopLeft:[30,70],paddingBottomRight:[90,35]});else map?.setView([34.8124,135.5621],16);break;
-            case 'mode':openDialog(tr('どうやって旅をする？','选择这次旅程的方式'),`<p class="courier-dialog-intro">${tr('ここで物語を楽しむ？それとも、スマホを持って出かける？','先坐下来看看故事，或者带着手机去校园走一走。')}</p><button class="courier-mode-option" data-action="preview-mode"><strong>${tr('その場で体験','原地体验')}</strong><span>${tr('身近なものを撮って遊べます。移動は不要です。','拍摄身边的物品，无需到现场。')}</span></button><button class="courier-mode-option" data-action="field-mode"><strong>${tr('歩いて探索','实地探索')}</strong><span>${tr('各地の待ち合わせ場所を訪ねよう。屋外では位置情報を使います。','前往各个会合点；室外拍摄需要定位。')}</span></button>`);break;
+            case 'mode':openDialog(tr('どうやって旅をする？','选择这次旅程的方式'),`<p class="courier-dialog-intro">${tr('ここで物語を楽しむ？それとも、スマホを持って出かける？','先坐下来看看故事，或者带着手机去校园走一走。')}</p><button class="courier-mode-option" data-action="preview-mode"><strong>${tr('その場で体験','原地体验')}</strong><span>${tr('身近なものを撮って遊べます。移動は不要です。','拍摄身边的物品，无需到现场。')}</span></button><button class="courier-mode-option" data-action="field-mode"><strong>${tr('歩いて探索','实地探索')}</strong><span>${locationChecksEnabled?tr('各地の待ち合わせ場所を訪ねよう。屋外では位置情報を使います。','前往各个会合点；室外拍摄需要定位。'):tr('地図を見ながら、どこからでも配達を進められます。','看着地图，在哪里都能继续送信。')}</span></button>`);break;
             case 'preview-mode':progress.mode='preview';if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;$('#courier-status').textContent='';closeDialog();render();break;
             case 'field-mode':progress.mode='field';closeDialog();render();locate();break;
             case 'restart':openDialog(tr('もう一度、ポコと旅をする？','再陪它走一次？'),`<p class="courier-dialog-intro">${tr('今回の進み具合と写真カードを消して、最初から始めます。','这会清除本次旅程的进度与照片卡片。')}</p>`,`<button class="courier-primary" data-action="confirm-restart">${tr('最初から始める','重新开始')}</button><button class="courier-text" data-action="close">${tr('この旅を続ける','保留这次旅程')}</button>`);break;
