@@ -1,0 +1,88 @@
+{
+  "credit": "音声素材：あみたろの声素材工房（https://amitaro.net/）",
+  "terms": "https://amitaro.net/voice/voice_rule/",
+  "termsChecked": "2026-10-13",
+  "clips": [
+    {
+      "cue": "poco-hello",
+      "label": "ふふっ",
+      "source": "https://amitaro.net/download/voice/102_reaction/fufu_02.wav",
+      "originalSha256": "06601a314554bc9e03632a545a600b9b27ca7f122a003df5d121ace95aa23fd9",
+      "seconds": 0.329,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-confused",
+      "label": "あれ？",
+      "source": "https://amitaro.net/download/voice/107_koudou/are_01.wav",
+      "originalSha256": "ae674013c435d3edc8421e8dc530e6b793e46c8884aa0cb1fe2652d85991918e",
+      "seconds": 0.407,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-idea",
+      "label": "あ♪",
+      "source": "https://amitaro.net/download/voice/102_reaction/a_04.wav",
+      "originalSha256": "4beb7186138a5c0c883648a8e72fed5e6a83dc99a55661f6a57164c5feab4196",
+      "seconds": 0.357,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-thanks",
+      "label": "うわーぁ（軽くおどろく）",
+      "source": "https://amitaro.net/download/voice/102_reaction/waa_01.wav",
+      "originalSha256": "e807689996a24fb1a4f2dda00196dfc504e5d137fd620c01ace3d214a3180c57",
+      "seconds": 0.913,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-thinking",
+      "label": "うーん…（やわらかめ）",
+      "source": "https://amitaro.net/download/voice/107_koudou/u-n_02.wav",
+      "originalSha256": "9f42f261533608553765259af271c590a4bc48e2470e789c0b2a3124fd9fe8a0",
+      "seconds": 0.934,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-happy",
+      "label": "えへへっ",
+      "source": "https://amitaro.net/download/voice/106_kanjou/ehehe_01.wav",
+      "originalSha256": "15f074f34217b2e6843d49145f855e3b06dc9937361187fcc284031a72b55a9b",
+      "seconds": 0.687,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-great",
+      "label": "すごい！",
+      "source": "https://amitaro.net/download/voice/111_ganbaru/sugoi_01.wav",
+      "originalSha256": "115c24a0231302d3914ff6645b5cedd226f6fddafe7be1c91d31022f8b38a42f",
+      "seconds": 0.617,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-lovely",
+      "label": "すごいねぇ♪",
+      "source": "https://amitaro.net/download/voice/111_ganbaru/sugoinee_01.wav",
+      "originalSha256": "3a37edd1431adba3a08cb623c7b4eb0027a5f71ea2447ed14623f5aef4ab0b18",
+      "seconds": 1.216,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    },
+    {
+      "cue": "poco-well-done",
+      "label": "やったねっ♪",
+      "source": "https://amitaro.net/download/voice/103_yorokobu/yattane_02.wav",
+      "originalSha256": "533f1ee5d25542ee6807d5a029d117e0063e1b6f3160a7ed2b6b931fcb197610",
+      "seconds": 0.756,
+      "sampleRate": 44100,
+      "processing": "Edge silence trim, 5ms fades, gentle level matching; original pitch and speed."
+    }
+  ]
+}

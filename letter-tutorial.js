@@ -24,12 +24,13 @@
     function fresh() { return { phase:'welcome', introStep:0, captures:{}, finished:false }; }
     function init(api) {
         host = api;
+        SM.audio?.resetDialogue();
         clearDelivery(); inkRuns.clear(); inkTail=0;
         state=fresh(); active='food'; notice=''; openingReset=true; sentPresented=false;
         try { localStorage.removeItem('kotoba-hunter-letter-tutorial-v1'); }
         catch { /* Storage may be unavailable; the session still starts fresh. */ }
     }
-    function clearDelivery() { clearTimeout(deliveryTimer); cancelAnimationFrame(inkFrame); completionObserver?.disconnect(); completionObserver=null; arrival=null; clearReward(); }
+    function clearDelivery() { clearTimeout(deliveryTimer); cancelAnimationFrame(inkFrame); SM.audio?.writing(false); completionObserver?.disconnect(); completionObserver=null; arrival=null; clearReward(); }
     function clearReward() {
         clearTimeout(rewardTimer); rewardAnimation?.cancel(); rewardAnimation=null; reward=null;
         host?.root().querySelector('.letter-word-reward')?.remove();
@@ -47,6 +48,8 @@
         overlay.setAttribute('aria-labelledby','letter-reward-word');
         overlay.innerHTML=`<div class="letter-reward-panel"><header class="letter-reward-heading">${host.icon('check')}<span>${t('ことばが届いた','词语送达')}</span></header><figure class="letter-reward-card"><div class="letter-reward-photo"><img src="${escape(card.photo)}" alt="${escape(card.word)}"><span class="letter-reward-seal" aria-hidden="true">${host.icon('check')}<span>POCO POST</span></span></div><figcaption><span class="letter-reward-reading" lang="ja">${escape(card.kana)}</span><strong id="letter-reward-word" lang="ja">${escape(card.word)}</strong><span class="letter-reward-rule" aria-hidden="true"></span></figcaption></figure><div class="letter-reward-burst" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i></i><i></i></div><footer class="letter-reward-actions"><button type="button" data-letter-action="place-word">${host.icon(key==='pen'?'mail':'pen')}<span>${key==='pen'?t('ポコに届ける','送给波可'):t('手紙に書く','写进信里')}</span>${host.icon('arrow')}</button></footer></div>`;
         root.append(overlay);
+        SM.audio?.play('success');
+        SM.audio?.dialogue(`letter:reward:${key}`,{pen:'poco-great',food:'poco-great',cute:'poco-lovely',drink:'poco-well-done'}[key],0);
         rewardInert=Array.from(root.querySelectorAll('.courier-header,.courier-world,.courier-story')).filter(element=>!element.inert);
         rewardInert.forEach(element=>element.inert=true);
         const button=overlay.querySelector('button');button.focus({preventScroll:true});
@@ -164,6 +167,7 @@
         room.querySelector('.poco-stage-mark').textContent=beat==='search'?'？':beat==='idea'?'！':beat==='thanks'?'✦':'';
         if(beat==='thanks'&&!room.querySelector('.tutorial-desk-pen'))room.querySelector('.tutorial-table').insertAdjacentHTML('beforeend',`<div class="tutorial-desk-pen">${host.icon('pen')}<span>ペン</span></div>`);
         host.expression(room.querySelector('.courier-robot'),beat==='search'?'confused':beat==='idea'||beat==='thanks'?'happy':'smile');
+        SM.audio?.dialogue('opening:'+beat,{welcome:'poco-hello',reply:'poco-thinking',search:'poco-confused',idea:'poco-idea',pen:'poco-thinking',thanks:'poco-thanks'}[beat]);
     }
     function target() { return state.phase==='pen' ? 'pen' : state.phase==='writing'&&!arrival ? active : null; }
     function goal() { const key=target(); return key ? t(slots[key].ja,slots[key].zh) : ''; }
@@ -193,13 +197,14 @@
     }
     function followInk() {
         cancelAnimationFrame(inkFrame);
+        SM.audio?.writing(false);
         const paper=host.root().querySelector('#courier-story-body .reply-letter');
         const pen=paper?.querySelector('.letter-ink-pen');
         if(!pen)return;
         const glyphs=Array.from(paper.querySelectorAll('[data-ink-at]')).sort((a,b)=>Number(a.dataset.inkAt)-Number(b.dataset.inkAt));
         let settled=0;
         function tick(now){
-            if(!paper.isConnected)return;
+            if(!paper.isConnected){SM.audio?.writing(false);return;}
             while(settled<glyphs.length&&Number(glyphs[settled].dataset.inkAt)+140<=now){
                 glyphs[settled].classList.add('ink-written');
                 glyphs[settled].style.removeProperty('--ink-delay');
@@ -207,6 +212,9 @@
             }
             const current=glyphs.findLast(glyph=>Number(glyph.dataset.inkAt)<=now);
             const writing=now<inkTail;
+            const at=current?Number(current.dataset.inkAt):-Infinity;
+            // Let the audio manager mark new phrases with a soft chime.
+            SM.audio?.writing(!!current&&writing&&!reward&&at>=0&&now-at<70&&/[^\s。、！？!?.,「」『』（）()…]/u.test(current.textContent));
             pen.hidden=!writing||!current;
             paper.classList.toggle('ink-writing',writing);
             if(writing&&current){
@@ -262,10 +270,11 @@
         const avatar=dialogue.querySelector('.courier-robot');
         avatar.setAttribute('viewBox','30 5 180 165');
         host.expression(avatar,'happy');
-        if(!window.IntersectionObserver||matchMedia('(prefers-reduced-motion: reduce)').matches){dialogue.classList.add('dialogue-playing');return;}
+        const start=()=>{dialogue.classList.add('dialogue-playing');SM.audio?.dialogue('letter:complete','poco-happy');};
+        if(!window.IntersectionObserver||matchMedia('(prefers-reduced-motion: reduce)').matches){start();return;}
         completionObserver=new IntersectionObserver(entries=>{
             if(entries.some(entry=>entry.isIntersecting)){
-                dialogue.classList.add('dialogue-playing');completionObserver?.disconnect();completionObserver=null;
+                start();completionObserver?.disconnect();completionObserver=null;
             }
         },{root:body,threshold:.25});
         completionObserver.observe(dialogue);
@@ -283,7 +292,7 @@
         let room=root.querySelector('#letter-tutorial-room');
         if(!room) { room=document.createElement('div'); room.id='letter-tutorial-room'; root.querySelector('.courier-world').append(room); }
         if(isOpening())openingRoom(room);
-        else {room.innerHTML=desk();room.dataset.mode='desk';}
+        else {room.innerHTML=desk();room.dataset.mode='desk';if(state.phase==='writing')SM.audio?.dialogue('letter:writing',null);}
         root.querySelector('#courier-chapter').innerHTML=`<span class="courier-progress-number">${state.phase==='sent'?'✓':state.phase==='writing'?`${slotOrder.filter(key=>state.captures[key]).length}/3`:'✉'}</span><span>${t('はじまりの手紙','启程前的一封信')}</span>`;
         const mode=root.querySelector('.courier-mode-btn'); mode.hidden=true;
         root.querySelector('[data-action="journal"] span').textContent=t('旅の手帳','行程手帐');
@@ -319,6 +328,7 @@
         showReward(key,{word:card.word,kana:card.kana||'',photo:card.photo,...(card.test?{test:true}:{})},advance);
     }
     function deliverCard(key,card,advance) {
+        SM.audio?.play('paper');
         state.captures[key]=card;
         if(key==='pen') {
             inkRuns.clear(); inkTail=0;
@@ -368,13 +378,13 @@
                 accept(testCard(active));
             }break;
             case 'retake':if(state.phase==='writing'&&state.captures[active])host.photo(true);break;
-            case 'send':if(state.phase==='writing'&&slotOrder.every(key=>state.captures[key]))setPhase('sent');break;
+            case 'send':if(state.phase==='writing'&&slotOrder.every(key=>state.captures[key])){setPhase('sent');SM.audio?.play('complete');}break;
             case 'stay':notice=t('手伝ってくれてありがとう。また、ポコに会いに来てね。','谢谢你帮忙，下次再来找波可吧。');host.status(notice);break;
             case 'field':if(state.phase==='sent'){clearDelivery();state.finished=true;host.startField(state.captures);}break;
         }
         return true;
     }
-    function reset() { clearDelivery(); inkRuns.clear(); inkTail=0; state=fresh(); active='food'; notice=''; openingReset=true; sentPresented=false; }
+    function reset() { clearDelivery(); SM.audio?.resetDialogue(); inkRuns.clear(); inkTail=0; state=fresh(); active='food'; notice=''; openingReset=true; sentPresented=false; }
     function journal() { return state.captures.pen ? letter(true) : `<p class="courier-journal-intro">${t('ポコにペンを届けて、最初の手紙を書きましょう。','给波可送来一支笔，开始写第一封信。')}</p>`; }
     function retakeTarget() { return state.phase==='writing' ? active : null; }
     SM.letterTutorial={init,render,click,accept,target,retakeTarget,goal,prompt,isActive,reset,journal,testStart,finishForTest,finished:()=>state.finished};

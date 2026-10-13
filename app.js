@@ -24,6 +24,7 @@
     }
 
     function init() {
+        SM.audio?.init();
         if (new URLSearchParams(location.search).get('mode') !== 'explore') {
             SM.courier.init();
             return;

@@ -16,7 +16,8 @@
         arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
         pin: '<path d="M19 10c0 5-7 12-7 12S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',
         check: '<path d="m5 12 4 4L19 6"/>',
-        close: '<path d="m6 6 12 12M18 6 6 18"/>'
+        close: '<path d="m6 6 12 12M18 6 6 18"/>',
+        sound: '<path d="M4 9h4l5-4v14l-5-4H4Z"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-off" d="m17 9 5 6m0-6-5 6"/>'
     };
     const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.mail}</svg>`;
     const tr = (ja,zh) => SM.state.currentLang==='zh'?zh:ja;
@@ -93,6 +94,9 @@
         <section class="courier-story" aria-label="いまの委託"><header class="courier-story-header"><span id="courier-chapter"></span><button class="courier-mode-btn" data-action="mode"></button></header><div id="courier-story-body" tabindex="-1"></div><footer class="courier-story-footer" id="courier-actions"></footer></section>
         <input id="courier-file" type="file" accept="image/*" capture="environment" hidden><div id="courier-status" role="status" aria-live="polite"></div><dialog id="courier-dialog"><header><h2 id="courier-dialog-title"></h2><button class="courier-icon-btn" data-action="close" aria-label="閉じる">${icon('close')}</button></header><div id="courier-dialog-body"></div><footer id="courier-dialog-footer"></footer></dialog>`;
         document.body.append(root);
+        const soundButton=document.createElement('button');
+        soundButton.type='button';soundButton.className='courier-sound';soundButton.dataset.action='sound';
+        soundButton.innerHTML=icon('sound');$('.courier-header-actions').prepend(soundButton);
         SM.letterTutorial.init({
             root:()=>root, robot, expression, icon, render, scrollTop:()=>$('#courier-story-body').scrollTop=0,
             status:message=>$('#courier-status').textContent=message,
@@ -152,6 +156,7 @@
         $('[data-action="language"]').textContent=SM.state.currentLang==='zh'?'日本語':'中国語';
         $('[data-action="language"]').setAttribute('aria-label',tr('中国語に切り替える','切换到日语'));
         $('[data-action="journal"] span').textContent=tr('旅の手帳','行程手帐');
+        SM.audio?.updateButton();
         $('.courier-world').setAttribute('aria-label',tr('OIC 配達マップ','OIC 配送地图'));
         $('.courier-story').setAttribute('aria-label',tr('いまの委託','当前委托'));
         $('.courier-map-reset').setAttribute('aria-label',tr('配達ルート全体を見る','查看整条路线'));
@@ -179,6 +184,8 @@
         if(view.world){$('.journey-departure-stage')?.remove();$('.courier-world').insertAdjacentHTML('beforeend',view.world);}
         $('#courier-story-body').innerHTML=view.body;$('#courier-actions').innerHTML=view.footer;
         root.querySelectorAll('.journey-portrait .courier-robot,.journey-departure-poco .courier-robot').forEach(svg=>expression(svg,'happy'));
+        const cue=kind==='departure'?(progress.departureStep===1?'poco-idea':'poco-thinking'):kind==='travel'?'poco-thinking':kind==='encounter'?(progress.index===1?(progress.encounterStep?'mina-guide':'mina-hello'):progress.index===2?'lili-guide':'sora-hello'):kind==='receipt'?(progress.index===1&&!progress.packed?null:'poco-thanks'):kind==='ending'?'poco-happy':null;
+        SM.audio?.dialogue(`journey:${kind}:${progress.index}:${progress.departureStep||0}:${progress.encounterStep||0}:${!!progress.packed}:${progress.done}`,cue);
     }
     function renderTask() { renderJourney('encounter'); }
     function renderReceipt() { renderJourney('receipt'); }
@@ -205,13 +212,15 @@
         const d=$('#courier-dialog');lastFocus=document.activeElement;
         $('#courier-dialog-title').textContent=title;$('#courier-dialog-body').innerHTML=body;$('#courier-dialog-footer').innerHTML=footer;
         if(!d.open)d.showModal();
+        if($('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff','sora-guide');
     }
-    function closeDialog(){ $('#courier-dialog').close(); }
+    function closeDialog(){if($('#courier-dialog').open&&$('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff-closed',null);$('#courier-dialog').close();}
     function openJournal() {
+        const voiceCredit='<p class="courier-footnote">音声素材：<a href="https://amitaro.net/" target="_blank" rel="noopener noreferrer">あみたろの声素材工房</a></p>';
         if(SM.letterTutorial.isActive()) {
-            openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal(),'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
+            openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal()+voiceCredit,'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
         }
-        openDialog(tr('この手紙の旅','这封信的旅程'),`<p class="courier-journal-intro">${tr('キャンパスの小さな郵便局から、遠くへつながる駅まで。<br>書いた手紙を、駅前で待つソラに届けよう。','从校园的小小邮局，到一座通往远方的车站。<br>把写好的信交给车站前的游戏邮差索拉。')}</p><ol class="courier-itinerary">${steps.map((_,i)=>{const s=stepAt(i),card=progress.cards.find(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${card?'✓':i+1}</span><div><small>${card?tr('バッグに入りました','已收进邮袋'):i===progress.index?tr('いまの委託','当前委托'):tr('これからの出会い','之后会遇见')}</small><h3>${s.short}</h3><p>${s.place}</p>${card?`<div class="courier-journal-word">${icon(objects[card.object].icon)}${escape(card.word)}<small>${card.demo?tr('テスト用カード','演示卡片'):tr('写真カード','照片卡片')}</small></div>`:''}</div></li>`;}).join('')}</ol><p class="courier-footnote">${tr('待ち合わせ場所や歩く道は、現地の案内も確認してね。','会合地点、站外终点与步行路径以现场为准。')}</p>`,`<button class="courier-primary" data-action="close">${tr('旅を続ける','继续旅程')}${icon('arrow')}</button>`);
+        openDialog(tr('この手紙の旅','这封信的旅程'),`<p class="courier-journal-intro">${tr('キャンパスの小さな郵便局から、遠くへつながる駅まで。<br>書いた手紙を、駅前で待つソラに届けよう。','从校园的小小邮局，到一座通往远方的车站。<br>把写好的信交给车站前的游戏邮差索拉。')}</p><ol class="courier-itinerary">${steps.map((_,i)=>{const s=stepAt(i),card=progress.cards.find(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${card?'✓':i+1}</span><div><small>${card?tr('バッグに入りました','已收进邮袋'):i===progress.index?tr('いまの委託','当前委托'):tr('これからの出会い','之后会遇见')}</small><h3>${s.short}</h3><p>${s.place}</p>${card?`<div class="courier-journal-word">${icon(objects[card.object].icon)}${escape(card.word)}<small>${card.demo?tr('テスト用カード','演示卡片'):tr('写真カード','照片卡片')}</small></div>`:''}</div></li>`;}).join('')}</ol><p class="courier-footnote">${tr('待ち合わせ場所や歩く道は、現地の案内も確認してね。','会合地点、站外终点与步行路径以现场为准。')}</p>${voiceCredit}`,`<button class="courier-primary" data-action="close">${tr('旅を続ける','继续旅程')}${icon('arrow')}</button>`);
     }
     function openSample() {
         if(!localTest||progress.mode!=='preview')return;
@@ -220,6 +229,7 @@
     function accept(object,{demo=false,photo='',word=objects[object].ja,kana=objects[object].kana}={}) {
         if(progress.receipt||progress.done)return;
         progress.cards.push({step:progress.index,object,demo,photo,word,kana});progress.receipt=true;pendingPhoto='';closeDialog();render();$('#courier-story-body').scrollTop=0;
+        SM.audio?.play('success');
     }
     function skipPhotoForTest() {
         if(!localTest||busy||SM.letterTutorial.isActive()||progress.done||progress.receipt||progress.phase!=='encounter'||(progress.index===1&&!progress.encounterStep))return;
@@ -249,6 +259,7 @@
     async function handlePhoto(event) {
         const file=event.target.files?.[0];event.target.value='';if(!file||busy)return;
         if(!canCapture())return;
+        SM.audio?.play('camera');
         if(!file.type.startsWith('image/')) {$('#courier-status').textContent=tr('画像ファイルを選んでね。','请选择图片文件。');return;}
         if(file.size>20*1024*1024){$('#courier-status').textContent=tr('写真が大きすぎます。20 MBより小さい画像を選んでね。','照片太大了，请选择小于 20 MB 的图片。');return;}
         busy=true;
@@ -307,12 +318,13 @@
             case 'journey-map':if(progress.phase==='departure'&&progress.departureStep===2){progress.phase='travel';render();if(!map)initMap();requestAnimationFrame(()=>map?.invalidateSize());if(progress.mode==='field')locate();$('#courier-story-body').scrollTop=0;}break;
             case 'arrive':if(progress.phase==='travel'&&!progress.receipt&&!progress.done){progress.phase='encounter';progress.encounterStep=progress.index===1?0:1;$('#courier-status').textContent='';render();$('#courier-story-body').scrollTop=0;}break;
             case 'shop-talk':if(progress.phase==='encounter'&&progress.index===1&&!progress.encounterStep){progress.encounterStep=1;render();requestAnimationFrame(()=>$('.journey-quest-ticket')?.scrollIntoView({block:'nearest',behavior:'smooth'}));}break;
-            case 'pack':if(progress.receipt&&progress.index===1&&!progress.packed){progress.packed=true;render();$('#courier-story-body').scrollTop=0;}break;
-            case 'deliver-letter':if(stage==='letter'&&progress.index===3&&progress.receipt){stage='';progress.done=true;progress.receipt=false;closeDialog();render();$('#courier-story-body').scrollTop=0;}break;
+            case 'pack':if(progress.receipt&&progress.index===1&&!progress.packed){progress.packed=true;render();SM.audio?.play('stamp');$('#courier-story-body').scrollTop=0;}break;
+            case 'deliver-letter':if(stage==='letter'&&progress.index===3&&progress.receipt){stage='';progress.done=true;progress.receipt=false;closeDialog();render();SM.audio?.play('complete');$('#courier-story-body').scrollTop=0;}break;
             case 'journal':openJournal();break;
             case 'sample':if(!SM.letterTutorial.isActive())openSample();break;
             case 'skip-photo':skipPhotoForTest();break;
             case 'language':if(!busy){SM.state.currentLang=SM.state.currentLang==='zh'?'ja':'zh';render();}break;
+            case 'sound':SM.audio?.toggle();break;
             case 'close':if(busy)cancelScan();closeDialog();break;
             case 'cancel-scan':cancelScan();closeDialog();break;
             case 'photo':case 'retry-photo':if(busy||!canCapture())return;closeDialog();$('#courier-file').click();break;

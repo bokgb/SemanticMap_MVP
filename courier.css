@@ -200,6 +200,13 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 /* The first letter stays at the post-office desk; the map opens after posting. */
 #courier-app [hidden] { display:none !important; }
 .courier-header-actions { display:flex; gap:22px; align-items:center; }
+.courier-sound { width:36px; height:36px; display:grid; place-items:center; padding:6px; flex-shrink:0; border:1px solid transparent; border-radius:50%; background:transparent; color:var(--sage); }
+.courier-sound:hover { background:#e9edde; }
+.courier-sound:active { transform:scale(.92); }
+.courier-sound .sound-off { display:none; }
+.courier-sound[aria-pressed="false"] { color:var(--secondary); }
+.courier-sound[aria-pressed="false"] .sound-waves { display:none; }
+.courier-sound[aria-pressed="false"] .sound-off { display:block; }
 #letter-tutorial-room { display:none; }
 #courier-app.courier-tutorial { grid-template-columns:minmax(0,1fr) minmax(460px,560px); }
 .courier-tutorial .courier-world > :not(#letter-tutorial-room) { visibility:hidden; }
@@ -697,4 +704,13 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
     .completion-hero h2 { font-size:23px; }
     .completion-subtitle { font-size:9px; }
     .completion-next { font-size:9px; }
+}
+@media(max-width:480px) {
+    .courier-header-actions { gap:10px; }
+    .courier-sound { width:32px; height:36px; }
+}
+@media(max-width:360px) {
+    .courier-header-actions { gap:7px; }
+    .courier-header { padding-left:12px; padding-right:12px; }
+    .courier-header-actions [data-action="journal"] span { display:none; }
 }
