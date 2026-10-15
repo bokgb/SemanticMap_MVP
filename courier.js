@@ -218,9 +218,14 @@
         else { $('.journey-departure-stage')?.remove();if(progress.done)renderEnding();else if(progress.receipt)renderReceipt();else if(progress.phase==='travel')renderJourney('travel');else renderTask(); }
         updateMap();
         if($('#courier-actions .courier-primary[data-action="photo"]'))$('#courier-actions').insertAdjacentHTML('beforeend',photoAlternatives());
-        if(progress.done)$('#courier-actions').insertAdjacentHTML('beforeend',feedbackLink());
     }
-    function journeyAPI(){return {icon,robot,step:current(),localTest};}
+    function collectedWords(){
+        const captures=SM.letterTutorial.snapshot()?.state.captures||{};
+        return ['pen','food','cute','drink'].filter(key=>captures[key]).map(key=>({...captures[key],chapter:0}))
+            .concat(progress.cards.filter(card=>card.step>0).map(card=>({...card,chapter:1,photo:card.photo||(localTest&&card.demo?sampleCard(card.object).photo:'')})));
+    }
+    function wordbook(){return SM.deliveryScenes.wordbook(collectedWords(),progress.done);}
+    function journeyAPI(){return {icon,robot,step:current(),localTest,wordbook,feedbackLink};}
     function renderJourney(kind){
         const view=SM.deliveryScenes[kind](progress,journeyAPI());
         if(view.world){$('.journey-departure-stage')?.remove();$('.courier-world').insertAdjacentHTML('beforeend',view.world);}
@@ -259,6 +264,7 @@
         if(d.classList.contains('photo-mismatch')&&variant!=='photo-mismatch')SM.audio?.dialogue('photo:mismatch:closed',null);
         d.classList.toggle('photo-mismatch',variant==='photo-mismatch');
         d.classList.toggle('before-play',variant==='before-play');
+        d.classList.toggle('wordbook-dialog',variant==='wordbook');
         root.classList.toggle('photo-mismatch-active',variant==='photo-mismatch');
         d.setAttribute('aria-labelledby','courier-dialog-title');
         d.removeAttribute('data-mismatch-first');d.removeAttribute('aria-describedby');
@@ -307,7 +313,7 @@
     function playIntroduction() {
         return `<div class="play-introduction"><p>${tr('所要時間の目安：5〜10分','预计体验时间：5～10分钟')}</p>${hasSavedGame?`<p class="play-resume">${tr('保存した続きから再開できます。','可以从已保存的进度继续。')}</p>`:''}</div><fieldset class="play-modes"><legend>${tr('体験方法','体验方式')}</legend><label><input type="radio" name="play-mode" value="preview" ${progress.mode==='preview'?'checked':''}><span><strong>${tr('その場で体験','原地体验')}</strong><small>${tr('教室におすすめ · 移動なし','推荐教室试玩 · 无需移动')}</small></span></label><label><input type="radio" name="play-mode" value="field" ${progress.mode==='field'?'checked':''}><span><strong>${tr('歩いて探索','走路探索')}</strong><small>${tr('移動あり · 目安20〜30分','需要移动 · 约20～30分钟')}</small></span></label></fieldset>`;
     }
-    function feedbackLink() {return `<a class="play-feedback-link" href="${feedbackURL}" target="_blank" rel="noopener noreferrer">${tr('アンケートに答えてくれるとうれしいです！ ↗','愿意帮忙填一下问卷的话，我会很开心！ ↗')}</a>`;}
+    function feedbackLink(primary=false) {return `<a class="play-feedback-link${primary?' courier-primary':''}" href="${feedbackURL}" target="_blank" rel="noopener noreferrer">${primary?icon('book'):''}<span>${primary?tr('アンケートに答える','填写调查问卷'):tr('アンケートに答えてくれるとうれしいです！ ↗','愿意帮忙填一下问卷的话，我会很开心！ ↗')}</span>${primary?icon('arrow'):''}</a>`;}
     function photoAlternatives() {return `<div class="photo-backups"><button type="button" class="courier-text" data-action="album">${tr('アルバムから選ぶ','从相册选择')}</button><button type="button" class="courier-text" data-action="sample">${tr('サンプルで進める','使用示例继续')}</button></div>`;}
     function restartGame() {
         cancelScan();stopLocationWatch();saveReady=false;hasSavedGame=false;lastSaved='';saveStatus='';
@@ -483,7 +489,9 @@
         if(SM.letterTutorial.isActive()) {
             openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal()+voiceCredit,'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
         }
-        openDialog(tr('この手紙の旅','这封信的旅程'),`<p class="courier-journal-intro">${tr('キャンパスの小さな郵便局から、遠くへつながる駅まで。<br>書いた手紙を、駅前で待つソラに届けよう。','从校园的小小邮局，到一座通往远方的车站。<br>把写好的信交给车站前的游戏邮差索拉。')}</p><ol class="courier-itinerary">${steps.map((_,i)=>{const s=stepAt(i),card=progress.cards.find(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${card?'✓':i+1}</span><div><small>${card?tr('バッグに入りました','已收进邮袋'):i===progress.index?tr('いまの委託','当前委托'):tr('これからの出会い','之后会遇见')}</small><h3>${s.short}</h3><p>${s.place}</p>${card?`<div class="courier-journal-word">${icon(objects[card.object].icon)}${escape(card.word)}<small>${card.sample?tr('サンプル画像','示例图片'):card.demo?tr('テスト用カード','演示卡片'):tr('写真カード','照片卡片')}</small></div>`:''}</div></li>`;}).join('')}</ol><p class="courier-footnote">${tr('待ち合わせ場所や歩く道は、現地の案内も確認してね。','会合地点、站外终点与步行路径以现场为准。')}</p>${voiceCredit}`,`<button class="courier-primary" data-action="close">${tr('旅を続ける','继续旅程')}${icon('arrow')}</button>`);
+        const route=progress.done?'':`<details class="wordbook-extra"><summary>${tr('配達のようす','送信进度')}</summary><ol class="courier-itinerary">${steps.map((_,i)=>{const s=stepAt(i),done=progress.cards.some(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${done?'✓':i+1}</span><div><h3>${s.short}</h3><p>${s.place}</p></div></li>`;}).join('')}</ol></details>`;
+        openDialog(tr('写真のことば帳','照片单词本'),wordbook()+route+`<details class="wordbook-extra"><summary>${tr('設定・このゲームについて','设置与游戏信息')}</summary>${voiceCredit}</details>`,`<button class="courier-primary" data-action="close">${tr(progress.done?'ことば帳をとじる':'旅を続ける',progress.done?'合上单词本':'继续旅程')}${icon('arrow')}</button>`,'wordbook');
+        $('#courier-dialog-body').scrollTop=0;
     }
     function sampleCard(key) {
         const words={pen:['ペン','ぺん','pen'],food:['パン','ぱん','food'],cute:['花','はな','leaf'],drink:['お茶','おちゃ','drink'],tree:['木','き','tree'],leaf:['葉っぱ','はっぱ','leaf'],station:['茨木駅','いばらきえき','station']};

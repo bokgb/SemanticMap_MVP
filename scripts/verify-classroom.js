@@ -71,6 +71,9 @@ try{
     await page.locator('#courier-dialog-footer [data-action="deliver-letter"]').click();await reload(page,'.journey-ending');
     assert.equal(requests,2);assert.equal(await page.locator('#courier-actions .play-feedback-link').count(),1);
     await page.locator('.courier-header [data-action="journal"]').click();
+    assert.equal(await page.locator('#courier-dialog .wordbook-card').count(),7,'All opening and delivery photographs appear in the notebook');
+    assert.equal(await page.locator('#courier-dialog .wordbook-photo img').count(),7);
+    await page.locator('#courier-dialog .wordbook-extra').last().locator('summary').click();
     await page.locator('#courier-dialog [data-action="restart"]').click();await page.locator('[data-action="confirm-restart"]').click();
     assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),null);
     await reload(page,'#courier-dialog.before-play[open]');

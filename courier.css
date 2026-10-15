@@ -145,6 +145,8 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .play-sample-card figcaption { margin-top:10px; font-size:12px; color:#67785a; }
 .sample-badge { display:block; padding-top:8px; font-size:11px; color:#7b876e; }
 #courier-app .play-feedback-link { display:block; padding:11px 0; color:#617950; font-size:11px; line-height:1.6; text-align:center; text-underline-offset:3px; }
+#courier-app .play-feedback-link.courier-primary { display:flex; padding:13px 17px; color:#fffdf7; font-size:13px; text-decoration:none; }
+#courier-app .play-feedback-link.courier-primary>span { flex:1; }
 #courier-dialog-body>.play-feedback-link { text-align:left; }
 #courier-save-notice { position:fixed; top:90px; left:16px; right:16px; margin:0; padding:9px 13px; z-index:800; font-size:11px; line-height:1.7; color:#806b3d; background:#fff9df; border:1px solid #ded4ac; border-radius:8px; pointer-events:none; }
 @media(max-width:350px) { .play-modes { grid-template-columns:1fr; } }
@@ -832,3 +834,42 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
     .courier-header { padding-left:12px; padding-right:12px; }
     .courier-header-actions [data-action="journal"] span { display:none; }
 }
+/* The collected photographs become a small, personal vocabulary scrapbook. */
+#courier-dialog.wordbook-dialog { width:min(600px,calc(100vw - 24px)); background:#fcfaf1; }
+#courier-dialog.wordbook-dialog>header { padding:18px 22px; }
+#courier-dialog.wordbook-dialog #courier-dialog-body { padding:0 18px 22px; }
+#courier-dialog.wordbook-dialog #courier-dialog-footer { padding:14px 20px 18px; background:#fcfaf1; }
+.wordbook { position:relative; margin:26px 0 12px; padding:26px 19px 16px 25px; text-align:left; background:repeating-linear-gradient(transparent 0 31px,#a6b58b18 31px 32px),#f8f3e1; border:1px solid #e2dbc0; border-radius:3px 12px 12px 3px; box-shadow:3px 4px 0 #d5cfb954,0 9px 24px #665d3910; }
+.wordbook::before { content:''; position:absolute; top:0; bottom:0; left:12px; width:1px; background:#c9b79355; }
+.wordbook-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:15px; border-bottom:1px solid #d9d4b9; }
+.wordbook-heading p { margin:0 0 8px; color:#7e896a; font-size:10px; letter-spacing:.12em; }
+#courier-app .wordbook-heading h2 { margin:0; color:#46623f; font:500 23px/1.4 "Yu Mincho","SimSun",serif; }
+.wordbook-count { display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; width:64px; height:64px; border:3px double #9cab7e; border-radius:50%; color:#697e52; background:#eef0dc; }
+.wordbook-count strong { font:italic 28px/1 Georgia,serif; }
+.wordbook-count span { margin-top:4px; font-size:9px; }
+.wordbook-empty { margin:15px 0 22px; color:#7b826b; font-size:11px; line-height:1.9; }
+.wordbook-chapter { margin-top:24px; }
+#courier-app .wordbook-chapter h3 { display:flex; align-items:center; gap:10px; margin:0 0 22px; color:#6b7959; font-size:11px; font-weight:500; letter-spacing:.06em; }
+.wordbook-chapter h3>span { font:italic 16px Georgia,serif; color:#9ba47d; }
+.wordbook-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:23px 14px; padding:0 2px 3px; }
+.wordbook-card { position:relative; min-width:0; margin:0; padding:7px 7px 12px; background:#fffef7; box-shadow:1px 4px 0 #d6d0b8aa,0 5px 13px #5d57361a; animation:wordbook-paste .42s var(--paste-delay) backwards ease-out; }
+.wordbook-card:nth-child(even) { margin-top:9px; }
+.wordbook-tape { position:absolute; z-index:1; left:calc(50% - 22px); top:-9px; width:44px; height:19px; transform:rotate(-7deg); background:#c8cfa789; border-left:2px dotted #f8f3e1; border-right:2px dotted #f8f3e1; }
+.wordbook-card:nth-child(even) .wordbook-tape { transform:rotate(8deg); background:#dcc59465; }
+.wordbook-photo { position:relative; aspect-ratio:1; overflow:hidden; background:#e8ecdb; }
+.wordbook-photo img { display:block; width:100%; height:100%; object-fit:cover; }
+.wordbook-photo-label { position:absolute; right:4px; bottom:4px; padding:3px 5px; color:#536343; background:#fffef0e8; border-radius:2px; font-size:9px; }
+.wordbook-missing { display:grid; place-items:center; height:100%; color:#7c8c68; font:19px "Yu Mincho",serif; }
+.wordbook-card figcaption { position:relative; padding:19px 0 0; text-align:center; color:#486540; }
+.wordbook-card ruby { overflow-wrap:anywhere; font:500 22px/1.5 "Yu Mincho","SimSun",serif; }
+.wordbook-card rt { color:#7d896a; font:10px/1.4 "Yu Gothic",sans-serif; }
+.wordbook-card-number { position:absolute; top:6px; left:1px; color:#b0b49a; font:italic 9px Georgia,serif; }
+.wordbook-signoff { display:flex; align-items:center; justify-content:center; gap:9px; margin-top:29px; padding:16px 0 3px; border-top:1px dashed #c9cbaa; color:#7d8d65; font-size:10px; }
+.wordbook-signoff>span { font-size:18px; }
+.wordbook-extra { border-bottom:1px solid #e1e3d4; margin-top:10px; padding:12px 2px; }
+.wordbook-extra>summary { cursor:pointer; color:#657a52; font-size:12px; padding:6px 0; }
+.wordbook-extra .reply-letter { margin-top:16px; }
+.journey-ending>.wordbook { margin-top:32px; }
+@keyframes wordbook-paste { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:350px) { #courier-dialog.wordbook-dialog #courier-dialog-body { padding:0 12px 18px; } .wordbook { padding:22px 12px 14px 22px; } .wordbook-grid { gap:23px 10px; } #courier-app .wordbook-heading h2 { font-size:20px; } .wordbook-count { width:54px; height:54px; } .wordbook-card ruby { font-size:19px; } }
+@media(prefers-reduced-motion:reduce) { .wordbook-card { animation:none; } }

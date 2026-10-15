@@ -37,6 +37,8 @@ const routes = [
   { path: '/?test=shop-receipt', title: '补给特写 · 等待装进邮包', readySelector: '.journey-item-card' },
   { path: '/?test=shop-receipt&preview=packed', title: '补给完成 · 邮包与地点邮戳', readySelector: '.journey-item-card', supplyPacked: true },
   { path: '/?test=park', title: 'OIC 送信途中 · 公园风景', readySelector: '.journey-quest-ticket', courierPark: true },
+  { path: '/?test=ending', title: '旅程完成 · 照片单词本', readySelector: '.journey-ending .wordbook' },
+  { path: '/?test=ending&preview=wordbook', title: '照片单词本 · 全部收集与读音', readySelector: '.journey-ending .wordbook', wordbook: true },
   { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
   { path: '/cleaner.html', title: 'Data Cleaner', readySelector: '.container' }
 ];
@@ -233,6 +235,16 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.wordbook){
+    await page.locator('.courier-header [data-action="journal"]').click();
+    await page.locator('#courier-dialog.wordbook-dialog').waitFor();
+    await page.locator('#courier-dialog-body').evaluate(el=>{el.scrollTop=el.scrollHeight;});
+    for(const selector of ['#courier-dialog>header [data-action="close"]','#courier-dialog-footer [data-action="close"]']){
+      const box=await page.locator(selector).boundingBox();
+      if(!box||box.y<0||box.y+box.height>page.viewportSize().height)throw new Error('Wordbook controls are outside the viewport');
+    }
+    await page.locator('#courier-dialog-body').evaluate(el=>{el.scrollTop=0;});
+  }
   if(route.beforePlay){await fs.writeFile(path.join(outputDir,'before-play-mobile.png'),await page.screenshot({animations:'disabled'}));}
   if(route.samplePreview){
     await page.locator('#courier-actions .photo-backups [data-action="sample"]').click();
