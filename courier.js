@@ -49,10 +49,14 @@
     const localTest=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
     // Temporarily allow recording the full journey without visiting OIC.
     const locationChecksEnabled=false;
+    const beforePlayKey='kotoba-hunter-before-play-v1';
+    const geo={permission:'checking',status:'idle',enabled:false,request:0,watchRequest:0,pending:false,permissionStatus:null,timer:null,expiryTimer:null};
+    let mapFocus='route',mapViewKey='';
     const testStarts={welcome:'最初から',reply:'手紙を書こう','missing-pen':'ペンが見つからない','photo-world':'写真の力を知る',pen:'ペンを撮る',letter:'手紙① · 朝ごはん',cute:'手紙② · 道での発見',drink:'手紙③ · ひと休み',ready:'手紙完成 · 封筒へ',sent:'封筒の準備完了',shop:'コンビニの委託',park:'公園の思い出',station:'駅で待ち合わせ',ending:'配達完了'};
     let testOrigin='welcome';
     Object.assign(testStarts,{departure:'ポコと出発',route:'配達マップ · コンビニ', 'shop-arrival':'ミナに会う','shop-receipt':'おともをバッグへ'});
     testStarts['pen-thanks']='ペンが届いた · ポコのありがとう';
+    testStarts['before-play']='はじめる前に';
     const $ = selector => root.querySelector(selector);
     const current = () => stepAt(progress.index);
     const targets = () => SM.letterTutorial.isActive() ? [SM.letterTutorial.target()].filter(Boolean) : current().targets || [];
@@ -95,6 +99,7 @@
         <section class="courier-story" aria-label="いまの委託"><header class="courier-story-header"><span id="courier-chapter"></span><button class="courier-mode-btn" data-action="mode"></button></header><div id="courier-story-body" tabindex="-1"></div><footer class="courier-story-footer" id="courier-actions"></footer></section>
         <input id="courier-file" type="file" accept="image/*" capture="environment" hidden><div id="courier-status" role="status" aria-live="polite"></div><dialog id="courier-dialog"><header><h2 id="courier-dialog-title"></h2><button class="courier-icon-btn" data-action="close" aria-label="閉じる">${icon('close')}</button></header><div id="courier-dialog-body"></div><footer id="courier-dialog-footer"></footer></dialog>`;
         document.body.append(root);
+        $('.courier-world').insertAdjacentHTML('beforeend',`<div class="courier-location-map"><span>${tr('配達エリア：OIC','任务区域：OIC')}</span><button type="button" data-action="location-settings">${icon('pin')}<span data-location-map-status>${tr('現在地は未確認','尚未获取当前位置')}</span></button></div>`);
         const soundButton=document.createElement('button');
         soundButton.type='button';soundButton.className='courier-sound';soundButton.dataset.action='sound';
         soundButton.innerHTML=icon('sound');$('.courier-header-actions').prepend(soundButton);
@@ -118,25 +123,35 @@
                 lastFocus?.focus();
             }
         });
-        $('#courier-dialog').addEventListener('cancel',cancelScan);
-        document.addEventListener('visibilitychange',()=>{ if(document.hidden && watchId!==undefined) {navigator.geolocation.clearWatch(watchId);watchId=undefined;} else if(!document.hidden && progress.mode==='field' && !SM.letterTutorial.isActive()) locate(); });
+        $('#courier-dialog').addEventListener('cancel',event=>{
+            if($('#courier-dialog').classList.contains('before-play')){event.preventDefault();return;}
+            cancelScan();
+        });
+        document.addEventListener('visibilitychange',()=>{
+            if(document.hidden)stopLocationWatch();
+            else checkLocationPermission().then(()=>{if(progress.mode==='field'&&!SM.letterTutorial.isActive())locate();});
+        });
+        checkLocationPermission();
         if(localTest){
             const menu=document.createElement('details');menu.className='courier-test-menu';
             menu.innerHTML=`<summary>テスト開始地点</summary><div class="courier-test-panel"><header><strong>どこから試す？</strong><button type="button" data-action="close-test-menu" aria-label="テストメニューを閉じる">${icon('close')}</button></header><div class="courier-test-list">${Object.entries(testStarts).map(([key,label])=>`<button type="button" data-test-start="${key}">${label}</button>`).join('')}</div><footer><button type="button" data-action="replay-test">この地点からやり直す</button><small>ローカル専用 · テストデータを補完 · 更新すると選んだ地点に戻ります</small></footer></div>`;
             root.append(menu);
             const requested=new URLSearchParams(location.search).get('test');
             if(Object.hasOwn(testStarts,requested)||requested==='food')jumpToTest(requested,false);
+            else if(!new URLSearchParams(location.search).has('preview')&&needsBeforePlay())showBeforePlay();
             else render();
-        }else render();
+        }else if(needsBeforePlay())showBeforePlay();
+        else render();
         if(!SM.letterTutorial.isActive()&&progress.phase!=='departure') {if(!map)initMap();if(progress.mode==='field')locate();}
     }
     function jumpToTest(key,updateURL=true) {
         if(!localTest||(!Object.hasOwn(testStarts,key)&&key!=='food'))return;
         cancelScan();closeDialog();stage='';pendingPhoto='';position=undefined;mismatchSeen=false;
-        if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;
+        stopLocationWatch();geo.request++;clearTimeout(geo.timer);geo.pending=false;geo.enabled=false;geo.status='idle';
+        clearPlayerMarker();mapFocus='route';mapViewKey='';
         SM.letterTutorial.reset();
         progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};
-        if(!SM.letterTutorial.testStart(key)){
+        if(key!=='before-play'&&!SM.letterTutorial.testStart(key)){
             SM.letterTutorial.testStart('sent');
             const index={shop:1,park:2,station:3,ending:3,departure:1,route:1,'shop-arrival':1,'shop-receipt':1}[key];
             const cards=[{step:0,object:'letter',word:'手紙',kana:'てがみ',photo:'',demo:true}];
@@ -153,7 +168,9 @@
         $('.courier-test-menu summary').textContent='テスト開始地点';
         root.querySelectorAll('[data-test-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.testStart===(key==='food'?'letter':key))));
         $('#courier-status').textContent='';
-        render();$('#courier-story-body').scrollTop=0;
+        if(key==='before-play')showBeforePlay();
+        else {root.classList.remove('courier-preflight');render();}
+        $('#courier-story-body').scrollTop=0;
         if(!SM.letterTutorial.isActive()&&progress.phase!=='departure'){
             if(!map)initMap();requestAnimationFrame(()=>map?.invalidateSize());
         }
@@ -165,6 +182,7 @@
         $('[data-action="language"]').setAttribute('aria-label',tr('中国語に切り替える','切换到日语'));
         $('[data-action="journal"] span').textContent=tr('旅の手帳','行程手帐');
         SM.audio?.updateButton();
+        updateLocationUI();
         $('.courier-world').setAttribute('aria-label',tr('OIC 配達マップ','OIC 配送地图'));
         $('.courier-story').setAttribute('aria-label',tr('いまの委託','当前委托'));
         $('.courier-map-reset').setAttribute('aria-label',tr('配達ルート全体を見る','查看整条路线'));
@@ -201,6 +219,7 @@
     function initMap() {
         if (!window.L) { $('#courier-map').innerHTML=`<p class="courier-map-error">${tr('地図を読み込めませんでした。物語はそのまま楽しめます。','地图暂时未加载，仍可继续体验故事。')}</p>`; return; }
         map=L.map('courier-map',{zoomControl:false,scrollWheelZoom:false}).setView(innerWidth<=760?[current().lat,current().lng]:[34.8124,135.5621],innerWidth<=760?17:16);
+        map.on?.('dragstart',()=>{mapFocus='free';});
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
         L.polyline(steps.map(s=>[s.lat,s.lng]),{color:'#819477',weight:2,dashArray:'5 9',opacity:.75}).addTo(map);
         markers=L.layerGroup().addTo(map);updateMap();
@@ -209,23 +228,176 @@
     function updateMap() {
         if(!markers) return;markers.clearLayers();
         if(progress.phase==='departure')return;
-        if(innerWidth<=760){if(progress.phase==='travel'&&map.fitBounds)map.fitBounds([[current().lat,current().lng],[steps[3].lat,steps[3].lng]],{paddingTopLeft:[35,80],paddingBottomRight:[70,25],maxZoom:16});else map.setView([current().lat,current().lng],17);}
+        const viewKey=progress.index+':'+progress.phase;
+        if(mapFocus==='route'&&mapViewKey!==viewKey&&innerWidth<=760){if(progress.phase==='travel'&&map.fitBounds)map.fitBounds([[current().lat,current().lng],[steps[3].lat,steps[3].lng]],{paddingTopLeft:[35,105],paddingBottomRight:[70,25],maxZoom:16});else map.setView([current().lat,current().lng],17);}
+        mapViewKey=viewKey;
         steps.forEach((s,i)=>{
             const done=progress.cards.some(c=>c.step===i); const active=i===progress.index&&!progress.done;
             const marker=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'courier-marker',html:`<button class="courier-map-pin ${active?'active':''} ${done?'done':''} ${i===3?'destination':''}" aria-label="${escape(stepAt(i).short)}"><span>${done?'✓':active?'!':i===3?'✉':i}</span><b>${i===3?tr('お届け先 · ソラ','终点 · 索拉'):tr(['最初の手紙','冷たい飲みもの','緑の思い出'][i],s.short)}</b></button>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(markers);
             marker.on('click',()=> {if(active){$('#courier-story-body').focus();if(progress.phase==='travel')$('#courier-story-body').scrollTop=0;}else openJournal();});
         });
+        updatePlayerMarker();
     }
     function openDialog(title,body,footer='',variant='') {
         const d=$('#courier-dialog');lastFocus=document.activeElement;
         if(d.classList.contains('photo-mismatch')&&variant!=='photo-mismatch')SM.audio?.dialogue('photo:mismatch:closed',null);
         d.classList.toggle('photo-mismatch',variant==='photo-mismatch');
+        d.classList.toggle('before-play',variant==='before-play');
         root.classList.toggle('photo-mismatch-active',variant==='photo-mismatch');
         d.setAttribute('aria-labelledby','courier-dialog-title');
         d.removeAttribute('data-mismatch-first');d.removeAttribute('aria-describedby');
+        $('#courier-dialog-title').removeAttribute('tabindex');
         $('#courier-dialog-title').textContent=title;$('#courier-dialog-body').innerHTML=body;$('#courier-dialog-footer').innerHTML=footer;
         if(!d.open)d.showModal();
         if($('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff','sora-guide');
+    }
+    function needsBeforePlay() {
+        try {return localStorage.getItem(beforePlayKey)!=='seen';}
+        catch {return true;}
+    }
+    function updateBeforePlaySound() {
+        SM.audio?.updateButton();
+        const toggle=$('[data-action="before-play-sound"]'),sound=$('[data-action="sound"]');
+        if(!toggle||!sound)return;
+        const on=sound.getAttribute('aria-pressed')==='true';
+        toggle.setAttribute('aria-checked',String(on));toggle.disabled=sound.disabled;
+        $('[data-before-play-sound-state]').textContent=on?tr('オン','开启'):tr('オフ','关闭');
+    }
+    function showBeforePlay() {
+        SM.audio?.resetDialogue();
+        root.classList.add('courier-preflight');
+        const body=`<ul class="before-play-list"><li><span class="before-play-icon">${icon('camera')}</span><div><h3>${tr('カメラ・写真','相机与照片')}</h3><p>${tr('撮影するときは、カメラの使用を許可してください。保存した写真でも遊べます。','使用相机拍摄时，请允许相机权限；也可以选择已有照片。')}</p></div></li><li><span class="before-play-icon">${icon('sound')}</span><div><h3>${tr('音・ボイス','声音与语音')}</h3><p>${tr('効果音と短い声が流れます。あとから右上で切り替えられます。','有音效和简短语音，之后也能在右上角切换。')}</p><div class="before-play-sound-row"><span>${tr('音を使う','开启声音')} <b data-before-play-sound-state></b></span><button type="button" role="switch" aria-label="${tr('音を使う','开启声音')}" aria-checked="false" data-action="before-play-sound"><span></span></button></div></div></li><li><span class="before-play-icon">${icon('pin')}</span><div><h3>${tr('位置情報','位置信息')}</h3><p>${tr('地図で現在地を確認できます。許可なしでも遊べます。','可在地图上查看真实位置，不授权也能继续体验。')}</p>${locationControls()}</div></li></ul>${browserAdvice()}<p class="before-play-note">${tr('写真は、物を見分けるために認識サービスへ送信されます。','照片会发送给识别服务，用于判断画面中的物品。')}</p>`;
+        openDialog(tr('はじめる前に','开始之前'),body,`<button type="button" class="courier-primary" data-action="begin-play"><span>${tr('はじめる','开始游戏')}</span>${icon('arrow')}</button>`,'before-play');
+        updateBeforePlaySound();updateLocationUI();
+        const heading=$('#courier-dialog-title');heading.tabIndex=-1;heading.focus({preventScroll:true});
+    }
+    function beginPlay() {
+        try {localStorage.setItem(beforePlayKey,'seen');} catch { /* Starting the game does not require browser storage. */ }
+        $('#courier-dialog').classList.remove('before-play');
+        root.classList.remove('courier-preflight');closeDialog();render();
+    }
+    function browserAdvice() {
+        const inApp=/MicroMessenger|Line\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+        return `<aside class="permission-browser ${inApp?'permission-browser-in-app':''}"><strong>${tr('おすすめのブラウザー','推荐浏览器')}</strong><p>iPhone：Safari ／ Android：Chrome</p><p>${tr(inApp?'アプリ内で開いています。メニューからブラウザーで開いてください。':'LINEなどのアプリ内では、メニューからブラウザーで開いてね。',inApp?'当前在应用内打开，请从菜单选择用浏览器打开。':'在微信、LINE等应用中，请从菜单选择用浏览器打开。')}</p><button type="button" class="courier-text" data-action="copy-play-link">${tr('ゲームのリンクをコピー','复制游戏链接')}</button><span data-copy-link-status role="status"></span></aside>`;
+    }
+    function locationControls() {
+        return `<div class="location-access"><div class="location-access-row"><span class="permission-state" data-location-state role="status"></span><button type="button" class="permission-request" data-action="location-request">${tr('位置情報を許可','允许定位')}</button></div><p class="location-access-hint" data-location-hint></p><details class="permission-help" data-location-help><summary>${tr('許可のしかた','如何开启权限')}</summary><p>${tr('ブラウザーの設定と、スマホの位置情報を確認してね。','请检查浏览器权限和手机的定位开关。')}</p><dl><dt>iPhone / Safari</dt><dd>${tr('ページのメニュー →「Webサイトの設定」→「位置情報」を許可。','页面菜单 → 网站设置 → 允许位置信息。')}</dd><dt>Android / Chrome</dt><dd>${tr('アドレスバー左のサイト情報 →「権限」→「位置情報」を許可。','地址栏左侧网站信息 → 权限 → 允许位置信息。')}</dd><dt>${tr('スマホの設定','手机设置')}</dt><dd>${tr('位置情報サービスをオンにして、SafariやChromeにも位置情報を許可。','开启系统定位服务，并允许Safari或Chrome使用定位。')}</dd></dl><p>${tr('変更したら、この画面に戻って確認してください。','更改后请返回此页面，重新检查。')}</p><button type="button" class="courier-text" data-action="location-recheck">${tr('設定を再確認','重新检测权限')}</button></details></div>`;
+    }
+    function locationState() {
+        if(!window.isSecureContext)return 'insecure';
+        if(!navigator.geolocation)return 'unsupported';
+        if(geo.permission==='denied')return 'denied';
+        if(geo.pending)return 'locating';
+        if(['timeout','unavailable'].includes(geo.status))return geo.status;
+        if(position&&Date.now()-position.at<=120000)return position.accuracy<=150?'located':'approximate';
+        return geo.permission;
+    }
+    function updateLocationUI() {
+        if(!root)return;
+        const status=locationState();
+        const copy={
+            checking:['確認中','检测中','位置情報の設定を確認しています。','正在检测定位权限。'],
+            prompt:['未許可','尚未授权','「位置情報を許可」を押して、表示された確認で「許可」を選んでね。','点击允许定位，再在浏览器弹窗中选择允许。'],
+            granted:['許可済み','已授权','許可されています。「現在地を確認」で、いまいる場所を取得できます。','已经允许定位，点击获取当前位置即可定位。'],
+            unknown:['ボタンで確認','点击检测','このブラウザーでは事前確認ができません。ボタンを押して確認してね。','此浏览器无法预先查询权限，点击按钮即可检测。'],
+            denied:['許可が必要','需要授权','ブロックされています。下の「許可のしかた」を見て、設定を変更してね。','定位被阻止，请按下方说明修改权限设置。'],
+            locating:['現在地を確認中','正在定位','確認画面が出たら「許可」を選んでね。少し時間がかかることがあります。','如果出现权限弹窗请选择允许，获取位置可能需要一点时间。'],
+            located:['現在地を確認済み','已获取当前位置','地図に現在地を表示します。OICは配達エリアです。','将在地图上显示真实位置，OIC是任务区域。'],
+            approximate:['およその現在地','大致位置','位置がずれることがあります。屋外で、もう一度確認してね。','定位可能有偏差，可以在室外重新获取位置。'],
+            timeout:['時間がかかっています','定位超时','現在地を取得できませんでした。電波や位置情報の設定を確認して、もう一度試してね。','暂未获取到位置，请检查信号和定位设置后重试。'],
+            unavailable:['現在地を取得できません','暂时无法定位','位置情報サービスや電波を確認してね。OICを現在地としては表示しません。','请检查系统定位和信号。不会将OIC当作当前位置。'],
+            unsupported:['このブラウザーでは使えません','浏览器不支持','SafariかChromeで開き直してね。位置情報なしでも遊べます。','请在Safari或Chrome中打开，也可以不定位继续体验。'],
+            insecure:['安全な接続が必要','需要安全连接','HTTPSのゲームページで開いてね。位置情報なしでも遊べます。','请打开HTTPS游戏链接，不定位也能继续体验。']
+        }[status]||['未確認','尚未检测','',''];
+        root.querySelectorAll('[data-location-state]').forEach(e=>{e.textContent=tr(copy[0],copy[1]);e.dataset.state=status;});
+        root.querySelectorAll('[data-location-hint]').forEach(e=>e.textContent=tr(copy[2],copy[3]));
+        root.querySelectorAll('[data-action="location-request"]').forEach(e=>{
+            e.disabled=['checking','locating','unsupported','insecure','denied'].includes(status);
+            e.textContent=status==='locating'?tr('確認中…','定位中…'):['prompt','unknown'].includes(status)?tr('位置情報を許可','允许定位'):status==='denied'?tr('設定で許可してね','请在设置中允许'):tr('現在地を確認','获取当前位置');
+        });
+        if(status==='denied')root.querySelectorAll('[data-location-help]').forEach(e=>e.open=true);
+        const mapLabel=$('[data-location-map-status]');
+        if(mapLabel)mapLabel.textContent=['located','approximate'].includes(status)?tr(copy[0],copy[1]):tr('現在地は未確認 · 設定','尚未获取当前位置 · 设置');
+    }
+    async function checkLocationPermission() {
+        if(!navigator.geolocation||!window.isSecureContext){updateLocationUI();return;}
+        try {
+            const status=await navigator.permissions.query({name:'geolocation'});
+            if(geo.permissionStatus!==status){
+                if(geo.permissionStatus)geo.permissionStatus.onchange=null;
+                geo.permissionStatus=status;
+                status.onchange=()=>applyLocationPermission(status.state);
+            }
+            applyLocationPermission(status.state);
+        }catch {if(geo.permission==='checking'||geo.permission==='denied')geo.permission='unknown';updateLocationUI();}
+    }
+    function applyLocationPermission(value) {
+        const previous=geo.permission;
+        geo.permission=value;
+        if(value==='denied'||value==='prompt'){
+            stopLocationWatch();clearPlayerMarker();position=undefined;
+            if(value==='denied'||previous==='granted'){geo.request++;clearTimeout(geo.timer);geo.pending=false;geo.status='idle';}
+        }
+        updateLocationUI();
+    }
+    function stopLocationWatch() {
+        geo.watchRequest++;
+        if(watchId!==undefined)navigator.geolocation?.clearWatch(watchId);
+        watchId=undefined;
+    }
+    function clearPlayerMarker() {
+        if(playerMarker){if(playerMarker.remove)playerMarker.remove();else map?.removeLayer?.(playerMarker);playerMarker=undefined;}
+    }
+    function updatePlayerMarker() {
+        if(!position||Date.now()-position.at>120000){clearPlayerMarker();return;}
+        if(!map)return;
+        const label=position.accuracy<=150?tr('いまここ','当前位置'):tr('およその現在地','大致位置');
+        const markerIcon=L.divIcon({className:'journey-player-marker',html:`<span></span><b>${label}</b>`,iconSize:[18,18],iconAnchor:[9,9]});
+        if(!playerMarker)playerMarker=L.marker([position.lat,position.lng],{icon:markerIcon}).addTo(map);
+        else {playerMarker.setLatLng?.([position.lat,position.lng]);playerMarker.setIcon?.(markerIcon);}
+        if(mapFocus==='player')map.setView([position.lat,position.lng],16);
+    }
+    function receiveLocation(p,focus=false) {
+        const {latitude:lat,longitude:lng,accuracy}=p.coords||{};
+        if(!Number.isFinite(lat)||!Number.isFinite(lng)||!Number.isFinite(accuracy)||Math.abs(lat)>90||Math.abs(lng)>180||accuracy<0)return false;
+        position={lat,lng,accuracy,at:Date.now()};geo.permission='granted';geo.status='located';
+        clearTimeout(geo.expiryTimer);
+        geo.expiryTimer=setTimeout(()=>{if(position&&Date.now()-position.at>120000){position=undefined;clearPlayerMarker();updateLocationUI();}},120001);
+        if(focus)mapFocus='player';
+        updatePlayerMarker();updateLocationUI();return true;
+    }
+    function requestLocation() {
+        if(geo.pending||!navigator.geolocation||!window.isSecureContext||geo.permission==='denied')return;
+        geo.enabled=true;geo.pending=true;geo.status='locating';stopLocationWatch();
+        const request=++geo.request;
+        updateLocationUI();
+        const fail=error=>{
+            if(request!==geo.request||!geo.pending)return;
+            geo.request++;geo.pending=false;clearTimeout(geo.timer);position=undefined;clearPlayerMarker();
+            if(error?.code===1){geo.permission='denied';geo.status='idle';}
+            else geo.status=error?.code===3?'timeout':'unavailable';
+            updateLocationUI();
+        };
+        geo.timer=setTimeout(()=>fail({code:3}),16000);
+        try {
+            navigator.geolocation.getCurrentPosition(p=>{
+                if(request!==geo.request||!geo.pending)return;
+                if(!receiveLocation(p,true)){fail({code:2});return;}
+                geo.pending=false;clearTimeout(geo.timer);updateLocationUI();
+                if(progress.mode==='field'&&!SM.letterTutorial.isActive())locate();
+            },fail,{enableHighAccuracy:true,timeout:12000,maximumAge:15000});
+        }catch {fail({code:2});}
+    }
+    function openLocationSettings() {
+        openDialog(tr('位置情報の設定','定位设置'),`<p class="courier-dialog-intro">${tr('OICは配達エリアです。現在地とは別に表示します。位置情報なしでも遊べます。','OIC是任务区域，与真实当前位置分开显示。不定位也能继续体验。')}</p>${locationControls()}${browserAdvice()}`,`<button type="button" class="courier-primary" data-action="close">${tr('ゲームに戻る','返回游戏')}${icon('arrow')}</button>`);
+        $('#courier-dialog-body').scrollTop=0;
+        updateLocationUI();checkLocationPermission();
+    }
+    async function copyPlayLink() {
+        const url=localTest?location.origin+'/':'https://semantic-map-mvp.vercel.app/';
+        const status=$('[data-copy-link-status]');
+        try {await navigator.clipboard.writeText(url);if(status)status.textContent=tr('コピーしました','已复制');}
+        catch {if(status){status.textContent=tr('このリンクをコピー：','请复制此链接：')+url;}}
     }
     function showPhotoMismatch() {
         const first=!mismatchSeen;mismatchSeen=true;
@@ -247,7 +419,7 @@
     }
     function closeDialog(){if($('#courier-dialog').open&&$('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff-closed',null);$('#courier-dialog').close();}
     function openJournal() {
-        const voiceCredit='<p class="courier-footnote">音声素材：<a href="https://amitaro.net/" target="_blank" rel="noopener noreferrer">あみたろの声素材工房</a></p>';
+        const voiceCredit=`<button type="button" class="courier-text permission-journal-link" data-action="location-settings">${icon('pin')}${tr('位置情報・ブラウザーの設定','定位与浏览器设置')}</button>`+'<p class="courier-footnote">音声素材：<a href="https://amitaro.net/" target="_blank" rel="noopener noreferrer">あみたろの声素材工房</a></p>';
         if(SM.letterTutorial.isActive()) {
             openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal()+voiceCredit,'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
         }
@@ -282,10 +454,19 @@
         if(meters>150){$('#courier-status').textContent=tr(`待ち合わせ場所まで、あと約${Math.round(meters)}m。近くで撮るか、「その場で体験」を選んでね。`,`距会合点约 ${Math.round(meters)} 米。走到附近再拍，或切换到原地体验。`);return false;}return true;
     }
     function locate() {
-        if(!locationChecksEnabled)return;
-        if(!navigator.geolocation){$('#courier-status').textContent=tr('このブラウザでは位置情報を使えません。「その場で体験」を選んでね。','浏览器不支持定位，可以使用原地体验。');return;}
-        if(watchId!==undefined) navigator.geolocation.clearWatch(watchId);
-        watchId=navigator.geolocation.watchPosition(p=>{position={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,at:Date.now()};const label=$('[data-journey-distance]');if(label)label.textContent=position.accuracy>150?tr('館内の案内も見ながら、お店へ。','可按楼内指引前往店铺。'):tr('あと約 ','距离这一站约 ')+Math.round(distance(position,current()))+tr(' m',' 米');if(map&&L.marker&&position.accuracy<=150){if(!playerMarker)playerMarker=L.marker([position.lat,position.lng],{icon:L.divIcon({className:'journey-player-marker',html:`<span></span><b>${tr('いまここ','你在这里')}</b>`,iconSize:[18,18],iconAnchor:[9,9]})}).addTo(map);else playerMarker.setLatLng?.([position.lat,position.lng]);}},()=>{$('#courier-status').textContent=tr('位置が見つかりません。コンビニはA棟1Fです。ほかの場所は「その場で体験」も選べます。','定位暂不可用。便利店在 A 栋 1F；其他地点也可切换到原地体验。');},{enableHighAccuracy:true,timeout:15000,maximumAge:15000});
+        if(!geo.enabled||geo.permission!=='granted'||document.hidden||watchId!==undefined||!navigator.geolocation)return;
+        const request=geo.request,watchRequest=geo.watchRequest;
+        watchId=navigator.geolocation.watchPosition(p=>{
+            if(request!==geo.request||watchRequest!==geo.watchRequest||document.hidden)return;
+            if(receiveLocation(p)){
+                const label=$('[data-journey-distance]');
+                if(label)label.textContent=position.accuracy>150?tr('およその現在地を表示しています。','当前显示大致位置。'):tr('あと約 ','距离这一站约 ')+Math.round(distance(position,current()))+tr(' m',' 米');
+            }
+        },error=>{
+            if(request!==geo.request||watchRequest!==geo.watchRequest)return;
+            if(error?.code===1)applyLocationPermission('denied');
+            else {geo.status=error?.code===3?'timeout':'unavailable';position=undefined;clearPlayerMarker();updateLocationUI();stopLocationWatch();}
+        },{enableHighAccuracy:true,timeout:15000,maximumAge:15000});
     }
     async function handlePhoto(event) {
         const file=event.target.files?.[0];event.target.value='';if(!file||busy)return;
@@ -346,6 +527,12 @@
         const sample=event.target.closest('[data-sample]');if(sample){if(!localTest||progress.mode!=='preview')return;const key=sample.dataset.sample;if(key==='wrong') {SM.audio?.play('mismatch');$('#courier-dialog-title').textContent=tr('まだ見つからないね','这次还没找到');$('#courier-dialog-body').insertAdjacentHTML('beforeend',`<p class="courier-sample-feedback">${tr('委託に合うものを選んでみよう。まだ完了していません。','试着选一件委托中需要的物品吧。任务还没有完成。')}</p>`);return;}if(targets().includes(key))accept(key,{demo:true});return;}
         const action=event.target.closest('[data-action]')?.dataset.action;
         switch(action){
+            case 'location-request':requestLocation();break;
+            case 'location-settings':openLocationSettings();break;
+            case 'location-recheck':checkLocationPermission();break;
+            case 'copy-play-link':copyPlayLink();break;
+            case 'begin-play':beginPlay();break;
+            case 'before-play-sound':SM.audio?.toggle();updateBeforePlaySound();break;
             case 'departure-next':if(progress.phase==='departure'&&progress.departureStep<2){progress.departureStep++;render();}break;
             case 'journey-map':if(progress.phase==='departure'&&progress.departureStep===2){progress.phase='travel';render();if(!map)initMap();requestAnimationFrame(()=>map?.invalidateSize());if(progress.mode==='field')locate();$('#courier-story-body').scrollTop=0;}break;
             case 'arrive':if(progress.phase==='travel'&&!progress.receipt&&!progress.done){progress.phase='encounter';progress.encounterStep=progress.index===1?0:1;$('#courier-status').textContent='';render();$('#courier-story-body').scrollTop=0;}break;
@@ -361,9 +548,9 @@
             case 'cancel-scan':cancelScan();closeDialog();break;
             case 'photo':case 'retry-photo':if(busy||!canCapture())return;closeDialog();$('#courier-file').click();break;
             case 'next':next();break;
-            case 'map':if(map?.fitBounds)map.fitBounds(steps.map(s=>[s.lat,s.lng]),{paddingTopLeft:[30,70],paddingBottomRight:[90,35]});else map?.setView([34.8124,135.5621],16);break;
+            case 'map':mapFocus='route';if(map?.fitBounds)map.fitBounds(steps.map(s=>[s.lat,s.lng]),{paddingTopLeft:[30,70],paddingBottomRight:[90,35]});else map?.setView([34.8124,135.5621],16);break;
             case 'mode':openDialog(tr('どうやって旅をする？','选择这次旅程的方式'),`<p class="courier-dialog-intro">${tr('ここで物語を楽しむ？それとも、スマホを持って出かける？','先坐下来看看故事，或者带着手机去校园走一走。')}</p><button class="courier-mode-option" data-action="preview-mode"><strong>${tr('その場で体験','原地体验')}</strong><span>${tr('身近なものを撮って遊べます。移動は不要です。','拍摄身边的物品，无需到现场。')}</span></button><button class="courier-mode-option" data-action="field-mode"><strong>${tr('歩いて探索','实地探索')}</strong><span>${locationChecksEnabled?tr('各地の待ち合わせ場所を訪ねよう。屋外では位置情報を使います。','前往各个会合点；室外拍摄需要定位。'):tr('地図を見ながら、どこからでも配達を進められます。','看着地图，在哪里都能继续送信。')}</span></button>`);break;
-            case 'preview-mode':progress.mode='preview';if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;$('#courier-status').textContent='';closeDialog();render();break;
+            case 'preview-mode':progress.mode='preview';stopLocationWatch();$('#courier-status').textContent='';closeDialog();render();break;
             case 'field-mode':progress.mode='field';closeDialog();render();locate();break;
             case 'restart':openDialog(tr('もう一度、ポコと旅をする？','再陪它走一次？'),`<p class="courier-dialog-intro">${tr('今回の進み具合と写真カードを消して、最初から始めます。','这会清除本次旅程的进度与照片卡片。')}</p>`,`<button class="courier-primary" data-action="confirm-restart">${tr('最初から始める','重新开始')}</button><button class="courier-text" data-action="close">${tr('この旅を続ける','保留这次旅程')}</button>`);break;
             case 'confirm-restart':cancelScan();if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};mismatchSeen=false;SM.letterTutorial.reset();stage='';closeDialog();render();break;

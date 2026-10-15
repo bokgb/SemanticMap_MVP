@@ -14,7 +14,9 @@ const port = Number(process.env.PORT || 9321);
 const baseURL = `http://${host}:${port}`;
 
 const routes = [
-  { path: '/', title: '言葉ハンター · 认识波可', readySelector: '.courier-story' },
+  { path: '/', title: '首次进入 · 拍照、音效与定位授权', readySelector: '#courier-dialog.before-play[open]', beforePlay:true, locationPermission:'prompt' },
+  { path: '/?test=before-play', title: '定位被拒绝 · 手机权限设置帮助', readySelector: '[data-location-state][data-state="denied"]', locationPermission:'denied', locationHelp:true },
+  { path: '/?test=welcome', title: '言葉ハンター · 认识波可', readySelector: '.courier-story' },
   { path: '/?test=reply', title: '开场演出 · 拿出信纸准备写信', readySelector: '[data-opening-beat="reply"]' },
   { path: '/?test=missing-pen', title: '找不到笔 · 波可的困惑表情', readySelector: '[data-expression="confused"]' },
   { path: '/?test=pen-thanks', title: '笔已送达 · 波可开心道谢', readySelector: '[data-opening-beat="thanks"]' },
@@ -217,6 +219,9 @@ function openFile(filePath) {
 async function captureRoute(context, route) {
   const page = await context.newPage();
   await installOfflineLeafletStubs(page);
+  if(route.locationPermission)await page.addInitScript(value=>{
+    navigator.permissions.query=async()=>({state:value,onchange:null});
+  },route.locationPermission);
   if (route.letterWriting || route.wordReward || route.photoMismatch) {
     const words={pen:['ペン','ぺん'],food:['パン','ぱん'],cute:['花','はな'],drink:['お茶','おちゃ']};
     await page.route('**/api/gemini',requestRoute=>{
@@ -227,6 +232,11 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.beforePlay){await fs.writeFile(path.join(outputDir,'before-play-mobile.png'),await page.screenshot({animations:'disabled'}));}
+  if(route.locationHelp){
+    await page.locator('[data-location-state]').scrollIntoViewIfNeeded();
+    await fs.writeFile(path.join(outputDir,'location-help-mobile.png'),await page.screenshot({animations:'disabled'}));
+  }
   if(route.supplyPacked){await page.locator('[data-action="pack"]').click();await page.locator('.supply-packed').waitFor();await page.waitForTimeout(1200);}
   if(route.completionDialogue){
     await page.locator('.completion-poco').scrollIntoViewIfNeeded();
