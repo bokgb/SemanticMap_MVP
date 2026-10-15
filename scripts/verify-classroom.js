@@ -15,7 +15,7 @@ async function setup(init){
 async function begin(page){await page.getByRole('button',{name:'はじめる',exact:true}).click();}
 async function pen(page){for(let n=0;n<4;n++)await page.locator('[data-letter-action="open"]').click();await page.locator('[data-letter-action="photo"]').waitFor();}
 async function sample(page){
-    await page.locator('#courier-actions .photo-backups [data-action="sample"]').click();
+    await page.locator('#courier-actions [data-action="sample"]').click();
     await page.locator('[data-action="use-sample"]').click();
 }
 async function reload(page,selector){await page.reload({waitUntil:'domcontentloaded'});await page.locator(selector).waitFor();}

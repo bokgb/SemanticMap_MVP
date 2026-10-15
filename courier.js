@@ -212,12 +212,12 @@
         $('#courier-chapter').innerHTML = `<span class="courier-progress-number">${progress.done?'✓':String(progress.index).padStart(2,'0')}</span> / 03 <span>${progress.done?tr('配達完了','送信完成'):tr(['最初の手紙','冷たい飲みもの','緑の思い出','手紙を渡す'][progress.index],s.short)}</span>`;
         $('.courier-mode-btn').textContent=progress.mode==='preview'?tr('その場で体験 ↗','原地体验 ↗'):tr('歩いて探索 ↗','实地探索 ↗');
         $('.courier-map-heading').innerHTML=`<span class="courier-eyebrow">${tr('メインの委託','主委托')}</span><h1>${icon('mail')}${tr('手紙を、駅前のソラへ。','把信送到车站前的索拉手中。')}</h1><p>${tr('OIC → 岩倉公園 → JR茨木駅 東口','OIC → 岩仓公园 → JR 茨木站东口')}</p>`;
-        $('.courier-map-note').textContent=tr('点線は地点のつながりです。実際の歩道を歩いてね。','虚线表示地点连接，请沿实际道路步行。');
+        $('.courier-map-note').textContent=progress.mode==='preview'?tr('物語のルートです。実際の移動は不要です。','这是故事路线，无需实际移动。'):tr('点線は地点のつながりです。実際の歩道を歩いてね。','虚线表示地点连接，请沿实际道路步行。');
         $('.courier-route-caption').innerHTML=`<span>OIC / IBARAKI</span><span>${tr('手紙はポコのバッグの中','信正在波可的邮包里')}</span>`;
         if(progress.phase==='departure')renderJourney('departure');
         else { $('.journey-departure-stage')?.remove();if(progress.done)renderEnding();else if(progress.receipt)renderReceipt();else if(progress.phase==='travel')renderJourney('travel');else renderTask(); }
         updateMap();
-        if($('#courier-actions [data-action="photo"]'))$('#courier-actions').insertAdjacentHTML('beforeend',photoAlternatives());
+        if($('#courier-actions .courier-primary[data-action="photo"]'))$('#courier-actions').insertAdjacentHTML('beforeend',photoAlternatives());
         if(progress.done)$('#courier-actions').insertAdjacentHTML('beforeend',feedbackLink());
     }
     function journeyAPI(){return {icon,robot,step:current(),localTest};}
@@ -494,7 +494,7 @@
     function openSample() {
         const key=targets()[0];if(!key||busy||!canCapture())return;
         const card=sampleCard(key);
-        openDialog(tr('サンプル画像','示例图片'),'<p class="courier-dialog-intro">'+tr('撮影が難しいときは、この画像で進められます。Geminiには送信しません。','拍摄不方便时，可用此示例继续；不会发送给Gemini。')+'</p><figure class="play-sample-card"><img src="'+card.photo+'" alt="'+escape(card.word)+'"><figcaption>'+escape(card.word)+' · '+tr('サンプル','示例')+'</figcaption></figure>','<button type="button" class="courier-primary" data-action="use-sample">'+tr('このサンプルで進める','使用这张示例继续')+icon('arrow')+'</button><button type="button" class="courier-text" data-action="close">'+tr('戻る','返回')+'</button>');
+        openDialog(tr('サンプル画像','示例图片'),'<figure class="play-sample-card"><img src="'+card.photo+'" alt="'+escape(card.word)+'"><figcaption>'+escape(card.word)+' · '+tr('サンプル','示例')+'</figcaption></figure>','<button type="button" class="courier-primary" data-action="use-sample">'+tr('このサンプルで進める','使用这张示例继续')+icon('arrow')+'</button><button type="button" class="courier-text" data-action="close">'+tr('戻る','返回')+'</button>');
     }
     function useSample() {
         const key=targets()[0];if(!key||busy||!canCapture())return;
