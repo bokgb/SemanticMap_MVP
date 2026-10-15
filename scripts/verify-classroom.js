@@ -49,7 +49,10 @@ try{
     assert.equal(requests,2,'Samples never call Gemini');
     await page.locator('[data-letter-action="send"]').click();await reload(page,'.letter-completion');
     assert.equal(await page.locator('.completion-card').count(),3);
-    assert.equal(await page.locator('#courier-actions .play-feedback-link').getAttribute('href'),'https://docs.google.com/forms/d/e/1FAIpQLSdoqFIAOfLiRgTwnDhFplLxnbVmXA7U2XJGCdOPCK-FTUJjjA/viewform');
+    assert.equal(await page.locator('.play-feedback-link').count(),0,'No survey before completing station delivery');
+    await page.locator('.courier-header [data-action="journal"]').click();
+    assert.equal(await page.locator('.play-feedback-link').count(),0,'The letter journal does not reveal the survey early');
+    await page.locator('#courier-dialog-footer [data-action="close"]').click();
     await page.screenshot({path:'work/classroom/completed-letter.png',animations:'disabled'});
     report.push('Refresh restores pen, reward, each writing step, photos, sample markers and completed letter; album opens a separate file picker.');
 
@@ -64,6 +67,9 @@ try{
     await page.locator('[data-action="pack"]').click();await reload(page,'.supply-packed');
     for(let i=0;i<2;i++){
         await page.locator('[data-action="next"]').click();await page.locator('[data-action="arrive"]').click();
+        await page.locator('.courier-header [data-action="journal"]').click();
+        assert.equal(await page.locator('.play-feedback-link').count(),0,'Park and station tasks do not reveal the survey before handoff');
+        await page.locator('#courier-dialog-footer [data-action="close"]').click();
         await sample(page);await page.locator('.journey-item-card').waitFor();
     }
     await page.locator('[data-action="next"]').click();await page.locator('.journey-handoff').waitFor();
