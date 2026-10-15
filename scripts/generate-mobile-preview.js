@@ -22,6 +22,7 @@ const routes = [
   { path: '/?test=pen-thanks', title: '笔已送达 · 波可开心道谢', readySelector: '[data-opening-beat="thanks"]' },
   { path: '/?preview=pen', title: '波可的对话 · 拍笔送到游戏世界', readySelector: '.courier-story', penDialogue: true },
   { path: '/?test=letter', title: '写信页直达 · 本地测试', readySelector: '.reply-letter' },
+  { path: '/?test=letter&preview=sample', title: '无相机也能练习 · 明确标注示例', readySelector: '.reply-letter', samplePreview:true },
   { path: '/?test=letter&preview=mismatch', title: '拍摄不匹配 · 照片预览与重新拍摄', readySelector: '[data-letter-slot="food"]', photoMismatch: true },
   { path: '/?test=letter&preview=word', title: '词语特写 · 照片与日语单词卡', readySelector: '[data-letter-slot="food"]', wordReward: true },
   { path: '/?test=drink', title: '任选测试起点 · 午休饮品', readySelector: '[data-letter-beat="drink"]' },
@@ -233,6 +234,11 @@ async function captureRoute(context, route) {
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
   if(route.beforePlay){await fs.writeFile(path.join(outputDir,'before-play-mobile.png'),await page.screenshot({animations:'disabled'}));}
+  if(route.samplePreview){
+    await page.locator('#courier-actions .photo-backups [data-action="sample"]').click();
+    await page.locator('[data-action="use-sample"]').click();
+    await page.locator('.letter-word-reward .sample-badge').waitFor();
+  }
   if(route.locationHelp){
     await page.locator('[data-location-state]').scrollIntoViewIfNeeded();
     await fs.writeFile(path.join(outputDir,'location-help-mobile.png'),await page.screenshot({animations:'disabled'}));

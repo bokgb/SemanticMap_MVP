@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 
 const browser=await chromium.launch();
 const errors=[],report=[];
-const key='kotoba-hunter-before-play-v1';
+const key='kotoba-hunter-before-play-v2';
 await fs.mkdir('work/before-play',{recursive:true});
 async function setup({width=390,height=844,storageBlocked=false,noAudio=false}={}){
     const context=await browser.newContext({viewport:{width,height}});

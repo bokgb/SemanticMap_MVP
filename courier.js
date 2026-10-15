@@ -49,7 +49,14 @@
     const localTest=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
     // Temporarily allow recording the full journey without visiting OIC.
     const locationChecksEnabled=false;
-    const beforePlayKey='kotoba-hunter-before-play-v1';
+    const beforePlayKey='kotoba-hunter-before-play-v2';
+    const startPreview=localTest&&new URLSearchParams(location.search).get('test')==='before-play';
+    const saveKey='kotoba-hunter-progress-v1'+(startPreview?':before-play':'');
+    let requestSession;
+    try {requestSession=sessionStorage.getItem('kotoba-hunter-request-session-v1');if(!requestSession){requestSession=crypto.randomUUID();sessionStorage.setItem('kotoba-hunter-request-session-v1',requestSession);}}catch {requestSession=globalThis.crypto?.randomUUID?.()||'player-'+Date.now()+'-'+Math.random().toString(36).slice(2);}
+    const feedbackURL='https://docs.google.com/forms/d/e/1FAIpQLSdoqFIAOfLiRgTwnDhFplLxnbVmXA7U2XJGCdOPCK-FTUJjjA/viewform';
+    const debugSession=localTest&&!startPreview&&['test','preview'].some(key=>new URLSearchParams(location.search).has(key));
+    let saveReady=false,hasSavedGame=false,lastSaved='',saveStatus='';
     const geo={permission:'checking',status:'idle',enabled:false,request:0,watchRequest:0,pending:false,permissionStatus:null,timer:null,expiryTimer:null};
     let mapFocus='route',mapViewKey='';
     const testStarts={welcome:'最初から',reply:'手紙を書こう','missing-pen':'ペンが見つからない','photo-world':'写真の力を知る',pen:'ペンを撮る',letter:'手紙① · 朝ごはん',cute:'手紙② · 道での発見',drink:'手紙③ · ひと休み',ready:'手紙完成 · 封筒へ',sent:'封筒の準備完了',shop:'コンビニの委託',park:'公園の思い出',station:'駅で待ち合わせ',ending:'配達完了'};
@@ -90,8 +97,6 @@
     }
     function init() {
         if (mounted) return; mounted=true;
-        try { localStorage.removeItem('oic-courier-story-v2'); }
-        catch { /* Do not depend on browser storage to start a new session. */ }
         document.body.classList.add('courier-mode'); document.documentElement.lang='ja';
         root = document.createElement('main'); root.id='courier-app';
         root.innerHTML = `<header class="courier-header"><a class="courier-logo" href="./" aria-label="言葉ハンター ホーム">${icon('mail')}<span>言葉ハンター<small>風の郵便局 · KAZE POST OFFICE</small></span></a><div class="courier-edition">OIC · 手紙の旅 <span>01</span></div><div class="courier-header-actions"><button class="courier-text" data-action="language">中国語</button><button class="courier-text" data-action="journal">${icon('book')}<span>旅の手帳</span></button></div></header>
@@ -99,6 +104,7 @@
         <section class="courier-story" aria-label="いまの委託"><header class="courier-story-header"><span id="courier-chapter"></span><button class="courier-mode-btn" data-action="mode"></button></header><div id="courier-story-body" tabindex="-1"></div><footer class="courier-story-footer" id="courier-actions"></footer></section>
         <input id="courier-file" type="file" accept="image/*" capture="environment" hidden><div id="courier-status" role="status" aria-live="polite"></div><dialog id="courier-dialog"><header><h2 id="courier-dialog-title"></h2><button class="courier-icon-btn" data-action="close" aria-label="閉じる">${icon('close')}</button></header><div id="courier-dialog-body"></div><footer id="courier-dialog-footer"></footer></dialog>`;
         document.body.append(root);
+        $('#courier-file').insertAdjacentHTML('afterend','<input id="courier-album" type="file" accept="image/*" hidden><p id="courier-save-notice" role="status" hidden></p>');
         $('.courier-world').insertAdjacentHTML('beforeend',`<div class="courier-location-map"><span>${tr('配達エリア：OIC','任务区域：OIC')}</span><button type="button" data-action="location-settings">${icon('pin')}<span data-location-map-status>${tr('現在地は未確認','尚未获取当前位置')}</span></button></div>`);
         const soundButton=document.createElement('button');
         soundButton.type='button';soundButton.className='courier-sound';soundButton.dataset.action='sound';
@@ -106,15 +112,20 @@
         SM.letterTutorial.init({
             root:()=>root, robot, expression, icon, render, scrollTop:()=>$('#courier-story-body').scrollTop=0,
             status:message=>$('#courier-status').textContent=message,
-            photo:()=>{if(!busy)$('#courier-file').click();},
+            photo:()=>{if(!busy)$('#courier-file').click();},save:saveProgress,mode:()=>progress.mode,photoAlternatives,feedbackLink,savedImage,
             startField:()=>{
-                progress={index:1,cards:[{step:0,object:'letter',demo:false,photo:'',word:'手紙',kana:'てがみ'}],done:false,receipt:false,mode:'field',phase:'departure',departureStep:0};
+                const mode=progress.mode;
+                progress={index:1,cards:[{step:0,object:'letter',demo:false,photo:'',word:'手紙',kana:'てがみ'}],done:false,receipt:false,mode,phase:'departure',departureStep:0};
                 render();$('#courier-story-body').scrollTop=0;
             }
         });
-        window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
+        hasSavedGame=restoreProgress();saveReady=hasSavedGame;
+        window.addEventListener('pagehide',saveProgress);
+        window.addEventListener('pageshow',event=>{if(event.persisted){checkLocationPermission();SM.audio?.updateButton();}});
         root.addEventListener('click', handleClick);
         $('#courier-file').addEventListener('change', handlePhoto);
+        $('#courier-album').addEventListener('change',handlePhoto);
+        root.addEventListener('change',event=>{if(event.target.matches('[name="play-mode"]')){progress.mode=event.target.value==='field'?'field':'preview';saveProgress();}});
         $('#courier-dialog').addEventListener('close',()=>{
             const dialog=$('#courier-dialog');
             if(!dialog.open){
@@ -128,7 +139,7 @@
             cancelScan();
         });
         document.addEventListener('visibilitychange',()=>{
-            if(document.hidden)stopLocationWatch();
+            if(document.hidden){saveProgress();stopLocationWatch();}
             else checkLocationPermission().then(()=>{if(progress.mode==='field'&&!SM.letterTutorial.isActive())locate();});
         });
         checkLocationPermission();
@@ -137,11 +148,13 @@
             menu.innerHTML=`<summary>テスト開始地点</summary><div class="courier-test-panel"><header><strong>どこから試す？</strong><button type="button" data-action="close-test-menu" aria-label="テストメニューを閉じる">${icon('close')}</button></header><div class="courier-test-list">${Object.entries(testStarts).map(([key,label])=>`<button type="button" data-test-start="${key}">${label}</button>`).join('')}</div><footer><button type="button" data-action="replay-test">この地点からやり直す</button><small>ローカル専用 · テストデータを補完 · 更新すると選んだ地点に戻ります</small></footer></div>`;
             root.append(menu);
             const requested=new URLSearchParams(location.search).get('test');
-            if(Object.hasOwn(testStarts,requested)||requested==='food')jumpToTest(requested,false);
+            if(startPreview&&hasSavedGame&&performance.getEntriesByType('navigation')[0]?.type==='reload'){saveReady=true;render();}
+            else if(Object.hasOwn(testStarts,requested)||requested==='food')jumpToTest(requested,false);
             else if(!new URLSearchParams(location.search).has('preview')&&needsBeforePlay())showBeforePlay();
-            else render();
+            else {saveReady=true;render();}
         }else if(needsBeforePlay())showBeforePlay();
-        else render();
+        else {saveReady=true;render();}
+        if(hasSavedGame&&!$('#courier-dialog').open){$('#courier-status').textContent=tr('前回の続きから再開しました。','已恢复上次的进度。');setTimeout(()=>{if($('#courier-status').textContent===tr('前回の続きから再開しました。','已恢复上次的进度。'))$('#courier-status').textContent='';},3500);}
         if(!SM.letterTutorial.isActive()&&progress.phase!=='departure') {if(!map)initMap();if(progress.mode==='field')locate();}
     }
     function jumpToTest(key,updateURL=true) {
@@ -176,6 +189,7 @@
         }
     }
     function render() {
+        saveProgress();
         document.documentElement.lang=SM.state.currentLang==='zh'?'zh-CN':'ja';
         $('[data-action="language"]').hidden=false;
         $('[data-action="language"]').textContent=SM.state.currentLang==='zh'?'日本語':'中国語';
@@ -203,6 +217,8 @@
         if(progress.phase==='departure')renderJourney('departure');
         else { $('.journey-departure-stage')?.remove();if(progress.done)renderEnding();else if(progress.receipt)renderReceipt();else if(progress.phase==='travel')renderJourney('travel');else renderTask(); }
         updateMap();
+        if($('#courier-actions [data-action="photo"]'))$('#courier-actions').insertAdjacentHTML('beforeend',photoAlternatives());
+        if(progress.done)$('#courier-actions').insertAdjacentHTML('beforeend',feedbackLink());
     }
     function journeyAPI(){return {icon,robot,step:current(),localTest};}
     function renderJourney(kind){
@@ -248,12 +264,56 @@
         d.removeAttribute('data-mismatch-first');d.removeAttribute('aria-describedby');
         $('#courier-dialog-title').removeAttribute('tabindex');
         $('#courier-dialog-title').textContent=title;$('#courier-dialog-body').innerHTML=body;$('#courier-dialog-footer').innerHTML=footer;
+        if(footer.includes('data-action="retry-photo"'))$('#courier-dialog-footer').insertAdjacentHTML('beforeend',photoAlternatives());
         if(!d.open)d.showModal();
         if($('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff','sora-guide');
     }
     function needsBeforePlay() {
         try {return localStorage.getItem(beforePlayKey)!=='seen';}
         catch {return true;}
+    }
+    function savedImage(word) {
+        return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="420" height="320"><rect width="420" height="320" fill="#e9edde"/><text x="210" y="155" text-anchor="middle" fill="#526c4c" font-size="34">${escape(word)}</text><text x="210" y="240" text-anchor="middle" fill="#7b876e" font-size="15">写真なし</text></svg>`);
+    }
+    function saveProgress() {
+        if(!saveReady||debugSession||!SM.letterTutorial.snapshot)return;
+        const payload=JSON.stringify({version:1,progress,letter:SM.letterTutorial.snapshot(),language:SM.state.currentLang,mismatchSeen});
+        if(payload===lastSaved)return;
+        try {localStorage.setItem(saveKey,payload);saveStatus='';lastSaved=payload;}
+        catch {
+            try {localStorage.setItem(saveKey,JSON.stringify(JSON.parse(payload),(key,value)=>key==='photo'?'':value));saveStatus='words';lastSaved=payload;}
+            catch {saveStatus='unavailable';}
+        }
+        const label=$('#courier-save-notice');if(!label)return;
+        label.hidden=!saveStatus;
+        label.textContent=saveStatus==='words'?tr('写真は保存できませんでした。進み具合とことばは保存済みです。','照片未能保存，步骤和单词已保存。'):tr('このブラウザーでは進み具合を保存できません。','当前浏览器无法保存进度。');
+    }
+    function restoreProgress() {
+        if(debugSession||startPreview&&performance.getEntriesByType('navigation')[0]?.type!=='reload')return false;
+        try {
+            const saved=JSON.parse(localStorage.getItem(saveKey)||'null'),p=saved?.progress;
+            if(saved?.version!==1||!p||!Number.isInteger(p.index)||p.index<0||p.index>3||!['preview','field'].includes(p.mode)||!Array.isArray(p.cards)||p.cards.length>4||typeof p.done!=='boolean'||typeof p.receipt!=='boolean')return false;
+            if(p.index>0&&!['departure','travel','encounter'].includes(p.phase))return false;
+            if(p.index>0&&!saved.letter?.state?.finished||p.index===0&&saved.letter?.state?.finished)return false;
+            if(p.done&&p.index!==3||p.receipt&&p.index===0)return false;
+            if(p.phase==='departure'&&(!Number.isInteger(p.departureStep)||p.departureStep<0||p.departureStep>2))return false;
+            if(p.cards.some(c=>!c||!Number.isInteger(c.step)||c.step<0||c.step>p.index||!Object.hasOwn(objects,c.object)||typeof c.word!=='string'||c.word.length>40||typeof c.kana!=='string'||typeof c.photo!=='string'||c.photo.length>1800000)||new Set(p.cards.map(c=>c.step)).size!==p.cards.length)return false;
+            if(!SM.letterTutorial.restore(saved.letter))return false;
+            progress={...p,cards:p.cards.map(c=>({...c,photo:c.photo||(c.step===0?'':savedImage(c.word))}))};
+            SM.state.currentLang=saved.language==='zh'?'zh':'ja';mismatchSeen=!!saved.mismatchSeen;
+            return true;
+        }catch {return false;}
+    }
+    function playIntroduction() {
+        return `<div class="play-introduction"><p>${tr('身近なものを撮って、ことばを集め、手紙を完成させよう。','拍下身边的东西，收集单词，完成一封信。')}</p><small>${tr('最初の手紙：目安 5〜10分（ペン＋3つのもの）','第一封信：约5～10分钟（笔＋3样东西）')}</small>${hasSavedGame?`<p class="play-resume">${tr('保存した続きから再開できます。','可以从已保存的进度继续。')}</p>`:''}</div><fieldset class="play-modes"><legend>${tr('遊び方を選ぶ','选择体验方式')}</legend><label><input type="radio" name="play-mode" value="preview" ${progress.mode==='preview'?'checked':''}><span><strong>${tr('その場で体験','原地体验')}</strong><small>${tr('教室におすすめ · 移動なし','推荐教室试玩 · 无需移动')}</small></span></label><label><input type="radio" name="play-mode" value="field" ${progress.mode==='field'?'checked':''}><span><strong>${tr('歩いて探索','走路探索')}</strong><small>${tr('OIC周辺へ · 目安20〜30分','前往OIC周边 · 约20～30分钟')}</small></span></label></fieldset>`;
+    }
+    function feedbackLink() {return `<a class="play-feedback-link" href="${feedbackURL}" target="_blank" rel="noopener noreferrer">${tr('体験の感想を送る ↗','填写体验反馈 ↗')}</a>`;}
+    function photoAlternatives() {return `<div class="photo-backups"><button type="button" class="courier-text" data-action="album">${tr('アルバムから選ぶ','从相册选择')}</button><button type="button" class="courier-text" data-action="sample">${tr('サンプルで進める','使用示例继续')}</button></div>`;}
+    function restartGame() {
+        cancelScan();stopLocationWatch();saveReady=false;hasSavedGame=false;lastSaved='';saveStatus='';
+        try {localStorage.removeItem(saveKey);localStorage.removeItem(beforePlayKey);}catch {}
+        progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};mismatchSeen=false;
+        SM.letterTutorial.reset();stage='';closeDialog();$('#courier-save-notice').hidden=true;showBeforePlay();
     }
     function updateBeforePlaySound() {
         SM.audio?.updateButton();
@@ -266,7 +326,7 @@
     function showBeforePlay() {
         SM.audio?.resetDialogue();
         root.classList.add('courier-preflight');
-        const body=`<ul class="before-play-list"><li><span class="before-play-icon">${icon('camera')}</span><div><h3>${tr('カメラ・写真','相机与照片')}</h3><p>${tr('撮影するときは、カメラの使用を許可してください。保存した写真でも遊べます。','使用相机拍摄时，请允许相机权限；也可以选择已有照片。')}</p></div></li><li><span class="before-play-icon">${icon('sound')}</span><div><h3>${tr('音・ボイス','声音与语音')}</h3><p>${tr('効果音と短い声が流れます。あとから右上で切り替えられます。','有音效和简短语音，之后也能在右上角切换。')}</p><div class="before-play-sound-row"><span>${tr('音を使う','开启声音')} <b data-before-play-sound-state></b></span><button type="button" role="switch" aria-label="${tr('音を使う','开启声音')}" aria-checked="false" data-action="before-play-sound"><span></span></button></div></div></li><li><span class="before-play-icon">${icon('pin')}</span><div><h3>${tr('位置情報','位置信息')}</h3><p>${tr('地図で現在地を確認できます。許可なしでも遊べます。','可在地图上查看真实位置，不授权也能继续体验。')}</p>${locationControls()}</div></li></ul>${browserAdvice()}<p class="before-play-note">${tr('写真は、物を見分けるために認識サービスへ送信されます。','照片会发送给识别服务，用于判断画面中的物品。')}</p>`;
+        const body=playIntroduction()+`<ul class="before-play-list"><li><span class="before-play-icon">${icon('camera')}</span><div><h3>${tr('カメラ・写真','相机与照片')}</h3><p>${tr('撮影するときは、カメラの使用を許可してください。保存した写真でも遊べます。','使用相机拍摄时，请允许相机权限；也可以选择已有照片。')}</p></div></li><li><span class="before-play-icon">${icon('sound')}</span><div><h3>${tr('音・ボイス','声音与语音')}</h3><p>${tr('効果音と短い声が流れます。あとから右上で切り替えられます。','有音效和简短语音，之后也能在右上角切换。')}</p><div class="before-play-sound-row"><span>${tr('音を使う','开启声音')} <b data-before-play-sound-state></b></span><button type="button" role="switch" aria-label="${tr('音を使う','开启声音')}" aria-checked="false" data-action="before-play-sound"><span></span></button></div></div></li><li><span class="before-play-icon">${icon('pin')}</span><div><h3>${tr('位置情報','位置信息')}</h3><p>${tr('地図で現在地を確認できます。許可なしでも遊べます。','可在地图上查看真实位置，不授权也能继续体验。')}</p>${locationControls()}</div></li></ul>${browserAdvice()}<p class="before-play-note">${tr('選んだ写真は、GoogleのGeminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合と写真はこのブラウザーにも保存されます。','所选照片会发送给Google Gemini识别，请避免拍入人脸或个人信息。进度和照片也会保存在当前浏览器。')}</p>`;
         openDialog(tr('はじめる前に','开始之前'),body,`<button type="button" class="courier-primary" data-action="begin-play"><span>${tr('はじめる','开始游戏')}</span>${icon('arrow')}</button>`,'before-play');
         updateBeforePlaySound();updateLocationUI();
         const heading=$('#courier-dialog-title');heading.tabIndex=-1;heading.focus({preventScroll:true});
@@ -274,7 +334,7 @@
     function beginPlay() {
         try {localStorage.setItem(beforePlayKey,'seen');} catch { /* Starting the game does not require browser storage. */ }
         $('#courier-dialog').classList.remove('before-play');
-        root.classList.remove('courier-preflight');closeDialog();render();
+        saveReady=true;root.classList.remove('courier-preflight');closeDialog();render();
     }
     function browserAdvice() {
         const inApp=/MicroMessenger|Line\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent);
@@ -419,19 +479,31 @@
     }
     function closeDialog(){if($('#courier-dialog').open&&$('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff-closed',null);$('#courier-dialog').close();}
     function openJournal() {
-        const voiceCredit=`<button type="button" class="courier-text permission-journal-link" data-action="location-settings">${icon('pin')}${tr('位置情報・ブラウザーの設定','定位与浏览器设置')}</button>`+'<p class="courier-footnote">音声素材：<a href="https://amitaro.net/" target="_blank" rel="noopener noreferrer">あみたろの声素材工房</a></p>';
+        const voiceCredit=feedbackLink()+`<p class="courier-footnote">${tr('写真はGoogle Geminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合と写真はこのブラウザーに保存されます。','照片将发送给Google Gemini识别，请避免拍入人脸或个人信息。进度和照片保存在当前浏览器。')}</p><button type="button" class="courier-text permission-journal-link" data-action="location-settings">${icon('pin')}${tr('位置情報・ブラウザーの設定','定位与浏览器设置')}</button><button type="button" class="courier-text" data-action="restart">${tr('最初からやり直す','从头重新开始')}</button>`+'<p class="courier-footnote">音声素材：<a href="https://amitaro.net/" target="_blank" rel="noopener noreferrer">あみたろの声素材工房</a></p>';
         if(SM.letterTutorial.isActive()) {
             openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal()+voiceCredit,'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
         }
-        openDialog(tr('この手紙の旅','这封信的旅程'),`<p class="courier-journal-intro">${tr('キャンパスの小さな郵便局から、遠くへつながる駅まで。<br>書いた手紙を、駅前で待つソラに届けよう。','从校园的小小邮局，到一座通往远方的车站。<br>把写好的信交给车站前的游戏邮差索拉。')}</p><ol class="courier-itinerary">${steps.map((_,i)=>{const s=stepAt(i),card=progress.cards.find(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${card?'✓':i+1}</span><div><small>${card?tr('バッグに入りました','已收进邮袋'):i===progress.index?tr('いまの委託','当前委托'):tr('これからの出会い','之后会遇见')}</small><h3>${s.short}</h3><p>${s.place}</p>${card?`<div class="courier-journal-word">${icon(objects[card.object].icon)}${escape(card.word)}<small>${card.demo?tr('テスト用カード','演示卡片'):tr('写真カード','照片卡片')}</small></div>`:''}</div></li>`;}).join('')}</ol><p class="courier-footnote">${tr('待ち合わせ場所や歩く道は、現地の案内も確認してね。','会合地点、站外终点与步行路径以现场为准。')}</p>${voiceCredit}`,`<button class="courier-primary" data-action="close">${tr('旅を続ける','继续旅程')}${icon('arrow')}</button>`);
+        openDialog(tr('この手紙の旅','这封信的旅程'),`<p class="courier-journal-intro">${tr('キャンパスの小さな郵便局から、遠くへつながる駅まで。<br>書いた手紙を、駅前で待つソラに届けよう。','从校园的小小邮局，到一座通往远方的车站。<br>把写好的信交给车站前的游戏邮差索拉。')}</p><ol class="courier-itinerary">${steps.map((_,i)=>{const s=stepAt(i),card=progress.cards.find(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${card?'✓':i+1}</span><div><small>${card?tr('バッグに入りました','已收进邮袋'):i===progress.index?tr('いまの委託','当前委托'):tr('これからの出会い','之后会遇见')}</small><h3>${s.short}</h3><p>${s.place}</p>${card?`<div class="courier-journal-word">${icon(objects[card.object].icon)}${escape(card.word)}<small>${card.sample?tr('サンプル画像','示例图片'):card.demo?tr('テスト用カード','演示卡片'):tr('写真カード','照片卡片')}</small></div>`:''}</div></li>`;}).join('')}</ol><p class="courier-footnote">${tr('待ち合わせ場所や歩く道は、現地の案内も確認してね。','会合地点、站外终点与步行路径以现场为准。')}</p>${voiceCredit}`,`<button class="courier-primary" data-action="close">${tr('旅を続ける','继续旅程')}${icon('arrow')}</button>`);
+    }
+    function sampleCard(key) {
+        const words={pen:['ペン','ぺん','pen'],food:['パン','ぱん','food'],cute:['花','はな','leaf'],drink:['お茶','おちゃ','drink'],tree:['木','き','tree'],leaf:['葉っぱ','はっぱ','leaf'],station:['茨木駅','いばらきえき','station']};
+        const [word,kana,glyph]=words[key]||words.food;
+        const image='<svg xmlns="http://www.w3.org/2000/svg" width="420" height="320" viewBox="0 0 420 320"><rect width="420" height="320" fill="#e9edde"/><g transform="translate(130 38) scale(6.5)" fill="none" stroke="#6a8058" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">'+icons[glyph]+'</g><text x="210" y="248" text-anchor="middle" fill="#526c4c" font-size="30">'+word+'</text><text x="210" y="289" text-anchor="middle" fill="#7b876e" font-size="13">サンプル</text></svg>';
+        return {word,kana,photo:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(image),sample:true,demo:true};
     }
     function openSample() {
-        if(!localTest||progress.mode!=='preview')return;
-        openDialog(tr('テスト用の写真','演示拍摄'),`<p class="courier-dialog-intro">${tr('カメラや認識サービスを使わずに、写真の結果を試せます。','不调用摄像头或 AI。选一个示例物品，看看角色会怎样回应。')}</p><div class="courier-sample-options">${targets().map(key=>`<button data-sample="${key}">${icon(objects[key].icon)}<span>${tr(key==='food'?'食べもの':objects[key].ja,objects[key].label)}</span></button>`).join('')}<button data-sample="wrong">${icon('mail')}<span>${tr('ほかのもの','拍到其他东西')}</span></button></div>`, `<small class="courier-footnote">${tr('バッグには「テスト用カード」と表示されます。','演示物品会在邮袋中标记为「演示卡片」。')}</small>`);
+        const key=targets()[0];if(!key||busy||!canCapture())return;
+        const card=sampleCard(key);
+        openDialog(tr('サンプル画像','示例图片'),'<p class="courier-dialog-intro">'+tr('撮影が難しいときは、この画像で進められます。Geminiには送信しません。','拍摄不方便时，可用此示例继续；不会发送给Gemini。')+'</p><figure class="play-sample-card"><img src="'+card.photo+'" alt="'+escape(card.word)+'"><figcaption>'+escape(card.word)+' · '+tr('サンプル','示例')+'</figcaption></figure>','<button type="button" class="courier-primary" data-action="use-sample">'+tr('このサンプルで進める','使用这张示例继续')+icon('arrow')+'</button><button type="button" class="courier-text" data-action="close">'+tr('戻る','返回')+'</button>');
     }
-    function accept(object,{demo=false,photo='',word=objects[object].ja,kana=objects[object].kana}={}) {
+    function useSample() {
+        const key=targets()[0];if(!key||busy||!canCapture())return;
+        const card=sampleCard(key);closeDialog();
+        if(SM.letterTutorial.isActive())SM.letterTutorial.accept(card);else accept(key,card);
+    }
+    function accept(object,{demo=false,sample=false,photo='',word=objects[object].ja,kana=objects[object].kana}={}) {
         if(progress.receipt||progress.done)return;
-        progress.cards.push({step:progress.index,object,demo,photo,word,kana});progress.receipt=true;pendingPhoto='';closeDialog();render();$('#courier-story-body').scrollTop=0;
+        progress.cards.push({step:progress.index,object,demo,sample,photo,word,kana});progress.receipt=true;pendingPhoto='';closeDialog();render();$('#courier-story-body').scrollTop=0;
         SM.audio?.play('success');
     }
     function skipPhotoForTest() {
@@ -489,8 +561,8 @@
             aborter=new AbortController();const timer=setTimeout(()=>aborter.abort(),30000);
             let result;
             try {
-                const response=await fetch('/api/gemini',{method:'POST',signal:aborter.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:taskPrompt},{inline_data:{mime_type:'image/jpeg',data:pendingPhoto.split(',')[1]}}]}],generationConfig:{response_mime_type:'application/json',response_schema:responseSchema,temperature:0,maxOutputTokens:512}})});
-                if(!response.ok)throw Error('service');
+                const response=await fetch('/api/gemini',{method:'POST',signal:aborter.signal,headers:{'Content-Type':'application/json','X-Game-Session':requestSession},body:JSON.stringify({contents:[{parts:[{text:taskPrompt},{inline_data:{mime_type:'image/jpeg',data:pendingPhoto.split(',')[1]}}]}],generationConfig:{response_mime_type:'application/json',response_schema:responseSchema,temperature:0,maxOutputTokens:512}})});
+                if(!response.ok)throw Object.assign(Error('service'),{status:response.status});
                 const data=await response.json();const text=data.candidates?.[0]?.content?.parts?.find(p=>typeof p.text==='string')?.text;
                 result=JSON.parse((text||'').replace(/```(?:json)?/g,'').trim());
                 if(typeof result.match!=='boolean')throw Error('format');
@@ -505,7 +577,7 @@
                 showPhotoMismatch();
             }
         } catch(error) {
-            if(busy&&scan===scanSequence)openDialog(tr('写真が届きませんでした','照片暂时没能送达'),`<p class="courier-dialog-intro">${tr('写真の読み込みか認識サービスを利用できませんでした。進み具合は変わっていません。もう一度、写真を撮るか選び直してね。',tutorial?'照片读取或识别服务暂时不可用，这一空还没有完成。可以重新拍摄或选择一张照片。':'照片读取或识别服务暂时不可用，任务还没有完成。可以重新拍摄或选择一张照片。')}</p>`,`<button class="courier-primary" data-action="retry-photo">${tr('もう一度試す','重试拍照')}</button>`+(localTest&&!tutorial&&progress.mode==='preview'?`<button class="courier-text" data-action="sample">${tr('テスト用の写真を使う','使用演示拍摄')}</button>`:''));
+            if(busy&&scan===scanSequence)openDialog(error.status===429?tr('少し待ってね','请稍等一下'):tr('写真が届きませんでした','照片暂时没能送达'),'<p class="courier-dialog-intro">'+(error.status===429?tr('しばらく待ってから試してね。サンプル画像なら、今すぐ続けられます。','请稍后重试。也可以立即用示例继续。'):tr('写真の読み込みか識別ができませんでした。進み具合は変わっていません。アルバムやサンプルでも続けられます。','照片读取或识别暂不可用，已保存进度，可从相册选择或用示例继续。'))+'</p>',`<button class="courier-primary" data-action="retry-photo">${tr('もう一度試す','重试拍照')}</button>`);
         }finally {if(scan===scanSequence){busy=false;aborter=null;}}
     }
     function cancelScan(){scanSequence++;busy=false;aborter?.abort();aborter=null;}
@@ -540,7 +612,9 @@
             case 'pack':if(progress.receipt&&progress.index===1&&!progress.packed){progress.packed=true;render();SM.audio?.play('stamp');$('#courier-story-body').scrollTop=0;}break;
             case 'deliver-letter':if(stage==='letter'&&progress.index===3&&progress.receipt){stage='';progress.done=true;progress.receipt=false;closeDialog();render();SM.audio?.play('complete');$('#courier-story-body').scrollTop=0;}break;
             case 'journal':openJournal();break;
-            case 'sample':if(!SM.letterTutorial.isActive())openSample();break;
+            case 'sample':if(!busy&&canCapture())openSample();break;
+            case 'album':if(!busy&&canCapture()){closeDialog();$('#courier-album').click();}break;
+            case 'use-sample':useSample();break;
             case 'skip-photo':skipPhotoForTest();break;
             case 'language':if(!busy){SM.state.currentLang=SM.state.currentLang==='zh'?'ja':'zh';render();}break;
             case 'sound':SM.audio?.toggle();break;
@@ -553,7 +627,7 @@
             case 'preview-mode':progress.mode='preview';stopLocationWatch();$('#courier-status').textContent='';closeDialog();render();break;
             case 'field-mode':progress.mode='field';closeDialog();render();locate();break;
             case 'restart':openDialog(tr('もう一度、ポコと旅をする？','再陪它走一次？'),`<p class="courier-dialog-intro">${tr('今回の進み具合と写真カードを消して、最初から始めます。','这会清除本次旅程的进度与照片卡片。')}</p>`,`<button class="courier-primary" data-action="confirm-restart">${tr('最初から始める','重新开始')}</button><button class="courier-text" data-action="close">${tr('この旅を続ける','保留这次旅程')}</button>`);break;
-            case 'confirm-restart':cancelScan();if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};mismatchSeen=false;SM.letterTutorial.reset();stage='';closeDialog();render();break;
+            case 'confirm-restart':restartGame();break;
         }
     }
     SM.courier={init};

@@ -27,8 +27,6 @@
         SM.audio?.resetDialogue();
         clearDelivery(); inkRuns.clear(); inkTail=0;
         state=fresh(); active='food'; notice=''; openingReset=true; sentPresented=false;
-        try { localStorage.removeItem('kotoba-hunter-letter-tutorial-v1'); }
-        catch { /* Storage may be unavailable; the session still starts fresh. */ }
     }
     function clearDelivery() { clearTimeout(deliveryTimer); cancelAnimationFrame(inkFrame); SM.audio?.writing(false); completionObserver?.disconnect(); completionObserver=null; arrival=null; clearReward(); }
     function clearReward() {
@@ -46,7 +44,7 @@
         overlay.setAttribute('role','dialog');
         overlay.setAttribute('aria-modal','true');
         overlay.setAttribute('aria-labelledby','letter-reward-word');
-        overlay.innerHTML=`<div class="letter-reward-panel"><header class="letter-reward-heading">${host.icon('check')}<span>${t('ことばが届いた','词语送达')}</span></header><figure class="letter-reward-card"><div class="letter-reward-photo"><img src="${escape(card.photo)}" alt="${escape(card.word)}"><span class="letter-reward-seal" aria-hidden="true">${host.icon('check')}<span>POCO POST</span></span></div><figcaption><span class="letter-reward-reading" lang="ja">${escape(card.kana)}</span><strong id="letter-reward-word" lang="ja">${escape(card.word)}</strong><span class="letter-reward-rule" aria-hidden="true"></span></figcaption></figure><div class="letter-reward-burst" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i></i><i></i></div><footer class="letter-reward-actions"><button type="button" data-letter-action="place-word">${host.icon(key==='pen'?'mail':'pen')}<span>${key==='pen'?t('ポコに届ける','送给波可'):t('手紙に書く','写进信里')}</span>${host.icon('arrow')}</button></footer></div>`;
+        overlay.innerHTML=`<div class="letter-reward-panel"><header class="letter-reward-heading">${host.icon('check')}<span>${t('ことばが届いた','词语送达')}</span></header><figure class="letter-reward-card"><div class="letter-reward-photo"><img src="${escape(card.photo)}" alt="${escape(card.word)}"><span class="letter-reward-seal" aria-hidden="true">${host.icon('check')}<span>POCO POST</span></span></div><figcaption><span class="letter-reward-reading" lang="ja">${escape(card.kana)}</span><strong id="letter-reward-word" lang="ja">${escape(card.word)}</strong>${card.sample?'<small class="sample-badge">サンプル</small>':''}<span class="letter-reward-rule" aria-hidden="true"></span></figcaption></figure><div class="letter-reward-burst" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i></i><i></i></div><footer class="letter-reward-actions"><button type="button" data-letter-action="place-word">${host.icon(key==='pen'?'mail':'pen')}<span>${key==='pen'?t('ポコに届ける','送给波可'):t('手紙に書く','写进信里')}</span>${host.icon('arrow')}</button></footer></div>`;
         root.append(overlay);
         SM.audio?.play('success');
         SM.audio?.dialogue(`letter:reward:${key}`,{pen:'poco-great',food:'poco-great',cute:'poco-lovely',drink:'poco-well-done'}[key],0);
@@ -260,7 +258,7 @@
         const labels=[t('朝ごはん','早餐'),t('道での発見','路上的发现'),t('ひと休み','午休')];
         const cards=slotOrder.map((key,index)=>{
             const card=state.captures[key];
-            return `<figure class="completion-card" style="--card-angle:${[-5,2,6][index]}deg;--card-delay:${420+index*160}ms"><div class="completion-photo"><img src="${escape(card.photo)}" alt="${escape(card.word)}"></div><figcaption><ruby lang="ja">${escape(card.word)}<rt>${escape(card.kana)}</rt></ruby><span>${labels[index]}</span></figcaption></figure>`;
+            return `<figure class="completion-card" style="--card-angle:${[-5,2,6][index]}deg;--card-delay:${420+index*160}ms"><div class="completion-photo"><img src="${escape(card.photo)}" alt="${escape(card.word)}"></div><figcaption><ruby lang="ja">${escape(card.word)}<rt>${escape(card.kana)}</rt></ruby><span>${labels[index]}${card.sample?' · サンプル':''}</span></figcaption></figure>`;
         }).join('');
         return `<section class="letter-completion ${enter?'completion-entrance':''}" aria-labelledby="completion-title"><div class="completion-hero"><div class="completion-sparks" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i></i><i></i><i></i></div><div class="completion-postmark" aria-hidden="true">${host.icon('check')}<span>${t('手紙完成','信已写好')}</span></div><p class="completion-kicker" role="status">${t('委託完了','委托完成')}</p><h2 id="completion-title">${t('はじめての手紙、<br>できあがり！','第一封信，<br>完成啦！')}</h2><p class="completion-subtitle">${t('きみの写真が、一通の手紙になりました。','你拍下的照片，变成了一封完整的信。')}</p></div><div class="completion-collection"><div class="completion-collection-label"><span>${t('届けたことば','你送来的词语')}</span><span>3 / 3 ${host.icon('check')}</span></div><div class="completion-card-tray">${cards}</div></div>${dialogue}<section class="completion-letter" aria-label="${t('完成した手紙','完成的信件')}"><h3>${host.icon('mail')}<span>${t('完成した手紙','完成的信件')}</span></h3>${letter(true)}</section></section>`;
     }
@@ -280,6 +278,7 @@
         completionObserver.observe(dialogue);
     }
     function render() {
+        host.save?.();
         const root=host.root();
         root.classList.add('courier-tutorial');
         root.classList.toggle('courier-opening',isOpening());
@@ -294,7 +293,7 @@
         if(isOpening())openingRoom(room);
         else {room.innerHTML=desk();room.dataset.mode='desk';if(state.phase==='writing')SM.audio?.dialogue('letter:writing',null);}
         root.querySelector('#courier-chapter').innerHTML=`<span class="courier-progress-number">${state.phase==='sent'?'✓':state.phase==='writing'?`${slotOrder.filter(key=>state.captures[key]).length}/3`:'✉'}</span><span>${t('はじまりの手紙','启程前的一封信')}</span>`;
-        const mode=root.querySelector('.courier-mode-btn'); mode.hidden=true;
+        const mode=root.querySelector('.courier-mode-btn');mode.hidden=false;mode.textContent=host.mode?.()==='field'?t('歩いて探索 ↗','走路探索 ↗'):t('その場で体験 ↗','原地体验 ↗');
         root.querySelector('[data-action="journal"] span').textContent=t('旅の手帳','行程手帐');
         root.querySelector('.courier-edition').textContent=t('郵便局での小さな出会い','邮局里的初次相遇');
         const body=root.querySelector('#courier-story-body');
@@ -319,13 +318,15 @@
             host.expression(room.querySelector('.courier-robot'),'happy');
             footer.innerHTML=`<p class="completion-next">${t('次の委託：旅の準備。キャンパスのコンビニへ。','下一份委托：准备旅行，前往校园便利店。')}</p>`+button('field',t('ポコと手紙を届けにいく','和波可一起去送信'),'pin')+`<button type="button" class="courier-text letter-stay" data-letter-action="stay">${t('今日はここまで','今天先到这里')}</button>`;
         }
+        if(!arrival&&!reward&&target()&&footer.querySelector('[data-letter-action="photo"]'))footer.insertAdjacentHTML('beforeend',host.photoAlternatives?.()||'');
+        if(state.phase==='sent')footer.insertAdjacentHTML('beforeend',host.feedbackLink?.()||'');
         followInk();
     }
     function accept(card) {
         const key=target();
         if(!key||arrival||reward)return;
         const advance=!state.captures[key];
-        showReward(key,{word:card.word,kana:card.kana||'',photo:card.photo,...(card.test?{test:true}:{})},advance);
+        showReward(key,{word:card.word,kana:card.kana||'',photo:card.photo,...(card.test?{test:true}:{}),...(card.sample?{sample:true}:{})},advance);
     }
     function deliverCard(key,card,advance) {
         SM.audio?.play('paper');
@@ -385,7 +386,30 @@
         return true;
     }
     function reset() { clearDelivery(); SM.audio?.resetDialogue(); inkRuns.clear(); inkTail=0; state=fresh(); active='food'; notice=''; openingReset=true; sentPresented=false; }
+    function snapshot() {
+        const saved={...state,captures:{...state.captures}};
+        if(reward){saved.captures[reward.key]=reward.card;if(reward.key==='pen')saved.phase='pen-thanks';}
+        return {state:saved,active:arrival||reward?slotOrder.find(key=>!saved.captures[key])||'drink':active};
+    }
+    function restore(saved) {
+        const next=saved?.state;
+        if(!next||!['welcome','intro','pen','pen-thanks','writing','sent'].includes(next.phase)||!Number.isInteger(next.introStep)||next.introStep<0||next.introStep>2||typeof next.finished!=='boolean'||!next.captures||typeof next.captures!=='object')return false;
+        const captures={};
+        for(const key of ['pen',...slotOrder]){
+            const card=next.captures[key];if(!card)continue;
+            if(typeof card.word!=='string'||!card.word||card.word.length>40||typeof card.kana!=='string'||card.kana.length>60||typeof card.photo!=='string'||card.photo.length>1800000)return false;
+            captures[key]={word:card.word,kana:card.kana,photo:card.photo||host.savedImage(card.word),...(card.sample?{sample:true}:{}),...(card.test?{test:true}:{})};
+        }
+        if(['pen-thanks','writing','sent'].includes(next.phase)&&!captures.pen)return false;
+        if((next.phase==='sent'||next.finished)&&!slotOrder.every(key=>captures[key]))return false;
+        if(captures.drink&&!captures.cute||captures.cute&&!captures.food)return false;
+        reset();state={phase:next.phase,introStep:next.introStep,captures,finished:next.finished};
+        active=slotOrder.includes(saved.active)?saved.active:slotOrder.find(key=>!captures[key])||'drink';
+        for(const [text,id] of [['友だちへ','to'],['元気にしてる？','greeting-a'],['ぼくは元気だよ。','greeting-b'],['そっちは、最近どう？','closing-a'],['また、きみの話も聞かせてね。','closing-b'],['ポコ','signature']])markWritten(text,id);
+        slotOrder.forEach((key,index)=>{if(captures[key]){markWritten(beginnings[index],'prefix-'+key);markWritten(endings[index],'suffix-'+key);markWritten(followups[index],'followup-'+key);markWritten(captures[key].word,'word-'+key);}});
+        return true;
+    }
     function journal() { return state.captures.pen ? letter(true) : `<p class="courier-journal-intro">${t('ポコにペンを届けて、最初の手紙を書きましょう。','给波可送来一支笔，开始写第一封信。')}</p>`; }
     function retakeTarget() { return state.phase==='writing' ? active : null; }
-    SM.letterTutorial={init,render,click,accept,target,retakeTarget,goal,prompt,isActive,reset,journal,testStart,finishForTest,finished:()=>state.finished};
+    SM.letterTutorial={init,render,click,accept,target,retakeTarget,goal,prompt,isActive,reset,journal,testStart,finishForTest,snapshot,restore,finished:()=>state.finished};
 })();

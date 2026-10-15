@@ -2,8 +2,8 @@
     const SM = window.SemanticMap = window.SemanticMap || {};
     const state = SM.state = SM.state || {};
 
-    state.devMode = new URLSearchParams(window.location.search).get('dev') === '1'
-        || localStorage.getItem('semantic-map-dev-mode') === '1';
+    state.devMode = new URLSearchParams(window.location.search).get('dev') === '1';
+    try {state.devMode ||= localStorage.getItem('semantic-map-dev-mode') === '1';}catch { /* Play without storage. */ }
     state.currentLang = 'ja';
     state.activeQuest = null;
 
