@@ -307,7 +307,7 @@
     function playIntroduction() {
         return `<div class="play-introduction"><p>${tr('所要時間の目安：5〜10分','预计体验时间：5～10分钟')}</p>${hasSavedGame?`<p class="play-resume">${tr('保存した続きから再開できます。','可以从已保存的进度继续。')}</p>`:''}</div><fieldset class="play-modes"><legend>${tr('体験方法','体验方式')}</legend><label><input type="radio" name="play-mode" value="preview" ${progress.mode==='preview'?'checked':''}><span><strong>${tr('その場で体験','原地体验')}</strong><small>${tr('教室におすすめ · 移動なし','推荐教室试玩 · 无需移动')}</small></span></label><label><input type="radio" name="play-mode" value="field" ${progress.mode==='field'?'checked':''}><span><strong>${tr('歩いて探索','走路探索')}</strong><small>${tr('移動あり · 目安20〜30分','需要移动 · 约20～30分钟')}</small></span></label></fieldset>`;
     }
-    function feedbackLink() {return `<a class="play-feedback-link" href="${feedbackURL}" target="_blank" rel="noopener noreferrer">${tr('体験の感想を送る ↗','填写体验反馈 ↗')}</a>`;}
+    function feedbackLink() {return `<a class="play-feedback-link" href="${feedbackURL}" target="_blank" rel="noopener noreferrer">${tr('アンケートに答えてくれるとうれしいです！ ↗','愿意帮忙填一下问卷的话，我会很开心！ ↗')}</a>`;}
     function photoAlternatives() {return `<div class="photo-backups"><button type="button" class="courier-text" data-action="album">${tr('アルバムから選ぶ','从相册选择')}</button><button type="button" class="courier-text" data-action="sample">${tr('サンプルで進める','使用示例继续')}</button></div>`;}
     function restartGame() {
         cancelScan();stopLocationWatch();saveReady=false;hasSavedGame=false;lastSaved='';saveStatus='';
