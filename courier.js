@@ -45,7 +45,7 @@
     const stepAt = index => ({...steps[index],...(SM.state.currentLang==='zh'?{}:japaneseSteps[index])});
     let progress = { index:0, cards:[], done:false, receipt:false, mode:'preview' };
     let root, map, markers, pendingPhoto = '', busy = false, aborter, position, watchId;
-    let lastFocus, stage = '', mounted = false, scanSequence = 0, playerMarker;
+    let lastFocus, stage = '', mounted = false, scanSequence = 0, playerMarker, mismatchSeen = false;
     const localTest=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
     // Temporarily allow recording the full journey without visiting OIC.
     const locationChecksEnabled=false;
@@ -68,7 +68,8 @@
         const faces={
             smile:{eyes:'M98 68v9m43-9v9',brows:'M92 60q6 -3 12 0 M135 60q6 -3 12 0',mouth:'M113 79q8 8 16 0',fill:'none',label:tr('にこにこしているポコ','微笑的波可')},
             confused:{eyes:'M95 70v5 M137 68v9',brows:'M90 62q6 -5 12 -2 M133 58l11 2',mouth:'M116 82q4 -5 8 0q-4 5-8 0Z',fill:'#536951',label:tr('ペンが見つからず、困っているポコ','找不到笔、表情困惑的波可')},
-            happy:{eyes:'M98 67v11 M141 67v11',brows:'M92 58q6 -3 12 0 M135 58q6 -3 12 0',mouth:'M112 79q9 5 18 0q-9 15-18 0Z',fill:'#536951',label:tr('うれしそうなポコ','想到办法、开心的波可')}
+            happy:{eyes:'M98 67v11 M141 67v11',brows:'M92 58q6 -3 12 0 M135 58q6 -3 12 0',mouth:'M112 79q9 5 18 0q-9 15-18 0Z',fill:'#536951',label:tr('うれしそうなポコ','想到办法、开心的波可')},
+            sad:{eyes:'M93 73q5 3 10 0 M135 73q5 3 10 0',brows:'M91 64l12 -5 M135 59l12 5',mouth:'M114 85q7 -7 14 0',fill:'none',label:tr('少ししょんぼりしているポコ','有点失落的波可')}
         };
         const next=faces[mood]||faces.smile;
         face.dataset.expression=mood;
@@ -109,7 +110,14 @@
         window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
         root.addEventListener('click', handleClick);
         $('#courier-file').addEventListener('change', handlePhoto);
-        $('#courier-dialog').addEventListener('close',()=>lastFocus?.focus());
+        $('#courier-dialog').addEventListener('close',()=>{
+            const dialog=$('#courier-dialog');
+            if(!dialog.open){
+                if(dialog.classList.contains('photo-mismatch'))SM.audio?.dialogue('photo:mismatch:closed',null);
+                dialog.classList.remove('photo-mismatch');root.classList.remove('photo-mismatch-active');
+                lastFocus?.focus();
+            }
+        });
         $('#courier-dialog').addEventListener('cancel',cancelScan);
         document.addEventListener('visibilitychange',()=>{ if(document.hidden && watchId!==undefined) {navigator.geolocation.clearWatch(watchId);watchId=undefined;} else if(!document.hidden && progress.mode==='field' && !SM.letterTutorial.isActive()) locate(); });
         if(localTest){
@@ -124,7 +132,7 @@
     }
     function jumpToTest(key,updateURL=true) {
         if(!localTest||(!Object.hasOwn(testStarts,key)&&key!=='food'))return;
-        cancelScan();closeDialog();stage='';pendingPhoto='';position=undefined;
+        cancelScan();closeDialog();stage='';pendingPhoto='';position=undefined;mismatchSeen=false;
         if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;
         SM.letterTutorial.reset();
         progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};
@@ -208,11 +216,34 @@
             marker.on('click',()=> {if(active){$('#courier-story-body').focus();if(progress.phase==='travel')$('#courier-story-body').scrollTop=0;}else openJournal();});
         });
     }
-    function openDialog(title,body,footer='') {
+    function openDialog(title,body,footer='',variant='') {
         const d=$('#courier-dialog');lastFocus=document.activeElement;
+        if(d.classList.contains('photo-mismatch')&&variant!=='photo-mismatch')SM.audio?.dialogue('photo:mismatch:closed',null);
+        d.classList.toggle('photo-mismatch',variant==='photo-mismatch');
+        root.classList.toggle('photo-mismatch-active',variant==='photo-mismatch');
+        d.setAttribute('aria-labelledby','courier-dialog-title');
+        d.removeAttribute('data-mismatch-first');d.removeAttribute('aria-describedby');
         $('#courier-dialog-title').textContent=title;$('#courier-dialog-body').innerHTML=body;$('#courier-dialog-footer').innerHTML=footer;
         if(!d.open)d.showModal();
         if($('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff','sora-guide');
+    }
+    function showPhotoMismatch() {
+        const first=!mismatchSeen;mismatchSeen=true;
+        const labels={pen:['ペン','笔'],food:['食べもの','食物'],cute:['かわいいと思うもの','你觉得可爱的东西'],drink:[SM.letterTutorial.isActive()?'飲みもの':'冷たい飲みもの',SM.letterTutorial.isActive()?'饮品':'冷饮'],tree:['木・葉っぱ','树木或叶子'],leaf:['木・葉っぱ','树木或叶子'],station:['茨木駅の看板','茨木站的站名牌']};
+        const label=labels[targets()[0]]||['さがしもの','目标物品'];
+        const targetLabel=tr(label[0],label[1]);
+        const targetMarkup=targetLabel==='冷たい飲みもの'?'<span>冷たい</span><wbr><span>飲みもの</span>':escape(targetLabel);
+        const character=first?`<div class="mismatch-character-row"><div class="mismatch-poco">${robot()}<span class="mismatch-sigh" aria-hidden="true">…</span></div><div class="mismatch-bubble"><small>${tr('ポコ','波可')}</small><p>${tr('あれ…？','咦…？')}</p></div></div>`:'';
+        const body=`<section class="mismatch-scene">${character}<div class="mismatch-find"><figure class="mismatch-photo"><img class="courier-photo-review" src="${escape(pendingPhoto)}" alt="${tr('撮った写真','刚拍的照片')}"><span aria-hidden="true">？</span></figure><div class="mismatch-target" id="courier-mismatch-target"><small>${tr('さがすもの','寻找目标')}</small><strong>${targetMarkup}</strong></div></div></section>`;
+        openDialog(tr('もう一度','再试一次'),body,`<button class="courier-primary" data-action="retry-photo">${icon('camera')}<span>${tr('撮り直す','重新拍摄')}</span>${icon('arrow')}</button>`,'photo-mismatch');
+        $('#courier-dialog').dataset.mismatchFirst=String(first);
+        $('#courier-dialog').setAttribute('aria-describedby','courier-mismatch-target');
+        if(first){
+            const poco=$('.mismatch-poco .courier-robot');expression(poco,'sad');
+            poco.querySelector('.poco-arm-left').setAttribute('d','M67 107 62 136');
+            poco.querySelector('.poco-arm-wave').setAttribute('d','M172 107 177 136');
+            SM.audio?.dialogue('photo:mismatch:first','poco-confused',120);
+        }
     }
     function closeDialog(){if($('#courier-dialog').open&&$('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff-closed',null);$('#courier-dialog').close();}
     function openJournal() {
@@ -289,7 +320,8 @@
                 if(tutorial){closeDialog();SM.letterTutorial.accept(card);pendingPhoto='';}
                 else accept(result.object,card);
             }else{
-                openDialog(tr('別の写真で試してみよう','再找找这件东西'),`<img class="courier-photo-review" src="${escape(pendingPhoto)}" alt="${tr('選んだ写真','刚刚选择的照片')}"><p class="courier-dialog-intro">${tr('この写真では、必要なものを確認できませんでした。','这张照片还没找到委托需要的物品。')}${tutorial?escape(SM.letterTutorial.goal()):current().goal}${tr('ものを大きく写して、もう一度試してみてね。','让目标占画面大一些，再试一次。')}</p>`,`<button class="courier-primary" data-action="retry-photo">${tr('もう一度撮る','重新拍摄')}</button>`);
+                SM.audio?.play('mismatch');
+                showPhotoMismatch();
             }
         } catch(error) {
             if(busy&&scan===scanSequence)openDialog(tr('写真が届きませんでした','照片暂时没能送达'),`<p class="courier-dialog-intro">${tr('写真の読み込みか認識サービスを利用できませんでした。進み具合は変わっていません。もう一度、写真を撮るか選び直してね。',tutorial?'照片读取或识别服务暂时不可用，这一空还没有完成。可以重新拍摄或选择一张照片。':'照片读取或识别服务暂时不可用，任务还没有完成。可以重新拍摄或选择一张照片。')}</p>`,`<button class="courier-primary" data-action="retry-photo">${tr('もう一度試す','重试拍照')}</button>`+(localTest&&!tutorial&&progress.mode==='preview'?`<button class="courier-text" data-action="sample">${tr('テスト用の写真を使う','使用演示拍摄')}</button>`:''));
@@ -311,7 +343,7 @@
             if(testAction==='close-test-menu'){$('.courier-test-menu').open=false;return;}
         }
         if(event.target.closest('[data-letter-action], [data-letter-slot]')) {if(!busy)SM.letterTutorial.click(event);return;}
-        const sample=event.target.closest('[data-sample]');if(sample){if(!localTest||progress.mode!=='preview')return;const key=sample.dataset.sample;if(key==='wrong') {$('#courier-dialog-title').textContent=tr('まだ見つからないね','这次还没找到');$('#courier-dialog-body').insertAdjacentHTML('beforeend',`<p class="courier-sample-feedback">${tr('委託に合うものを選んでみよう。まだ完了していません。','试着选一件委托中需要的物品吧。任务还没有完成。')}</p>`);return;}if(targets().includes(key))accept(key,{demo:true});return;}
+        const sample=event.target.closest('[data-sample]');if(sample){if(!localTest||progress.mode!=='preview')return;const key=sample.dataset.sample;if(key==='wrong') {SM.audio?.play('mismatch');$('#courier-dialog-title').textContent=tr('まだ見つからないね','这次还没找到');$('#courier-dialog-body').insertAdjacentHTML('beforeend',`<p class="courier-sample-feedback">${tr('委託に合うものを選んでみよう。まだ完了していません。','试着选一件委托中需要的物品吧。任务还没有完成。')}</p>`);return;}if(targets().includes(key))accept(key,{demo:true});return;}
         const action=event.target.closest('[data-action]')?.dataset.action;
         switch(action){
             case 'departure-next':if(progress.phase==='departure'&&progress.departureStep<2){progress.departureStep++;render();}break;
@@ -334,7 +366,7 @@
             case 'preview-mode':progress.mode='preview';if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;$('#courier-status').textContent='';closeDialog();render();break;
             case 'field-mode':progress.mode='field';closeDialog();render();locate();break;
             case 'restart':openDialog(tr('もう一度、ポコと旅をする？','再陪它走一次？'),`<p class="courier-dialog-intro">${tr('今回の進み具合と写真カードを消して、最初から始めます。','这会清除本次旅程的进度与照片卡片。')}</p>`,`<button class="courier-primary" data-action="confirm-restart">${tr('最初から始める','重新开始')}</button><button class="courier-text" data-action="close">${tr('この旅を続ける','保留这次旅程')}</button>`);break;
-            case 'confirm-restart':cancelScan();if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};SM.letterTutorial.reset();stage='';closeDialog();render();break;
+            case 'confirm-restart':cancelScan();if(watchId!==undefined)navigator.geolocation.clearWatch(watchId);watchId=undefined;progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};mismatchSeen=false;SM.letterTutorial.reset();stage='';closeDialog();render();break;
         }
     }
     SM.courier={init};

@@ -112,6 +112,11 @@
             case 'success':
                 [784, 988, 1319].forEach((pitch, i) => { note(i * .09, pitch, .32, .075); note(i * .09, pitch * 2, .12, .012); });
                 break;
+            case 'mismatch':
+                // Two soft descending notes: a gentle retry cue, without a harsh buzzer.
+                note(0, 440, .17, .055, 392);
+                note(.13, 330, .22, .045, 294);
+                break;
             case 'paper': paper(0, .11, .14, 1100); paper(.095, .09, .08, 1500); break;
             case 'stamp': paper(0, .045, .2, 550); note(0, 160, .09, .14, 75); note(.1, 1047, .22, .045); break;
             case 'complete':
@@ -141,7 +146,7 @@
         } catch { /* Browser audio failures must not interrupt the game. */ }
     }
     function play(name) {
-        if (!enabled || !context || document.hidden || !['tap', 'camera', 'success', 'paper', 'stamp', 'complete'].includes(name)) return false;
+        if (!enabled || !context || document.hidden || !['tap', 'camera', 'success', 'mismatch', 'paper', 'stamp', 'complete'].includes(name)) return false;
         if (context.state !== 'running') {
             const requestedAt = performance.now(), token = generation;
             context.resume().then(() => {

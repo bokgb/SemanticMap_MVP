@@ -20,6 +20,7 @@ const routes = [
   { path: '/?test=pen-thanks', title: '笔已送达 · 波可开心道谢', readySelector: '[data-opening-beat="thanks"]' },
   { path: '/?preview=pen', title: '波可的对话 · 拍笔送到游戏世界', readySelector: '.courier-story', penDialogue: true },
   { path: '/?test=letter', title: '写信页直达 · 本地测试', readySelector: '.reply-letter' },
+  { path: '/?test=letter&preview=mismatch', title: '拍摄不匹配 · 照片预览与重新拍摄', readySelector: '[data-letter-slot="food"]', photoMismatch: true },
   { path: '/?test=letter&preview=word', title: '词语特写 · 照片与日语单词卡', readySelector: '[data-letter-slot="food"]', wordReward: true },
   { path: '/?test=drink', title: '任选测试起点 · 午休饮品', readySelector: '[data-letter-beat="drink"]' },
   { path: '/?test=sent', title: '委托完成 · 拍摄卡片与完整信件', readySelector: '.letter-completion' },
@@ -216,12 +217,12 @@ function openFile(filePath) {
 async function captureRoute(context, route) {
   const page = await context.newPage();
   await installOfflineLeafletStubs(page);
-  if (route.letterWriting || route.wordReward) {
+  if (route.letterWriting || route.wordReward || route.photoMismatch) {
     const words={pen:['ペン','ぺん'],food:['パン','ぱん'],cute:['花','はな'],drink:['お茶','おちゃ']};
-    await page.route('**/api/gemini',route=>{
-      const key=route.request().postDataJSON().contents[0].parts[0].text.match(/Current task key: (\w+)/)[1];
+    await page.route('**/api/gemini',requestRoute=>{
+      const key=requestRoute.request().postDataJSON().contents[0].parts[0].text.match(/Current task key: (\w+)/)[1];
       const [word,kana]=words[key];
-      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:true,object:key,word,kana})}]}}]})});
+      return requestRoute.fulfill({status:200,contentType:'application/json',body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({match:!route.photoMismatch,object:key,word,kana})}]}}]})});
     });
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
@@ -235,6 +236,11 @@ async function captureRoute(context, route) {
   if(route.wordReward){
     await page.locator('#courier-file').setInputFiles(path.join(root,'assets/lumi-avatar.png'));
     await page.locator('.letter-word-reward').waitFor();
+  }
+  if(route.photoMismatch){
+    await page.locator('#courier-file').setInputFiles(path.join(root,'assets/lumi-avatar.png'));
+    await page.locator('#courier-dialog[open] #courier-dialog-title').filter({hasText:'もう一度'}).waitFor();
+    await fs.writeFile(path.join(outputDir,'photo-mismatch-mobile.png'),await page.screenshot({animations:'disabled'}));
   }
   if (route.letterWriting || route.penDialogue) {
     for(let step=0;step<4;step++)await page.locator('[data-letter-action="open"]').click();
