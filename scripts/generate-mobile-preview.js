@@ -21,6 +21,7 @@ try {
 
 const routes = [
   { path: '/', title: '首次进入 · 拍照、音效与定位授权', readySelector: '#courier-dialog.before-play[open]', beforePlay:true, locationPermission:'prompt' },
+  { path: '/?test=before-play&preview=research', title: '研究记录 · 自愿同意与隐私说明', readySelector: '#research-consent', researchNotice:true, locationPermission:'prompt' },
   { path: '/?test=before-play', title: '定位被拒绝 · 手机权限设置帮助', readySelector: '[data-location-state][data-state="denied"]', locationPermission:'denied', locationHelp:true },
   { path: '/?test=welcome', title: '言葉ハンター · 认识波可', readySelector: '.courier-story' },
   { path: '/?test=reply', title: '开场演出 · 拿出信纸准备写信', readySelector: '[data-opening-beat="reply"]' },
@@ -38,9 +39,10 @@ const routes = [
   { path: '/?preview=letter-delivery', title: '词语送达 · 盖章与下一段展开', readySelector: '.courier-story', letterWriting: true, letterDelivery: true },
   { path: '/?preview=letter-second', title: '逐段写信 · 第二个问题', readySelector: '.courier-story', letterWriting: true, letterSecond: true },
   { path: '/?test=departure', title: '准备送信 · 波可收好信封', readySelector: '.journey-departure-stage' },
-  { path: '/?test=route', title: '送信地图 · 明确车站终点与便利店', readySelector: '.journey-travel' },
+  { path: '/?test=route', title: '原地体验 · 地图与可收起的详情', readySelector: '.courier-map-explore .courier-sheet-toggle' },
   { path: '/?test=nearby', title: '默认测试位置 · 附近探索（模拟定位）', readySelector: '.courier-map-explore .courier-sheet-toggle', nearbyCity:true },
   { path: '/?test=nearby&preview=open', title: '探索详情 · 上拉面板与固定按钮', readySelector: '.courier-map-explore .courier-sheet-toggle', nearbyCity:true, sheetOpen:true },
+  { path: '/?test=nearby&preview=guide', title: '先去便利店 · 波可引导与目标对焦', readySelector: '.courier-map-explore .courier-sheet-toggle', nearbyCity:true, mapGuide:true },
   { path: '/?test=shop-arrival', title: '便利店相遇 · 米娜登场', readySelector: '.journey-shop-stage' },
   { path: '/?test=shop', title: '便利店委托 · 自由挑选旅途食物', readySelector: '.journey-quest-ticket' },
   { path: '/?test=shop-receipt', title: '补给特写 · 等待装进邮包', readySelector: '.journey-item-card' },
@@ -255,6 +257,7 @@ async function captureRoute(context, route) {
   if(route.nearbyCity){
     await page.addStyleTag({content:'.courier-test-menu{display:none!important}'});
     if(route.sheetOpen)await page.locator('.courier-sheet-toggle').click();
+    if(route.mapGuide)await page.locator('[data-action="map-final"]').click();
   }
   if(route.wordbook){
     await page.locator('.courier-header [data-action="journal"]').click();
@@ -267,6 +270,7 @@ async function captureRoute(context, route) {
     await page.locator('#courier-dialog-body').evaluate(el=>{el.scrollTop=0;});
   }
   if(route.beforePlay){await fs.writeFile(path.join(outputDir,'before-play-mobile.png'),await page.screenshot({animations:'disabled'}));}
+  if(route.researchNotice){await page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=e.scrollHeight);}
   if(route.samplePreview){
     await page.locator('#courier-actions .photo-backups [data-action="sample"]').click();
     await page.locator('[data-action="use-sample"]').click();

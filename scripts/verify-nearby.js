@@ -68,7 +68,7 @@ try {
   await ok.page.setViewportSize({width: 320, height: 568});
   await ok.page.waitForFunction(() => {
     const map = document.querySelector('#courier-map').getBoundingClientRect();
-    return [...document.querySelectorAll('.courier-map-pin')].every(node => {
+    return [...document.querySelectorAll('.courier-map-pin.active')].every(node => {
       const p = node.getBoundingClientRect();
       return p.left >= map.left && p.right <= map.right && p.top >= map.top && p.bottom <= map.bottom;
     });
@@ -137,7 +137,7 @@ try {
     await outside.page.locator('#courier-actions [data-action="preview-mode"]').click();
     await outside.page.locator('.journey-stop-card').waitFor({state: 'attached'});
     assert.equal(outside.calls(), 1);
-    assert.ok(await outside.page.locator('#courier-map').isHidden());
+    assert.ok(await outside.page.locator('#courier-map').isVisible(),'Stationary play still shows a map without requiring travel');
     await outside.context.close();
   }
   for (const geo of ['denied', 'timeout', 'coarse']) {

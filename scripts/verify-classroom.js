@@ -59,7 +59,7 @@ try{
     await page.locator('[data-letter-action="field"]').click();
     await page.locator('[data-action="departure-next"]').click();await page.locator('[data-action="departure-next"]').click();
     await reload(page,'[data-action="journey-map"]');
-    await page.locator('[data-action="journey-map"]').click();await reload(page,'.journey-travel');
+    await page.locator('[data-action="journey-map"]').click();await reload(page,'.courier-map-explore .courier-sheet-toggle');
     assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).progress.mode,key),'preview','Early choice survives letter → journey');
     await page.locator('[data-action="arrive"]').click();await page.locator('[data-action="shop-talk"]').click();
     await sample(page);await reload(page,'.journey-item-card');

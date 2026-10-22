@@ -293,7 +293,7 @@
         if(isOpening())openingRoom(room);
         else {room.innerHTML=desk();room.dataset.mode='desk';if(state.phase==='writing')SM.audio?.dialogue('letter:writing',null);}
         root.querySelector('#courier-chapter').innerHTML=`<span class="courier-progress-number">${state.phase==='sent'?'✓':state.phase==='writing'?`${slotOrder.filter(key=>state.captures[key]).length}/3`:'✉'}</span><span>${t('はじまりの手紙','启程前的一封信')}</span>`;
-        const mode=root.querySelector('.courier-mode-btn');mode.hidden=false;mode.textContent=host.mode?.()==='field'?t('歩いて探索 ↗','走路探索 ↗'):t('その場で体験 ↗','原地体验 ↗');
+        root.querySelector('.courier-mode-btn').hidden=true;
         root.querySelector('[data-action="journal"] span').textContent=t('旅の手帳','行程手帐');
         root.querySelector('.courier-edition').textContent=t('郵便局での小さな出会い','邮局里的初次相遇');
         const body=root.querySelector('#courier-story-body');

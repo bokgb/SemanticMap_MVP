@@ -44,7 +44,7 @@
     ];
     function stepAt(index){
         const base={...steps[index],...(SM.state.currentLang==='zh'?{}:japaneseSteps[index])};
-        const route=progress.mode==='field'&&SM.nearby.validRoute(progress.route)?progress.route:null;
+        const route=SM.nearby.validRoute(progress.route)?progress.route:null;
         const place=index===0?null:route?.stops[index-1];
         const generic=[tr('風の郵便局','风之邮局'),tr('コンビニ','便利店'),tr('公園','公园'),tr('駅','车站')][index];
         const name=place?(SM.state.currentLang==='ja'&&place.nameJa||place.name||generic):generic;
@@ -137,6 +137,7 @@
         });
         $('.courier-world').insertAdjacentHTML('afterbegin',`<div class="nearby-map-placeholder" aria-hidden="true">${icon('mail')}<span>風の郵便局</span></div>`);
         hasSavedGame=restoreProgress();saveReady=hasSavedGame;
+        SM.research?.init({disabled:localTest&&['test','preview'].some(key=>new URLSearchParams(location.search).has(key)),resume:hasSavedGame});
         window.addEventListener('pagehide',saveProgress);
         window.addEventListener('pageshow',event=>{if(event.persisted){checkLocationPermission();SM.audio?.updateButton();}});
         root.addEventListener('click', handleClick);
@@ -176,6 +177,7 @@
     }
     function jumpToTest(key,updateURL=true) {
         if(!localTest||(!Object.hasOwn(testStarts,key)&&key!=='food'))return;
+        SM.research?.suspend();
         const sequence=++localTestSequence;
         if(key==='nearby'){startNearbyTest(sequence,updateURL);return;}
         localTestPosition=null;
@@ -240,7 +242,7 @@
         updateLocationUI();
         $('.courier-world').setAttribute('aria-label',tr('近くの配達マップ','附近的送信地图'));
         $('.courier-story').setAttribute('aria-label',tr('いまの委託','当前委托'));
-        $('.courier-map-reset').setAttribute('aria-label',tr('配達ルート全体を見る','查看整条路线'));
+        $('.courier-map-reset').setAttribute('aria-label',tr('つぎの目的地を表示','对焦下一站'));
         $('#courier-dialog [data-action="close"]').setAttribute('aria-label',tr('閉じる','关闭'));
         if(SM.letterTutorial.isActive()) {root.classList.remove('courier-journey','courier-departure','courier-encounter','courier-travel');syncExplorationSheet(false);$('.journey-departure-stage')?.remove();SM.letterTutorial.render();return;}
         root.classList.remove('courier-tutorial','courier-opening','courier-writing','courier-sent','letter-receiving','poco-cheer');
@@ -252,8 +254,11 @@
         const s=current();
         $('#courier-chapter').innerHTML = `<span class="courier-progress-number">${progress.done?'✓':String(progress.index).padStart(2,'0')}</span> / 03 <span>${progress.done?tr('配達完了','送信完成'):tr(['最初の手紙','冷たい飲みもの','緑の思い出','手紙を渡す'][progress.index],s.short)}</span>`;
         $('.courier-mode-btn').textContent=progress.mode==='preview'?tr('その場で体験 ↗','原地体验 ↗'):tr('歩いて探索 ↗','实地探索 ↗');
-        const realRoute=progress.mode==='field'&&SM.nearby.validRoute(progress.route);
-        $('.courier-map-heading').innerHTML=`<span class="courier-eyebrow">${tr('お届け先','目的地')}</span><h1>${icon('station')}${escape(realRoute?mapPlaceName(3):tr('手紙を、届けに。','一起去送信。'))}</h1>`;
+        const realRoute=SM.nearby.validRoute(progress.route);
+        const goalIndex=Math.max(1,Math.min(3,progress.index));
+        const goalLabel=progress.done?tr('配達完了','送信完成'):goalIndex===3?tr('お届け先','最终目的地'):tr('つぎの目的地','下一站');
+        const finalLine=realRoute&&goalIndex<3?tr('お届け先：','最终目的地：')+mapPlaceName(3):progress.mode==='preview'?tr('その場で体験 · 移動は不要です','原地体验 · 无需移动'):'';
+        $('.courier-map-heading').innerHTML=`<span class="courier-eyebrow">${goalLabel}${progress.done?'':' · '+String(goalIndex).padStart(2,'0')+' / 03'}</span><h1>${icon(['','drink','leaf','station'][goalIndex])}<span>${escape(mapPlaceName(goalIndex))}</span></h1>${finalLine?realRoute&&goalIndex<3?`<button type="button" class="courier-map-final" data-action="map-final">${escape(finalLine)}</button>`:`<p class="courier-map-final">${escape(finalLine)}</p>`:''}`;
         $('.courier-map-note').textContent=progress.mode==='preview'?tr('物語のルートです。実際の移動は不要です。','这是故事路线，无需实际移动。'):tr('点線は地点のつながりです。実際の歩道を歩いてね。','虚线表示地点连接，请沿实际道路步行。');
         $('.courier-route-caption').innerHTML=`<span>YOUR TOWN</span><span>${tr('手紙はポコのバッグの中','信正在波可的邮包里')}</span>`;
         if(progress.phase!=='departure')$('.journey-departure-stage')?.remove();
@@ -262,7 +267,7 @@
             $('#courier-story-body').innerHTML=view.body;$('#courier-actions').innerHTML=view.footer;
         }else if(progress.phase==='departure')renderJourney('departure');
         else { $('.journey-departure-stage')?.remove();if(progress.done)renderEnding();else if(progress.receipt)renderReceipt();else if(progress.phase==='travel')renderJourney('travel');else renderTask(); }
-        syncExplorationSheet(realRoute&&progress.phase==='travel'&&!progress.receipt&&!progress.done);
+        syncExplorationSheet((progress.mode==='preview'||realRoute)&&progress.phase==='travel'&&!progress.receipt&&!progress.done);
         updateMap();
         if($('#courier-actions .courier-primary[data-action="photo"]'))$('#courier-actions').insertAdjacentHTML('beforeend',photoAlternatives());
     }
@@ -285,7 +290,7 @@
     function renderReceipt() { renderJourney('receipt'); }
     function renderEnding() { renderJourney('ending'); }
     function routePoints(){
-        return progress.mode==='field'&&SM.nearby.validRoute(progress.route)?[progress.route.origin,...progress.route.stops]:[];
+        return SM.nearby.validRoute(progress.route)?[progress.route.origin,...progress.route.stops]:[];
     }
     function mapPlaceName(index){
         const name=stepAt(index).place;
@@ -315,6 +320,17 @@
         $('.courier-sheet-toggle').setAttribute('aria-label',tr(sheetOpen?'詳細を閉じて地図を広く見る':'詳細をひらく。上に引いても開きます。',sheetOpen?'收起详情，展开地图':'展开详情，也可以向上拖动打开'));
         syncSheetCover();
     }
+    function focusCurrentStop(){mapFocus='target';mapViewKey='';updateMap();}
+    function guideCurrentStop(){
+        if(!root.classList.contains('courier-map-explore')||progress.done)return;
+        setSheetOpen(true);
+        const line=progress.index===1?tr('のどがかわいたな。先にコンビニへ行こう！','我有点渴了，我们先去便利店吧！'):progress.index===2?tr('先に公園で、木や葉っぱを探そう！','先去公园找找树和叶子吧！'):tr('駅名の看板を探そう！','找找车站的站名牌吧！');
+        const bubble=$('#courier-story-body .journey-bubble p');
+        if(bubble){bubble.setAttribute('role','status');bubble.dataset.mapGuide='true';bubble.textContent=line;}
+        $('#courier-story-body').scrollTop=0;
+        $('.courier-sheet-toggle').focus({preventScroll:true});
+        SM.audio?.dialogue('map:guide:'+progress.index,'poco-thinking',0);
+    }
     function setSheetOpen(open){
         if(!root.classList.contains('courier-map-explore'))return;
         const panel=$('.courier-story'),before=panel.getBoundingClientRect().top;
@@ -323,7 +339,7 @@
         if(!open&&$('#courier-story-body').contains(document.activeElement))$('.courier-sheet-toggle').focus({preventScroll:true});
         const offset=before-panel.getBoundingClientRect().top;
         if(offset&&!matchMedia('(prefers-reduced-motion: reduce)').matches)panel.animate([{transform:`translateY(${offset}px)`},{transform:'translateY(0)'}],{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'});
-        syncSheetCover();updateMap();
+        syncSheetCover();if(open)focusCurrentStop();else updateMap();
     }
     function initExplorationSheet(){
         const toggle=$('.courier-sheet-toggle'),panel=$('.courier-story');
@@ -347,14 +363,13 @@
             if(drag.moved){sheetSuppressClick=true;setTimeout(()=>sheetSuppressClick=false,350);setSheetOpen(cancel?sheetOpen:Math.abs(delta)>32?delta>0:sheetOpen);}
         };
         toggle.addEventListener('pointerup',event=>finish(event));toggle.addEventListener('pointercancel',event=>finish(event,true));
-        root.addEventListener('keydown',event=>{if(event.key==='Escape'&&sheetOpen&&!$('#courier-dialog').open){event.preventDefault();setSheetOpen(false);toggle.focus();}});
+        root.addEventListener('keydown',event=>{if(event.key==='Escape'&&sheetOpen&&!$('#courier-dialog').open){event.preventDefault();setSheetOpen(false);toggle.focus();}},true);
         new ResizeObserver(()=>{if(root.classList.contains('courier-map-explore')){syncSheetCover();if(!sheetDrag)requestAnimationFrame(updateMap);}}).observe(panel);
     }
     function initMap() {
-        const centre=routePoints()[0]||position;
-        if(progress.mode!=='field'||!centre)return;
+        const centre=routePoints()[0]||position||{lat:34.85,lng:135.65};
         if(!window.L){$('#courier-map').innerHTML=`<p class="courier-map-error">${tr('地図を読み込めませんでした。物語はそのまま楽しめます。','地图暂时未加载，仍可继续体验故事。')}</p>`;return;}
-        map=L.map('courier-map',{zoomControl:false,scrollWheelZoom:false}).setView([centre.lat,centre.lng],16);
+        map=L.map('courier-map',{zoomControl:false,scrollWheelZoom:false}).setView([centre.lat,centre.lng],routePoints().length||position?16:10);
         map.on?.('dragstart',()=>{mapFocus='free';});
         map.attributionControl?.setPrefix(false);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
@@ -362,7 +377,7 @@
         new ResizeObserver(()=>{map.invalidateSize({pan:false});updateMap();}).observe($('#courier-map'));
     }
     function updateMap(){
-        const points=routePoints(),show=progress.mode==='field'&&!!(points.length||position);
+        const points=routePoints(),show=progress.mode==='preview'||!!(points.length||position);
         $('#courier-map').hidden=!show;
         $('.nearby-map-placeholder').hidden=show;
         $('.courier-map-reset').hidden=!show;
@@ -370,22 +385,32 @@
         if(!map){initMap();return;}
         markers.clearLayers();
         if(routeLine){map.removeLayer?.(routeLine);routeLine=null;}
-        if(!points.length){if(position)map.setView([position.lat,position.lng],16);updatePlayerMarker();return;}
+        if(!points.length){
+            const key=position?'position:'+position.lat+','+position.lng:'reference-map';
+            if(mapFocus!=='free'&&mapViewKey!==key){map.setView(position?[position.lat,position.lng]:[34.85,135.65],position?16:10);mapViewKey=key;}
+            updatePlayerMarker();requestAnimationFrame(()=>map?.invalidateSize({pan:false}));return;
+        }
         const bounds=$('#courier-map').getBoundingClientRect();
-        const explore=root.classList.contains('courier-map-explore'),bottom=explore?sheetPeek+34:30;
-        const key=progress.index+':'+progress.phase+':'+progress.route.createdAt+':'+bounds.width+':'+bounds.height+':'+bottom;
-        routeLine=L.polyline(points.map(s=>[s.lat,s.lng]),{color:'#819477',weight:2,dashArray:'5 9',opacity:.75}).addTo(map);
-        if(mapFocus==='route'&&mapViewKey!==key){
-            if(map.fitBounds)map.fitBounds(points.map(s=>[s.lat,s.lng]),{paddingTopLeft:[45,Math.min(105,Math.round(bounds.height*.38))],paddingBottomRight:[Math.min(125,Math.round(bounds.width*.32)),bottom],maxZoom:16,animate:false});
+        const explore=root.classList.contains('courier-map-explore'),guided=!progress.done&&progress.index>0;
+        const bottom=explore?$('.courier-story').getBoundingClientRect().height+28:30;
+        const top=explore?Math.min($('.courier-map-heading').offsetHeight+24,Math.max(20,(bounds.height-bottom)*.35)):Math.min(105,Math.round(bounds.height*.38));
+        const stepKey=progress.index+':'+progress.route.createdAt+':'+progress.done;
+        if($('#courier-map').dataset.targetStep!==stepKey){$('#courier-map').dataset.targetStep=stepKey;mapFocus='target';mapViewKey='';}
+        const key=stepKey+':'+progress.phase+':'+bounds.width+':'+bounds.height+':'+bottom;
+        const leg=guided?[position||points[progress.index-1],points[progress.index]]:points;
+        routeLine=L.polyline(leg.map(s=>[s.lat,s.lng]),{color:'#819477',weight:2,dashArray:'5 9',opacity:.75}).addTo(map);
+        if(['route','target'].includes(mapFocus)&&mapViewKey!==key){
+            const focus=guided?[points[progress.index]]:points;
+            if(map.fitBounds)map.fitBounds(focus.map(s=>[s.lat,s.lng]),{paddingTopLeft:[35,top],paddingBottomRight:[Math.min(125,Math.round(bounds.width*.32)),bottom],maxZoom:guided?17:16,animate:false});
             else map.setView([stepAt(progress.index).lat,stepAt(progress.index).lng],16);
         }
         mapViewKey=key;
         points.forEach((s,i)=>{
-            if(i===0)return;
+            if(i===0||guided&&i!==progress.index&&i!==3)return;
             const done=progress.cards.some(c=>c.step===i),active=i===progress.index&&!progress.done;
             const title=mapPlaceName(i),left=map.latLngToContainerPoint?.([s.lat,s.lng])?.x>bounds.width*.56;
             const marker=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'courier-marker',html:`<button class="courier-map-pin ${active?'active':''} ${done?'done':''} ${i===3?'destination':''} ${left?'label-left':''}" aria-label="${escape(title)}"><span>${done?'✓':active?'!':i===3?'✉':i}</span><b>${i===3?`<small>${tr('お届け先','目的地')}</small>`:''}${escape(title)}</b></button>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(markers);
-            marker.on('click',()=>{if(root.classList.contains('courier-map-explore'))setSheetOpen(true);else if(active){$('#courier-story-body').focus();$('#courier-story-body').scrollTop=0;}else openJournal();});
+            marker.on('click',()=>{if(root.classList.contains('courier-map-explore')){if(active)setSheetOpen(true);else guideCurrentStop();}else if(active){$('#courier-story-body').focus();$('#courier-story-body').scrollTop=0;}else openJournal();});
         });
         updatePlayerMarker();requestAnimationFrame(()=>map?.invalidateSize({pan:false}));
     }
@@ -428,8 +453,19 @@
     function savedImage(word) {
         return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="420" height="320"><rect width="420" height="320" fill="#e9edde"/><text x="210" y="155" text-anchor="middle" fill="#526c4c" font-size="34">${escape(word)}</text><text x="210" y="240" text-anchor="middle" fill="#7b876e" font-size="15">写真なし</text></svg>`);
     }
+    function saveResearchProgress() {
+        const letter=SM.letterTutorial.snapshot()?.state;
+        const letterDone=!!letter&&(letter.phase==='sent'||letter.finished);
+        const shopDone=progress.index>1||(progress.index===1&&!!progress.packed);
+        const parkDone=progress.index>=3||progress.cards.some(card=>card.step===2);
+        const completedTasks=Number(letterDone)+Number(shopDone)+Number(parkDone)+Number(!!progress.done);
+        const stage=progress.done?'complete':!letter?.finished?(letterDone?'letter_done':letter?.phase==='writing'?'letter':'opening'):
+            progress.phase==='departure'?'departure':['opening','shop','park','station'][progress.index];
+        SM.research?.update({mode:progress.mode,stage,completedTasks,done:!!progress.done});
+    }
     function saveProgress() {
         if(!saveReady||debugSession||!SM.letterTutorial.snapshot)return;
+        saveResearchProgress();
         const payload=JSON.stringify({version:1,progress,letter:SM.letterTutorial.snapshot(),language:SM.state.currentLang,mismatchSeen});
         if(payload===lastSaved)return;
         try {localStorage.setItem(saveKey,payload);saveStatus='';lastSaved=payload;}
@@ -461,9 +497,10 @@
     function playIntroduction() {
         return `<div class="play-introduction"><p>${tr('所要時間の目安：5〜10分','预计体验时间：5～10分钟')}</p>${hasSavedGame?`<p class="play-resume">${tr('保存した続きから再開できます。','可以从已保存的进度继续。')}</p>`:''}</div><fieldset class="play-modes"><legend>${tr('体験方法','体验方式')}</legend><label><input type="radio" name="play-mode" value="preview" ${progress.mode==='preview'?'checked':''}><span><strong>${tr('その場で体験','原地体验')}</strong><small>${tr('教室におすすめ · 移動なし','推荐教室试玩 · 无需移动')}</small></span></label><label><input type="radio" name="play-mode" value="field" ${progress.mode==='field'?'checked':''}><span><strong>${tr('歩いて探索','走路探索')}</strong><small>${tr('現在地の近くを歩く','探索当前位置附近的地点')}</small></span></label></fieldset>`;
     }
-    function feedbackLink(primary=false) {if(!progress.done||progress.index!==3)return '';return `<a class="play-feedback-link${primary?' courier-primary':''}" href="${feedbackURL}" target="_blank" rel="noopener noreferrer">${primary?icon('book'):''}<span>${primary?tr('アンケートに答える','填写调查问卷'):tr('アンケートに答えてくれるとうれしいです！ ↗','愿意帮忙填一下问卷的话，我会很开心！ ↗')}</span>${primary?icon('arrow'):''}</a>`;}
+    function feedbackLink(primary=false) {if(!progress.done||progress.index!==3)return '';return `<a class="play-feedback-link${primary?' courier-primary':''}" data-research-survey href="${escape(SM.research?.surveyURL(feedbackURL)||feedbackURL)}" target="_blank" rel="noopener noreferrer">${primary?icon('book'):''}<span>${primary?tr('アンケートに答える','填写调查问卷'):tr('アンケートに答えてくれるとうれしいです！ ↗','愿意帮忙填一下问卷的话，我会很开心！ ↗')}</span>${primary?icon('arrow'):''}</a>`;}
     function photoAlternatives() {return `<div class="photo-backups"><button type="button" class="courier-text" data-action="album">${tr('アルバムから選ぶ','从相册选择')}</button><button type="button" class="courier-text" data-action="sample">${tr('サンプルで進める','使用示例继续')}</button></div>`;}
     function restartGame() {
+        SM.research?.restart();
         cancelScan();cancelNearby();stopLocationWatch();saveReady=false;hasSavedGame=false;lastSaved='';saveStatus='';
         localTestSequence++;localTestPosition=null;geo.request++;geo.pending=false;geo.enabled=false;geo.status='idle';
         clearTimeout(geo.timer);clearTimeout(geo.expiryTimer);position=undefined;clearPlayerMarker();
@@ -485,7 +522,8 @@
         SM.audio?.resetDialogue();
         root.classList.add('courier-preflight');
         const body=playIntroduction()+`<ul class="before-play-list"><li><span class="before-play-icon">${icon('camera')}</span><div><h3>${tr('カメラ・写真','相机与照片')}</h3><p>${tr('撮影するときは、カメラの使用を許可してください。保存した写真でも遊べます。','使用相机拍摄时，请允许相机权限；也可以选择已有照片。')}</p></div></li><li><span class="before-play-icon">${icon('sound')}</span><div><h3>${tr('音・ボイス','声音与语音')}</h3><p>${tr('効果音と短い声が流れます。あとから右上で切り替えられます。','有音效和简短语音，之后也能在右上角切换。')}</p><div class="before-play-sound-row"><span>${tr('音を使う','开启声音')} <b data-before-play-sound-state></b></span><button type="button" role="switch" aria-label="${tr('音を使う','开启声音')}" aria-checked="false" data-action="before-play-sound"><span></span></button></div></div></li><li><span class="before-play-icon">${icon('pin')}</span><div><h3>${tr('位置情報','位置信息')}</h3><p>${tr('歩いて探索するときに使います。現在地から近くの場所を選びます。許可なしなら、その場で体験できます。','走路探索时用于选择当前位置附近的地点。不授权也可以原地体验。')}</p>${locationControls()}</div></li></ul>${browserAdvice()}<p class="before-play-note">${tr('選んだ写真は、GoogleのGeminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合・写真・配達先はこのブラウザーにも保存されます。','所选照片会发送给Google Gemini识别，请避免拍入人脸或个人信息。进度、照片和送信路线也会保存在当前浏览器。')}</p>`;
-        openDialog(tr('はじめる前に','开始之前'),body,`<p class="before-play-scroll-hint" id="before-play-scroll-hint" role="status">${tr('下までスクロールしてください','请滑动到最底部')}</p><button type="button" class="courier-primary" data-action="begin-play" aria-describedby="before-play-scroll-hint" disabled><span>${tr('はじめる','开始游戏')}</span>${icon('arrow')}</button>`,'before-play');
+        const researchNotice=`<section class="before-play-research" aria-labelledby="research-notice-title"><h3 id="research-notice-title">${tr('研究への協力（任意）','协助研究（自愿）')}</h3><p id="research-notice-description">${tr('進み具合・時間・体験方法を記録し、ランダムな番号でアンケートと照合します。写真・位置情報は研究データに保存しません。協力しなくても遊べます。','记录进度、时间和体验方式，用随机编号与问卷对应。照片和位置不会保存到研究数据中。不参与也可以正常游玩。')}</p><label><input type="checkbox" id="research-consent" aria-describedby="research-notice-description"><span>${tr('この記録に同意する','同意记录这些数据')}</span></label></section>`;
+        openDialog(tr('はじめる前に','开始之前'),body+researchNotice,`<p class="before-play-scroll-hint" id="before-play-scroll-hint" role="status">${tr('下までスクロールしてください','请滑动到最底部')}</p><button type="button" class="courier-primary" data-action="begin-play" aria-describedby="before-play-scroll-hint" disabled><span>${tr('はじめる','开始游戏')}</span>${icon('arrow')}</button>`,'before-play');
         updateBeforePlaySound();updateLocationUI();
         $('#courier-dialog-body').scrollTop=0;
         const heading=$('#courier-dialog-title');heading.tabIndex=-1;heading.focus({preventScroll:true});
@@ -501,6 +539,10 @@
     }
     function beginPlay() {
         if(!beforePlayRead)return;
+        // Restored mobile form controls can be checked without dispatching a change event.
+        const selected=$('#courier-dialog [name="play-mode"]:checked')?.value;
+        if(selected==='field'||selected==='preview')progress.mode=selected;
+        SM.research?.start(!!$('#research-consent')?.checked,progress.mode);
         try {localStorage.setItem(beforePlayKey,'seen');} catch { /* Starting the game does not require browser storage. */ }
         $('#courier-dialog').classList.remove('before-play');
         saveReady=true;root.classList.remove('courier-preflight');closeDialog();render();
@@ -766,6 +808,7 @@
         progress.index++;progress.receipt=false;progress.phase='travel';progress.encounterStep=0;progress.packed=false;render();$('#courier-story-body').scrollTop=0;
     }
     function handleClick(event) {
+        if(event.target.closest('[data-research-survey]'))SM.research?.surveyOpened();
         if(localTest){
             const key=event.target.closest('[data-test-start]')?.dataset.testStart;
             if(key){jumpToTest(key);return;}
@@ -801,7 +844,8 @@
             case 'cancel-scan':cancelScan();closeDialog();break;
             case 'photo':case 'retry-photo':if(busy||!canCapture())return;closeDialog();$('#courier-file').click();break;
             case 'next':next();break;
-            case 'map':mapFocus='route';mapViewKey='';updateMap();break;
+            case 'map':focusCurrentStop();break;
+            case 'map-final':guideCurrentStop();break;
             case 'mode':openDialog(tr('どうやって旅をする？','选择这次旅程的方式'),`<p class="courier-dialog-intro">${tr('ここで物語を楽しむ？それとも、スマホを持って出かける？','坐下来体验故事，或者带着手机探索身边的街道。')}</p><button class="courier-mode-option" data-action="preview-mode"><strong>${tr('その場で体験','原地体验')}</strong><span>${tr('身近なものを撮って遊べます。移動は不要です。','拍摄身边的物品，无需到现场。')}</span></button><button class="courier-mode-option" data-action="field-mode"><strong>${tr('歩いて探索','实地探索')}</strong><span>${tr('現在地の近くにあるコンビニ・公園・駅を探します。','寻找当前位置附近的便利店、公园和车站。')}</span></button>`);break;
             case 'preview-mode':cancelNearby();progress.mode='preview';stopLocationWatch();$('#courier-status').textContent='';closeDialog();render();break;
             case 'field-mode':cancelNearby();progress.mode='field';closeDialog();render();if(needsNearbyRoute())searchNearby();else locate();break;

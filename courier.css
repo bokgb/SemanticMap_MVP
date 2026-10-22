@@ -165,6 +165,11 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 .before-play-sound-row button[aria-checked="true"]>span { transform:translateX(17px); }
 .before-play-sound-row button:disabled { cursor:default; }
 .before-play-note { margin:21px 0 0; padding-top:15px; border-top:1px solid #dde2d2; color:#65725d; font-size:10px; line-height:1.8; }
+.before-play-research { margin-top:18px; padding:16px; border:1px solid #dce2d1; border-radius:12px; color:#52694a; font-size:11px; line-height:1.8; }
+.before-play-research h3 { margin:0 0 7px; font:600 12px/1.5 sans-serif; }
+.before-play-research p { margin:0 0 10px; }
+.before-play-research label { display:flex; align-items:center; gap:10px; min-height:40px; cursor:pointer; font-weight:600; }
+.before-play-research input { width:18px; height:18px; margin:0; accent-color:#617b51; flex:none; }
 .location-access { margin-top:12px; }
 .location-access-row { display:flex; flex-wrap:wrap; gap:9px; align-items:center; justify-content:space-between; }
 .permission-state { font-size:11px; color:#617950; line-height:1.6; }
