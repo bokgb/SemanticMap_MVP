@@ -28,6 +28,7 @@ const routes = [
   { path: '/?test=pen-thanks', title: '笔已送达 · 波可开心道谢', readySelector: '[data-opening-beat="thanks"]' },
   { path: '/?preview=pen', title: '波可的对话 · 拍笔送到游戏世界', readySelector: '.courier-story', penDialogue: true },
   { path: '/?test=letter', title: '写信页直达 · 本地测试', readySelector: '.reply-letter' },
+  { path: '/?test=letter&preview=restart', title: '旅途手帐 · 固定的重新开始入口', readySelector: '.reply-letter', restartPreview:true },
   { path: '/?test=letter&preview=sample', title: '无相机也能练习 · 明确标注示例', readySelector: '.reply-letter', samplePreview:true },
   { path: '/?test=letter&preview=mismatch', title: '拍摄不匹配 · 照片预览与重新拍摄', readySelector: '[data-letter-slot="food"]', photoMismatch: true },
   { path: '/?test=letter&preview=word', title: '词语特写 · 照片与日语单词卡', readySelector: '[data-letter-slot="food"]', wordReward: true },
@@ -244,6 +245,13 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.restartPreview){
+    await page.locator('.courier-header [data-action="journal"]').click();
+    await page.locator('#courier-dialog-footer [data-action="restart"]').waitFor();
+    await page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=e.scrollHeight);
+    const box=await page.locator('#courier-dialog-footer [data-action="restart"]').boundingBox();
+    if(!box||box.y<0||box.y+box.height>page.viewportSize().height)throw new Error('Restart button must remain visible');
+  }
   if(route.nearbyCity){
     await page.addStyleTag({content:'.courier-test-menu{display:none!important}'});
     if(route.sheetOpen)await page.locator('.courier-sheet-toggle').click();

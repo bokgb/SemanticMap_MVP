@@ -48,7 +48,7 @@ try{
     await initial.page.screenshot({path:'work/location-access/permission-prompt-mobile.png',animations:'disabled'});
     await initial.page.locator('[data-action="location-request"]').click();await state(initial.page,'located');
     assert.equal(await initial.page.evaluate(()=>locationProbe.gets),1);
-    await initial.page.locator('[data-action="begin-play"]').click();
+    await initial.page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=e.scrollHeight);await initial.page.locator('[data-action="begin-play"]').click();
     await initial.page.locator('[data-opening-beat="welcome"]').waitFor();
     await initial.context.close();
     report.push('First visit detects permission without requesting it; explicit button obtains coordinates and game starts.');
@@ -92,7 +92,7 @@ try{
     await denied.page.evaluate(()=>{geoHarness.outcome='success';geoHarness.setPermission('granted');});
     await state(denied.page,'granted');
     await denied.page.locator('[data-action="location-request"]').click();await state(denied.page,'located');
-    await denied.page.locator('[data-action="begin-play"]').click();
+    await denied.page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=e.scrollHeight);await denied.page.locator('[data-action="begin-play"]').click();
     await denied.page.locator('[data-opening-beat="welcome"]').waitFor();
     await denied.context.close();
     report.push('Denied permission expands settings help, in-app browser advice appears, settings changes recover without reload, controls stay visible at 320×568.');
@@ -113,7 +113,7 @@ try{
     for(const options of [{noGeo:true,status:'unsupported'},{insecure:true,status:'insecure'}]){
         const test=await setup(options);await state(test.page,options.status);
         assert.ok(await test.page.locator('[data-action="location-request"]').isDisabled());
-        await test.page.locator('[data-action="begin-play"]').click();await test.page.locator('[data-opening-beat="welcome"]').waitFor();
+        await test.page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=e.scrollHeight);await test.page.locator('[data-action="begin-play"]').click();await test.page.locator('[data-opening-beat="welcome"]').waitFor();
         assert.equal(await test.page.evaluate(()=>locationProbe.gets),0);await test.context.close();
     }
     report.push('Timeout, unavailable, low-accuracy and unsupported permission query recover; missing geolocation and insecure connection never block playing.');

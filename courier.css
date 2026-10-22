@@ -115,6 +115,7 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 #courier-dialog-body { overflow-y:auto; min-height:0; padding:24px; overscroll-behavior:contain; }
 #courier-dialog-footer { padding:16px 24px 20px; border-top:1px solid var(--rule); flex-shrink:0; }
 #courier-dialog-footer:empty { display:none; }
+#courier-app .courier-quick-restart { display:flex; justify-content:center; width:100%; min-height:36px; margin:8px 0 0; padding:8px 12px; border-radius:8px; background:#edf0e6; color:#617450; }
 .courier-dialog-intro,.courier-journal-intro { color:#76806b; font-size:13px; line-height:1.9; margin:0 0 20px; }
 .courier-preflight>.courier-world,.courier-preflight>.courier-story { visibility:hidden; }
 .courier-preflight { background:#eef0e2; }
@@ -195,6 +196,8 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 @media(max-width:760px) { .courier-location-map { top:67px; left:16px; max-width:calc(100% - 32px); gap:6px; } .courier-location-map>button { padding:5px 7px; } }
 #courier-dialog.before-play #courier-dialog-footer { padding:0 26px 26px; border:0; }
 #courier-app #courier-dialog.before-play .courier-primary { min-height:49px; border-radius:12px; background:#61754f; box-shadow:0 4px 0 #4c6340; font-size:14px; font-weight:600; }
+#courier-app #courier-dialog.before-play .courier-primary:disabled { background:#d9dcd5; color:#81877d; box-shadow:0 4px 0 #c6cbc0; opacity:1; cursor:default; }
+.before-play-scroll-hint { margin:0 0 10px; text-align:center; color:#7a8571; font-size:11px; line-height:1.5; }
 #courier-dialog.before-play .courier-primary>span { margin-left:auto; }
 @media(max-width:350px) { #courier-dialog.before-play>header { padding:21px 20px 0; } #courier-dialog.before-play #courier-dialog-body { padding:10px 20px 18px; } #courier-dialog.before-play #courier-dialog-footer { padding:0 20px 22px; } .before-play-list { gap:18px; } .before-play-list>li { gap:10px; } }
 @media(prefers-reduced-motion:reduce) { .before-play-sound-row button,.before-play-sound-row button>span { transition:none; } }

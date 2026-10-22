@@ -58,6 +58,7 @@
     // Arrival remains player-confirmed; GPS is used to discover the route, not to lock tasks.
     const locationChecksEnabled=false;
     const beforePlayKey='kotoba-hunter-before-play-v2';
+    let beforePlayRead=false;
     const startPreview=localTest&&new URLSearchParams(location.search).get('test')==='before-play';
     const saveKey='kotoba-hunter-progress-v1'+(startPreview?':before-play':'');
     let requestSession;
@@ -115,6 +116,8 @@
         <section class="courier-story" aria-label="いまの委託"><header class="courier-story-header"><span id="courier-chapter"></span><button class="courier-mode-btn" data-action="mode"></button></header><div id="courier-story-body" tabindex="-1"></div><footer class="courier-story-footer" id="courier-actions"></footer></section>
         <input id="courier-file" type="file" accept="image/*" capture="environment" hidden><div id="courier-status" role="status" aria-live="polite"></div><dialog id="courier-dialog"><header><h2 id="courier-dialog-title"></h2><button class="courier-icon-btn" data-action="close" aria-label="閉じる">${icon('close')}</button></header><div id="courier-dialog-body"></div><footer id="courier-dialog-footer"></footer></dialog>`;
         document.body.append(root);
+        $('#courier-dialog-body').addEventListener('scroll',updateBeforePlayRead,{passive:true});
+        new ResizeObserver(updateBeforePlayRead).observe($('#courier-dialog-body'));
         $('.courier-story').insertAdjacentHTML('afterbegin',`<header class="courier-sheet-header" hidden><button type="button" class="courier-sheet-toggle" data-action="toggle-sheet" aria-expanded="false" aria-controls="courier-story-body"><span class="courier-sheet-grip" aria-hidden="true"></span><span class="courier-sheet-destination"><small data-sheet-step></small><strong data-sheet-place></strong></span><span class="courier-sheet-disclosure"><span data-sheet-label></span>${icon('arrow')}</span></button></header>`);
         initExplorationSheet();
         $('#courier-file').insertAdjacentHTML('afterend','<input id="courier-album" type="file" accept="image/*" hidden><p id="courier-save-notice" role="status" hidden></p>');
@@ -462,8 +465,11 @@
     function photoAlternatives() {return `<div class="photo-backups"><button type="button" class="courier-text" data-action="album">${tr('アルバムから選ぶ','从相册选择')}</button><button type="button" class="courier-text" data-action="sample">${tr('サンプルで進める','使用示例继续')}</button></div>`;}
     function restartGame() {
         cancelScan();cancelNearby();stopLocationWatch();saveReady=false;hasSavedGame=false;lastSaved='';saveStatus='';
+        localTestSequence++;localTestPosition=null;geo.request++;geo.pending=false;geo.enabled=false;geo.status='idle';
+        clearTimeout(geo.timer);clearTimeout(geo.expiryTimer);position=undefined;clearPlayerMarker();
         try {localStorage.removeItem(saveKey);localStorage.removeItem(beforePlayKey);}catch {}
         progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};mismatchSeen=false;
+        if(debugSession){const url=new URL(location.href);url.searchParams.delete('test');url.searchParams.delete('preview');location.replace(url);return;}
         SM.letterTutorial.reset();stage='';closeDialog();$('#courier-save-notice').hidden=true;showBeforePlay();
     }
     function updateBeforePlaySound() {
@@ -475,14 +481,26 @@
         $('[data-before-play-sound-state]').textContent=on?tr('オン','开启'):tr('オフ','关闭');
     }
     function showBeforePlay() {
+        beforePlayRead=false;
         SM.audio?.resetDialogue();
         root.classList.add('courier-preflight');
         const body=playIntroduction()+`<ul class="before-play-list"><li><span class="before-play-icon">${icon('camera')}</span><div><h3>${tr('カメラ・写真','相机与照片')}</h3><p>${tr('撮影するときは、カメラの使用を許可してください。保存した写真でも遊べます。','使用相机拍摄时，请允许相机权限；也可以选择已有照片。')}</p></div></li><li><span class="before-play-icon">${icon('sound')}</span><div><h3>${tr('音・ボイス','声音与语音')}</h3><p>${tr('効果音と短い声が流れます。あとから右上で切り替えられます。','有音效和简短语音，之后也能在右上角切换。')}</p><div class="before-play-sound-row"><span>${tr('音を使う','开启声音')} <b data-before-play-sound-state></b></span><button type="button" role="switch" aria-label="${tr('音を使う','开启声音')}" aria-checked="false" data-action="before-play-sound"><span></span></button></div></div></li><li><span class="before-play-icon">${icon('pin')}</span><div><h3>${tr('位置情報','位置信息')}</h3><p>${tr('歩いて探索するときに使います。現在地から近くの場所を選びます。許可なしなら、その場で体験できます。','走路探索时用于选择当前位置附近的地点。不授权也可以原地体验。')}</p>${locationControls()}</div></li></ul>${browserAdvice()}<p class="before-play-note">${tr('選んだ写真は、GoogleのGeminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合・写真・配達先はこのブラウザーにも保存されます。','所选照片会发送给Google Gemini识别，请避免拍入人脸或个人信息。进度、照片和送信路线也会保存在当前浏览器。')}</p>`;
-        openDialog(tr('はじめる前に','开始之前'),body,`<button type="button" class="courier-primary" data-action="begin-play"><span>${tr('はじめる','开始游戏')}</span>${icon('arrow')}</button>`,'before-play');
+        openDialog(tr('はじめる前に','开始之前'),body,`<p class="before-play-scroll-hint" id="before-play-scroll-hint" role="status">${tr('下までスクロールしてください','请滑动到最底部')}</p><button type="button" class="courier-primary" data-action="begin-play" aria-describedby="before-play-scroll-hint" disabled><span>${tr('はじめる','开始游戏')}</span>${icon('arrow')}</button>`,'before-play');
         updateBeforePlaySound();updateLocationUI();
+        $('#courier-dialog-body').scrollTop=0;
         const heading=$('#courier-dialog-title');heading.tabIndex=-1;heading.focus({preventScroll:true});
+        requestAnimationFrame(updateBeforePlayRead);
+    }
+    function updateBeforePlayRead() {
+        if(!$('#courier-dialog').open||!$('#courier-dialog').classList.contains('before-play'))return;
+        const body=$('#courier-dialog-body'),button=$('[data-action="begin-play"]');
+        if(!button||body.clientHeight<1)return;
+        if(body.scrollHeight-body.clientHeight-body.scrollTop<=2)beforePlayRead=true;
+        button.disabled=!beforePlayRead;
+        $('#before-play-scroll-hint').hidden=beforePlayRead;
     }
     function beginPlay() {
+        if(!beforePlayRead)return;
         try {localStorage.setItem(beforePlayKey,'seen');} catch { /* Starting the game does not require browser storage. */ }
         $('#courier-dialog').classList.remove('before-play');
         saveReady=true;root.classList.remove('courier-preflight');closeDialog();render();
@@ -634,12 +652,13 @@
     }
     function closeDialog(){if($('#courier-dialog').open&&$('#courier-dialog-body .journey-handoff'))SM.audio?.dialogue('journey:handoff-closed',null);$('#courier-dialog').close();}
     function openJournal() {
-        const voiceCredit=feedbackLink()+`<p class="courier-footnote">${tr('写真はGoogle Geminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合・写真・配達先はこのブラウザーに保存されます。','照片将发送给Google Gemini识别，请避免拍入人脸或个人信息。进度、照片和送信路线保存在当前浏览器。')}</p><button type="button" class="courier-text permission-journal-link" data-action="location-settings">${icon('pin')}${tr('位置情報・ブラウザーの設定','定位与浏览器设置')}</button><button type="button" class="courier-text" data-action="restart">${tr('最初からやり直す','从头重新开始')}</button>`+'<p class="courier-footnote">音声素材：<a href="https://amitaro.net/" target="_blank" rel="noopener noreferrer">あみたろの声素材工房</a></p>';
+        const restartControl=`<button type="button" class="courier-text courier-quick-restart" data-action="restart">${tr('最初からやり直す','清除进度，重新开始')}</button>`;
+        const voiceCredit=feedbackLink()+`<p class="courier-footnote">${tr('写真はGoogle Geminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合・写真・配達先はこのブラウザーに保存されます。','照片将发送给Google Gemini识别，请避免拍入人脸或个人信息。进度、照片和送信路线保存在当前浏览器。')}</p><button type="button" class="courier-text permission-journal-link" data-action="location-settings">${icon('pin')}${tr('位置情報・ブラウザーの設定','定位与浏览器设置')}</button>`+'<p class="courier-footnote">音声素材：<a href="https://amitaro.net/" target="_blank" rel="noopener noreferrer">あみたろの声素材工房</a></p>';
         if(SM.letterTutorial.isActive()) {
-            openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal()+voiceCredit,'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>');return;
+            openDialog(SM.state.currentLang==='zh'?'第一封信':'最初の手紙',SM.letterTutorial.journal()+voiceCredit,'<button class="courier-text" data-action="close">'+(SM.state.currentLang==='zh'?'返回邮局':'郵便局に戻る')+'</button>'+restartControl);$('#courier-dialog-body').scrollTop=0;return;
         }
         const route=progress.done?'':`<details class="wordbook-extra"><summary>${tr('配達のようす','送信进度')}</summary><ol class="courier-itinerary">${steps.map((_,i)=>{const s=stepAt(i),done=progress.cards.some(c=>c.step===i);return `<li class="${i===progress.index?'current':''}"><span>${done?'✓':i+1}</span><div><h3>${s.short}</h3><p>${s.place}</p></div></li>`;}).join('')}</ol></details>`;
-        openDialog(tr('写真のことば帳','照片单词本'),wordbook()+route+`<details class="wordbook-extra"><summary>${tr('設定・このゲームについて','设置与游戏信息')}</summary>${voiceCredit}</details>`,`<button class="courier-primary" data-action="close">${tr(progress.done?'ことば帳をとじる':'旅を続ける',progress.done?'合上单词本':'继续旅程')}${icon('arrow')}</button>`,'wordbook');
+        openDialog(tr('写真のことば帳','照片单词本'),wordbook()+route+`<details class="wordbook-extra"><summary>${tr('設定・このゲームについて','设置与游戏信息')}</summary>${voiceCredit}</details>`,`<button class="courier-primary" data-action="close">${tr(progress.done?'ことば帳をとじる':'旅を続ける',progress.done?'合上单词本':'继续旅程')}${icon('arrow')}</button>`+restartControl,'wordbook');
         $('#courier-dialog-body').scrollTop=0;
     }
     function sampleCard(key) {
@@ -788,7 +807,7 @@
             case 'field-mode':cancelNearby();progress.mode='field';closeDialog();render();if(needsNearbyRoute())searchNearby();else locate();break;
             case 'nearby-search':searchNearby();break;
             case 'nearby-wider':searchNearby(10000);break;
-            case 'restart':openDialog(tr('もう一度、ポコと旅をする？','再陪它走一次？'),`<p class="courier-dialog-intro">${tr('今回の進み具合と写真カードを消して、最初から始めます。','这会清除本次旅程的进度与照片卡片。')}</p>`,`<button class="courier-primary" data-action="confirm-restart">${tr('最初から始める','重新开始')}</button><button class="courier-text" data-action="close">${tr('この旅を続ける','保留这次旅程')}</button>`);break;
+            case 'restart':openDialog(tr('最初からやり直す？','清除进度，重新开始？'),`<p class="courier-dialog-intro">${tr('今回の進み具合と写真カードを消して、最初から始めます。','这会清除本次旅程的进度与照片卡片。')}</p>`,`<button class="courier-primary" data-action="confirm-restart">${tr('最初から始める','重新开始')}</button><button class="courier-text" data-action="close">${tr('この旅を続ける','保留这次旅程')}</button>`);break;
             case 'confirm-restart':restartGame();break;
         }
     }

@@ -12,7 +12,7 @@ async function setup(init){
     await page.goto(origin,{waitUntil:'domcontentloaded'});
     return {page,context};
 }
-async function begin(page){await page.getByRole('button',{name:'はじめる',exact:true}).click();}
+async function begin(page){await page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=e.scrollHeight);await page.getByRole('button',{name:'はじめる',exact:true}).click();}
 async function pen(page){for(let n=0;n<4;n++)await page.locator('[data-letter-action="open"]').click();await page.locator('[data-letter-action="photo"]').waitFor();}
 async function sample(page){
     await page.locator('#courier-actions [data-action="sample"]').click();
@@ -79,8 +79,7 @@ try{
     await page.locator('.courier-header [data-action="journal"]').click();
     assert.equal(await page.locator('#courier-dialog .wordbook-card').count(),7,'All opening and delivery photographs appear in the notebook');
     assert.equal(await page.locator('#courier-dialog .wordbook-photo img').count(),7);
-    await page.locator('#courier-dialog .wordbook-extra').last().locator('summary').click();
-    await page.locator('#courier-dialog [data-action="restart"]').click();await page.locator('[data-action="confirm-restart"]').click();
+    await page.locator('#courier-dialog-footer [data-action="restart"]').click();await page.locator('[data-action="confirm-restart"]').click();
     assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),null);
     await reload(page,'#courier-dialog.before-play[open]');
     await context.close();
