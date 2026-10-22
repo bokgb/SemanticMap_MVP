@@ -39,7 +39,7 @@ try{
     const dialog=page.locator('#courier-dialog.before-play[open]');
     await dialog.waitFor();
     assert.equal(await page.getByRole('heading',{name:'はじめる前に'}).count(),1);
-    assert.ok((await dialog.innerText()).includes('許可なしでも遊べます'));
+    assert.ok((await dialog.innerText()).includes('許可なしなら、その場で体験できます'));
     assert.equal(await page.locator('.tutorial-room').count(),0,'Opening waits for the start button');
     assert.deepEqual(await page.evaluate(()=>permissionProbe),[]);
     assert.equal(await page.evaluate(()=>audioProbe.contexts),0,'No audio context before a gesture');

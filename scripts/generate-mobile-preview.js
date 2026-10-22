@@ -32,11 +32,12 @@ const routes = [
   { path: '/?preview=letter-second', title: '逐段写信 · 第二个问题', readySelector: '.courier-story', letterWriting: true, letterSecond: true },
   { path: '/?test=departure', title: '准备送信 · 波可收好信封', readySelector: '.journey-departure-stage' },
   { path: '/?test=route', title: '送信地图 · 明确车站终点与便利店', readySelector: '.journey-travel' },
+  { path: '/?test=route&preview=nearby', title: '衣笠附近探索 · 现有地点数据（模拟定位）', readySelector: '.journey-travel', nearbyCity:true },
   { path: '/?test=shop-arrival', title: '便利店相遇 · 米娜登场', readySelector: '.journey-shop-stage' },
   { path: '/?test=shop', title: '便利店委托 · 自由挑选旅途食物', readySelector: '.journey-quest-ticket' },
   { path: '/?test=shop-receipt', title: '补给特写 · 等待装进邮包', readySelector: '.journey-item-card' },
   { path: '/?test=shop-receipt&preview=packed', title: '补给完成 · 邮包与地点邮戳', readySelector: '.journey-item-card', supplyPacked: true },
-  { path: '/?test=park', title: 'OIC 送信途中 · 公园风景', readySelector: '.journey-quest-ticket', courierPark: true },
+  { path: '/?test=park', title: '送信途中 · 公园风景', readySelector: '.journey-quest-ticket', courierPark: true },
   { path: '/?test=ending', title: '旅程完成 · 照片单词本', readySelector: '.journey-ending .wordbook' },
   { path: '/?test=ending&preview=wordbook', title: '照片单词本 · 全部收集与读音', readySelector: '.journey-ending .wordbook', wordbook: true },
   { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
@@ -235,6 +236,14 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.nearbyCity){
+    await page.evaluate(()=>{
+      navigator.geolocation.getCurrentPosition=success=>success({coords:{latitude:35.0325428,longitude:135.7240146,accuracy:15}});
+      navigator.geolocation.watchPosition=()=>1;navigator.geolocation.clearWatch=()=>{};
+    });
+    await page.locator('.courier-mode-btn').click();await page.locator('[data-action="field-mode"]').click();
+    await page.locator('.journey-stop-card').waitFor();
+  }
   if(route.wordbook){
     await page.locator('.courier-header [data-action="journal"]').click();
     await page.locator('#courier-dialog.wordbook-dialog').waitFor();

@@ -873,3 +873,19 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 @keyframes wordbook-paste { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @media(max-width:350px) { #courier-dialog.wordbook-dialog #courier-dialog-body { padding:0 12px 18px; } .wordbook { padding:22px 12px 14px 22px; } .wordbook-grid { gap:23px 10px; } #courier-app .wordbook-heading h2 { font-size:20px; } .wordbook-count { width:54px; height:54px; } .wordbook-card ruby { font-size:19px; } }
 @media(prefers-reduced-motion:reduce) { .wordbook-card { animation:none; } }
+.nearby-map-placeholder { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:#93a17e; background:radial-gradient(ellipse at 50% 45%,#fbf6df,#e4ead8); }
+#courier-app .nearby-map-placeholder>svg { width:66px; height:66px; stroke-width:.8; }
+.nearby-map-placeholder>span { font:15px "Yu Mincho",serif; letter-spacing:.2em; }
+#courier-app #courier-map[hidden],.nearby-map-placeholder[hidden] { display:none!important; }
+.nearby-setup { max-width:500px; margin:0 auto; padding:28px 8px; text-align:center; }
+.nearby-search-mark { display:grid; place-items:center; width:75px; height:75px; margin:0 auto 23px; border:1px dashed #9baa85; border-radius:50%; background:#edf1e1; color:#6b8359; }
+#courier-app .nearby-search-mark svg { width:32px; height:32px; }
+.nearby-search-mark.is-searching { animation:nearby-search-pulse 1.5s ease-in-out infinite; }
+.nearby-setup h2 { font:500 25px/1.6 "Yu Mincho","SimSun",serif; color:#4d6845; text-wrap:balance; }
+.nearby-setup-copy { margin:15px 0 23px; font-size:13px; line-height:1.9; color:#727e64; }
+.nearby-stop-list { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:20px 0; }
+.nearby-stop-list>span { display:flex; align-items:center; gap:7px; padding:10px 12px; background:#edf0e4; color:#6e805c; font-size:12px; border-radius:5px; }
+@keyframes nearby-search-pulse { 50% { opacity:.55; transform:translateY(-4px); } }
+@media(prefers-reduced-motion:reduce) { .nearby-search-mark.is-searching { animation:none; } }
+
+.journey-stop-card strong,.journey-counter>span { overflow-wrap:anywhere; }

@@ -316,7 +316,7 @@
             body.innerHTML=sentSummary(!sentPresented);sentPresented=true;
             animateCompletionDialogue(body);
             host.expression(room.querySelector('.courier-robot'),'happy');
-            footer.innerHTML=`<p class="completion-next">${host.mode?.()==='preview'?t('つぎは、コンビニの場面へ。移動は不要です。','下一步进入便利店场景，无需实际移动。'):t('次の委託：旅の準備。キャンパスのコンビニへ。','下一份委托：准备旅行，前往校园便利店。')}</p>`+button('field',t('ポコと手紙を届けにいく','和波可一起去送信'),'pin')+`<button type="button" class="courier-text letter-stay" data-letter-action="stay">${t('今日はここまで','今天先到这里')}</button>`;
+            footer.innerHTML=(host.mode?.()==='preview'?'':`<p class="completion-next">${t('つぎは、近くのコンビニへ。','接下来去附近的便利店。')}</p>`)+button('field',t('ポコと手紙を届けにいく','和波可一起去送信'),'pin')+`<button type="button" class="courier-text letter-stay" data-letter-action="stay">${t('今日はここまで','今天先到这里')}</button>`;
         }
         if(!arrival&&!reward&&target()&&footer.querySelector('[data-letter-action="photo"]'))footer.insertAdjacentHTML('beforeend',host.photoAlternatives?.()||'');
         followInk();
