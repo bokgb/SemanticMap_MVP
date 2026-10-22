@@ -12,6 +12,12 @@ const outputFile = path.join(outputDir, 'mobile-preview.html');
 const host = '127.0.0.1';
 const port = Number(process.env.PORT || 9321);
 const baseURL = `http://${host}:${port}`;
+// Private test coordinates stay outside version control; public campus fallback for other checkouts.
+let testLocation={lat:35.0325428,lng:135.7240146};
+try {
+  const point=JSON.parse(await fs.readFile(path.join(root,'test-location.local.json'),'utf8'));
+  if(Number.isFinite(point.lat)&&Number.isFinite(point.lng)&&Math.abs(point.lat)<=90&&Math.abs(point.lng)<=180)testLocation={lat:point.lat,lng:point.lng};
+}catch {}
 
 const routes = [
   { path: '/', title: '首次进入 · 拍照、音效与定位授权', readySelector: '#courier-dialog.before-play[open]', beforePlay:true, locationPermission:'prompt' },
@@ -32,7 +38,8 @@ const routes = [
   { path: '/?preview=letter-second', title: '逐段写信 · 第二个问题', readySelector: '.courier-story', letterWriting: true, letterSecond: true },
   { path: '/?test=departure', title: '准备送信 · 波可收好信封', readySelector: '.journey-departure-stage' },
   { path: '/?test=route', title: '送信地图 · 明确车站终点与便利店', readySelector: '.journey-travel' },
-  { path: '/?test=route&preview=nearby', title: '衣笠附近探索 · 现有地点数据（模拟定位）', readySelector: '.journey-travel', nearbyCity:true },
+  { path: '/?test=nearby', title: '默认测试位置 · 附近探索（模拟定位）', readySelector: '.courier-map-explore .courier-sheet-toggle', nearbyCity:true },
+  { path: '/?test=nearby&preview=open', title: '探索详情 · 上拉面板与固定按钮', readySelector: '.courier-map-explore .courier-sheet-toggle', nearbyCity:true, sheetOpen:true },
   { path: '/?test=shop-arrival', title: '便利店相遇 · 米娜登场', readySelector: '.journey-shop-stage' },
   { path: '/?test=shop', title: '便利店委托 · 自由挑选旅途食物', readySelector: '.journey-quest-ticket' },
   { path: '/?test=shop-receipt', title: '补给特写 · 等待装进邮包', readySelector: '.journey-item-card' },
@@ -223,6 +230,7 @@ function openFile(filePath) {
 async function captureRoute(context, route) {
   const page = await context.newPage();
   await installOfflineLeafletStubs(page);
+  if(route.nearbyCity)await page.route('**/test-location.local.json',request=>request.fulfill({status:200,contentType:'application/json',body:JSON.stringify(testLocation)}));
   if(route.locationPermission)await page.addInitScript(value=>{
     navigator.permissions.query=async()=>({state:value,onchange:null});
   },route.locationPermission);
@@ -237,12 +245,8 @@ async function captureRoute(context, route) {
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
   if(route.nearbyCity){
-    await page.evaluate(()=>{
-      navigator.geolocation.getCurrentPosition=success=>success({coords:{latitude:35.0325428,longitude:135.7240146,accuracy:15}});
-      navigator.geolocation.watchPosition=()=>1;navigator.geolocation.clearWatch=()=>{};
-    });
-    await page.locator('.courier-mode-btn').click();await page.locator('[data-action="field-mode"]').click();
-    await page.locator('.journey-stop-card').waitFor();
+    await page.addStyleTag({content:'.courier-test-menu{display:none!important}'});
+    if(route.sheetOpen)await page.locator('.courier-sheet-toggle').click();
   }
   if(route.wordbook){
     await page.locator('.courier-header [data-action="journal"]').click();

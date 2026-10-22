@@ -59,7 +59,7 @@ try {
   const ok = await setup();
   assert.equal(ok.calls(), 0, 'No dataset download or location search before the user requests it');
   await start(ok.page);
-  await ok.page.locator('.journey-stop-card').waitFor();
+  await ok.page.locator('.journey-stop-card').waitFor({state: 'attached'});
   assert.equal(ok.calls(), 1);
   assert.deepEqual((await savedRoute(ok.page)).stops, kyoto.stops, 'Browser uses the actual existing file');
   assert.ok(!(await ok.page.locator('#courier-app').innerText()).match(/OIC|茨木|岩倉|未知地点/));
@@ -79,7 +79,7 @@ try {
   const firstRoute = await savedRoute(ok.page);
   await ok.context.setGeolocation({latitude: 34.69, longitude: 135.5, accuracy: 10});
   await ok.page.reload();
-  await ok.page.locator('.journey-stop-card').waitFor();
+  await ok.page.locator('.journey-stop-card').waitFor({state: 'attached'});
   assert.deepEqual(await savedRoute(ok.page), firstRoute, 'Moving or reloading never rerolls an in-progress route');
   assert.equal(ok.calls(), 1, 'Restoring a route needs no new dataset download');
   await ok.page.setViewportSize({width: 390, height: 844});
@@ -114,14 +114,14 @@ try {
 
   const osaka = await setup({lat: 34.69, lng: 135.5});
   await start(osaka.page);
-  await osaka.page.locator('.journey-stop-card').waitFor();
+  await osaka.page.locator('.journey-stop-card').waitFor({state: 'attached'});
   assert.deepEqual((await savedRoute(osaka.page)).stops.map(s => s.name), ['ファミリーマート', '京町堀公園', '淀屋橋']);
   await osaka.context.close();
 
   const wider = await setup({lat: 35.1, lng: 135.75});
   await start(wider.page);
   await wider.page.locator('[data-action="nearby-wider"]').click();
-  await wider.page.locator('.journey-stop-card').waitFor();
+  await wider.page.locator('.journey-stop-card').waitFor({state: 'attached'});
   assert.equal((await savedRoute(wider.page)).radius, 10000);
   assert.equal(wider.calls(), 1, 'Widening reuses downloaded data');
   await wider.context.close();
@@ -135,7 +135,7 @@ try {
     assert.equal(await savedRoute(outside.page), undefined, 'No distant OIC or invented fallback');
     await outside.page.screenshot({path: `work/nearby/outside-${coordinates.lat}.png`, animations: 'disabled'});
     await outside.page.locator('#courier-actions [data-action="preview-mode"]').click();
-    await outside.page.locator('.journey-stop-card').waitFor();
+    await outside.page.locator('.journey-stop-card').waitFor({state: 'attached'});
     assert.equal(outside.calls(), 1);
     assert.ok(await outside.page.locator('#courier-map').isHidden());
     await outside.context.close();
@@ -147,7 +147,7 @@ try {
     assert.equal(test.calls(), 0);
     assert.equal(await test.page.locator('.journey-stop-card').count(), 0);
     await test.page.locator('#courier-actions [data-action="preview-mode"]').click();
-    await test.page.locator('.journey-stop-card').waitFor();
+    await test.page.locator('.journey-stop-card').waitFor({state: 'attached'});
     await test.context.close();
   }
   const failure = await setup({serveData: (route, calls) => calls === 1 ? route.fulfill({status: 503, body: 'Unavailable'}) : route.continue()});
@@ -155,7 +155,7 @@ try {
   await failure.page.locator('#courier-actions [data-action="nearby-search"]').waitFor();
   assert.equal(await failure.page.locator('.journey-stop-card').count(), 0);
   await failure.page.locator('#courier-actions [data-action="nearby-search"]').click();
-  await failure.page.locator('.journey-stop-card').waitFor();
+  await failure.page.locator('.journey-stop-card').waitFor({state: 'attached'});
   assert.equal(failure.calls(), 2, 'Dataset download can be retried after a failure');
   await failure.context.close();
 
@@ -167,7 +167,7 @@ try {
   await download;
   await cancelled.page.locator('#courier-actions [data-action="preview-mode"]').click();
   release();
-  await cancelled.page.locator('.journey-stop-card').waitFor();
+  await cancelled.page.locator('.journey-stop-card').waitFor({state: 'attached'});
   assert.equal(await savedRoute(cancelled.page), undefined);
   await cancelled.context.close();
 

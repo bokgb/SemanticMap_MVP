@@ -8,3 +8,4 @@ storybook-static/
 playwright-report/
 test-results/
 debug.log
+test-location.local.json

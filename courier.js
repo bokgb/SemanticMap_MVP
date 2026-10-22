@@ -54,6 +54,7 @@
     let root, map, markers, pendingPhoto = '', busy = false, aborter, position, watchId;
     let lastFocus, stage = '', mounted = false, scanSequence = 0, playerMarker, mismatchSeen = false;
     const localTest=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+    let localTestPosition=null,localTestSequence=0;
     // Arrival remains player-confirmed; GPS is used to discover the route, not to lock tasks.
     const locationChecksEnabled=false;
     const beforePlayKey='kotoba-hunter-before-play-v2';
@@ -66,12 +67,14 @@
     let saveReady=false,hasSavedGame=false,lastSaved='',saveStatus='';
     const geo={permission:'checking',status:'idle',enabled:false,request:0,watchRequest:0,pending:false,permissionStatus:null,timer:null,expiryTimer:null};
     let mapFocus='route',mapViewKey='',routeLine;
+    let sheetOpen=false,sheetStep='',sheetDrag=null,sheetSuppressClick=false,sheetPeek=150;
     const nearbySearch={status:'idle',missing:[],radius:3000,controller:null,sequence:0};
     const testStarts={welcome:'最初から',reply:'手紙を書こう','missing-pen':'ペンが見つからない','photo-world':'写真の力を知る',pen:'ペンを撮る',letter:'手紙① · 朝ごはん',cute:'手紙② · 道での発見',drink:'手紙③ · ひと休み',ready:'手紙完成 · 封筒へ',sent:'封筒の準備完了',shop:'コンビニの委託',park:'公園の思い出',station:'駅で待ち合わせ',ending:'配達完了'};
     let testOrigin='welcome';
     Object.assign(testStarts,{departure:'ポコと出発',route:'配達マップ · コンビニ', 'shop-arrival':'ミナに会う','shop-receipt':'おともをバッグへ'});
     testStarts['pen-thanks']='ペンが届いた · ポコのありがとう';
     testStarts['before-play']='はじめる前に';
+    testStarts.nearby='テスト位置 · 周辺探索';
     const $ = selector => root.querySelector(selector);
     const current = () => stepAt(progress.index);
     const targets = () => SM.letterTutorial.isActive() ? [SM.letterTutorial.target()].filter(Boolean) : current().targets || [];
@@ -112,6 +115,8 @@
         <section class="courier-story" aria-label="いまの委託"><header class="courier-story-header"><span id="courier-chapter"></span><button class="courier-mode-btn" data-action="mode"></button></header><div id="courier-story-body" tabindex="-1"></div><footer class="courier-story-footer" id="courier-actions"></footer></section>
         <input id="courier-file" type="file" accept="image/*" capture="environment" hidden><div id="courier-status" role="status" aria-live="polite"></div><dialog id="courier-dialog"><header><h2 id="courier-dialog-title"></h2><button class="courier-icon-btn" data-action="close" aria-label="閉じる">${icon('close')}</button></header><div id="courier-dialog-body"></div><footer id="courier-dialog-footer"></footer></dialog>`;
         document.body.append(root);
+        $('.courier-story').insertAdjacentHTML('afterbegin',`<header class="courier-sheet-header" hidden><button type="button" class="courier-sheet-toggle" data-action="toggle-sheet" aria-expanded="false" aria-controls="courier-story-body"><span class="courier-sheet-grip" aria-hidden="true"></span><span class="courier-sheet-destination"><small data-sheet-step></small><strong data-sheet-place></strong></span><span class="courier-sheet-disclosure"><span data-sheet-label></span>${icon('arrow')}</span></button></header>`);
+        initExplorationSheet();
         $('#courier-file').insertAdjacentHTML('afterend','<input id="courier-album" type="file" accept="image/*" hidden><p id="courier-save-notice" role="status" hidden></p>');
         $('.courier-world').insertAdjacentHTML('beforeend',`<div class="courier-location-map"><span>${tr('きみの街の配達','你所在城市的送信之旅')}</span><button type="button" data-action="location-settings">${icon('pin')}<span data-location-map-status>${tr('現在地は未確認','尚未获取当前位置')}</span></button></div>`);
         const soundButton=document.createElement('button');
@@ -168,6 +173,9 @@
     }
     function jumpToTest(key,updateURL=true) {
         if(!localTest||(!Object.hasOwn(testStarts,key)&&key!=='food'))return;
+        const sequence=++localTestSequence;
+        if(key==='nearby'){startNearbyTest(sequence,updateURL);return;}
+        localTestPosition=null;
         cancelScan();cancelNearby();closeDialog();stage='';pendingPhoto='';position=undefined;mismatchSeen=false;
         stopLocationWatch();geo.request++;clearTimeout(geo.timer);geo.pending=false;geo.enabled=false;geo.status='idle';
         clearPlayerMarker();mapFocus='route';mapViewKey='';
@@ -197,6 +205,27 @@
             if(!map)initMap();requestAnimationFrame(()=>map?.invalidateSize());
         }
     }
+    async function startNearbyTest(sequence,updateURL) {
+        try {
+            const response=await fetch('./test-location.local.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});
+            if(!response.ok)throw new Error('Missing local test location');
+            const point=await response.json();
+            if(!Number.isFinite(point.lat)||!Number.isFinite(point.lng)||Math.abs(point.lat)>90||Math.abs(point.lng)>180)throw new Error('Invalid local test location');
+            const result=await SM.nearby.search({lat:point.lat,lng:point.lng},3000);
+            if(sequence!==localTestSequence)return;
+            if(result.missing.length)throw new Error('Incomplete nearby route');
+            jumpToTest('route',false);
+            localTestPosition={lat:point.lat,lng:point.lng};
+            progress.mode='field';progress.route=result.route;testOrigin='nearby';
+            receiveLocation({coords:{latitude:point.lat,longitude:point.lng,accuracy:10}});
+            if(updateURL){const url=new URL(location.href);url.searchParams.set('test','nearby');history.replaceState(null,'',url);}
+            root.querySelectorAll('[data-test-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.testStart==='nearby')));
+            $('.courier-test-menu summary').textContent=testStarts.nearby;
+            mapFocus='route';mapViewKey='';render();
+        }catch {
+            if(sequence===localTestSequence)$('#courier-status').textContent='テスト位置の設定・周辺データを確認してください。';
+        }
+    }
     function render() {
         saveProgress();
         document.documentElement.lang=SM.state.currentLang==='zh'?'zh-CN':'ja';
@@ -210,7 +239,7 @@
         $('.courier-story').setAttribute('aria-label',tr('いまの委託','当前委托'));
         $('.courier-map-reset').setAttribute('aria-label',tr('配達ルート全体を見る','查看整条路线'));
         $('#courier-dialog [data-action="close"]').setAttribute('aria-label',tr('閉じる','关闭'));
-        if(SM.letterTutorial.isActive()) {root.classList.remove('courier-journey','courier-departure','courier-encounter','courier-travel');$('.journey-departure-stage')?.remove();SM.letterTutorial.render();return;}
+        if(SM.letterTutorial.isActive()) {root.classList.remove('courier-journey','courier-departure','courier-encounter','courier-travel');syncExplorationSheet(false);$('.journey-departure-stage')?.remove();SM.letterTutorial.render();return;}
         root.classList.remove('courier-tutorial','courier-opening','courier-writing','courier-sent','letter-receiving','poco-cheer');
         root.classList.add('courier-journey');root.classList.toggle('courier-departure',progress.phase==='departure');
         root.classList.toggle('courier-travel',progress.phase==='travel'&&!progress.receipt&&!progress.done);
@@ -220,7 +249,8 @@
         const s=current();
         $('#courier-chapter').innerHTML = `<span class="courier-progress-number">${progress.done?'✓':String(progress.index).padStart(2,'0')}</span> / 03 <span>${progress.done?tr('配達完了','送信完成'):tr(['最初の手紙','冷たい飲みもの','緑の思い出','手紙を渡す'][progress.index],s.short)}</span>`;
         $('.courier-mode-btn').textContent=progress.mode==='preview'?tr('その場で体験 ↗','原地体验 ↗'):tr('歩いて探索 ↗','实地探索 ↗');
-        $('.courier-map-heading').innerHTML=`<span class="courier-eyebrow">${tr('メインの委託','主委托')}</span><h1>${icon('mail')}${tr('手紙を、駅前のソラへ。','把信送到车站前的索拉手中。')}</h1><p>${escape([1,2,3].map(i=>stepAt(i).place).join(' → '))}</p>`;
+        const realRoute=progress.mode==='field'&&SM.nearby.validRoute(progress.route);
+        $('.courier-map-heading').innerHTML=`<span class="courier-eyebrow">${tr('お届け先','目的地')}</span><h1>${icon('station')}${escape(realRoute?mapPlaceName(3):tr('手紙を、届けに。','一起去送信。'))}</h1>`;
         $('.courier-map-note').textContent=progress.mode==='preview'?tr('物語のルートです。実際の移動は不要です。','这是故事路线，无需实际移动。'):tr('点線は地点のつながりです。実際の歩道を歩いてね。','虚线表示地点连接，请沿实际道路步行。');
         $('.courier-route-caption').innerHTML=`<span>YOUR TOWN</span><span>${tr('手紙はポコのバッグの中','信正在波可的邮包里')}</span>`;
         if(progress.phase!=='departure')$('.journey-departure-stage')?.remove();
@@ -229,6 +259,7 @@
             $('#courier-story-body').innerHTML=view.body;$('#courier-actions').innerHTML=view.footer;
         }else if(progress.phase==='departure')renderJourney('departure');
         else { $('.journey-departure-stage')?.remove();if(progress.done)renderEnding();else if(progress.receipt)renderReceipt();else if(progress.phase==='travel')renderJourney('travel');else renderTask(); }
+        syncExplorationSheet(realRoute&&progress.phase==='travel'&&!progress.receipt&&!progress.done);
         updateMap();
         if($('#courier-actions .courier-primary[data-action="photo"]'))$('#courier-actions').insertAdjacentHTML('beforeend',photoAlternatives());
     }
@@ -253,13 +284,77 @@
     function routePoints(){
         return progress.mode==='field'&&SM.nearby.validRoute(progress.route)?[progress.route.origin,...progress.route.stops]:[];
     }
+    function mapPlaceName(index){
+        const name=stepAt(index).place;
+        return index===3&&SM.state.currentLang!=='zh'&&!/駅$|station$/i.test(name)?name+'駅':name;
+    }
+    function syncSheetCover(){
+        if(!root.classList.contains('courier-map-explore'))return;
+        const height=$('.courier-story').getBoundingClientRect().height;
+        root.style.setProperty('--sheet-cover',height+'px');
+        if(!sheetOpen&&!sheetDrag)sheetPeek=height;
+    }
+    function syncExplorationSheet(active){
+        const key=progress.index+':'+progress.route?.createdAt;
+        if(!active||key!==sheetStep){sheetOpen=false;sheetDrag=null;sheetStep=active?key:'';$('.courier-story').style.height='';root.classList.remove('courier-sheet-dragging');}
+        root.classList.toggle('courier-map-explore',active);
+        root.classList.toggle('courier-sheet-open',active&&sheetOpen);
+        $('.courier-sheet-header').hidden=!active;
+        $('[data-sheet-location]').hidden=!active;
+        $('#courier-story-body').inert=active&&!sheetOpen;
+        $('.courier-story-header').inert=active&&!sheetOpen;
+        if(!active){root.style.removeProperty('--sheet-cover');return;}
+        $('[data-sheet-location] span').textContent=tr('現在地の設定','定位设置');
+        $('[data-sheet-step]').textContent=String(progress.index).padStart(2,'0')+' / 03 · '+tr(['','コンビニ','公園','駅'][progress.index],['','便利店','公园','车站'][progress.index]);
+        $('[data-sheet-place]').textContent=mapPlaceName(progress.index);
+        $('[data-sheet-label]').textContent=sheetOpen?tr('閉じる','收起'):tr('詳細','详情');
+        $('.courier-sheet-toggle').setAttribute('aria-expanded',String(sheetOpen));
+        $('.courier-sheet-toggle').setAttribute('aria-label',tr(sheetOpen?'詳細を閉じて地図を広く見る':'詳細をひらく。上に引いても開きます。',sheetOpen?'收起详情，展开地图':'展开详情，也可以向上拖动打开'));
+        syncSheetCover();
+    }
+    function setSheetOpen(open){
+        if(!root.classList.contains('courier-map-explore'))return;
+        const panel=$('.courier-story'),before=panel.getBoundingClientRect().top;
+        sheetOpen=open;panel.style.height='';root.classList.remove('courier-sheet-dragging');
+        syncExplorationSheet(true);
+        if(!open&&$('#courier-story-body').contains(document.activeElement))$('.courier-sheet-toggle').focus({preventScroll:true});
+        const offset=before-panel.getBoundingClientRect().top;
+        if(offset&&!matchMedia('(prefers-reduced-motion: reduce)').matches)panel.animate([{transform:`translateY(${offset}px)`},{transform:'translateY(0)'}],{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'});
+        syncSheetCover();updateMap();
+    }
+    function initExplorationSheet(){
+        const toggle=$('.courier-sheet-toggle'),panel=$('.courier-story');
+        $('.courier-story-header').insertAdjacentHTML('afterbegin',`<button type="button" class="courier-text courier-sheet-location" data-action="location-settings" data-sheet-location hidden>${icon('pin')}<span></span></button>`);
+        toggle.addEventListener('pointerdown',event=>{
+            if(!root.classList.contains('courier-map-explore')||!event.isPrimary||event.button!==0)return;
+            sheetDrag={id:event.pointerId,y:event.clientY,height:panel.getBoundingClientRect().height,moved:false};
+            toggle.setPointerCapture(event.pointerId);
+        });
+        toggle.addEventListener('pointermove',event=>{
+            if(!sheetDrag||sheetDrag.id!==event.pointerId)return;
+            const delta=sheetDrag.y-event.clientY;
+            if(Math.abs(delta)<6&&!sheetDrag.moved)return;
+            event.preventDefault();sheetDrag.moved=true;root.classList.add('courier-sheet-dragging');
+            const max=Math.min(400,root.clientHeight-$('.courier-header').offsetHeight-96);
+            panel.style.height=Math.max(sheetPeek,Math.min(max,sheetDrag.height+delta))+'px';syncSheetCover();
+        });
+        const finish=(event,cancel=false)=>{
+            if(!sheetDrag||sheetDrag.id!==event.pointerId)return;
+            const drag=sheetDrag,delta=drag.y-event.clientY;sheetDrag=null;
+            if(drag.moved){sheetSuppressClick=true;setTimeout(()=>sheetSuppressClick=false,350);setSheetOpen(cancel?sheetOpen:Math.abs(delta)>32?delta>0:sheetOpen);}
+        };
+        toggle.addEventListener('pointerup',event=>finish(event));toggle.addEventListener('pointercancel',event=>finish(event,true));
+        root.addEventListener('keydown',event=>{if(event.key==='Escape'&&sheetOpen&&!$('#courier-dialog').open){event.preventDefault();setSheetOpen(false);toggle.focus();}});
+        new ResizeObserver(()=>{if(root.classList.contains('courier-map-explore')){syncSheetCover();if(!sheetDrag)requestAnimationFrame(updateMap);}}).observe(panel);
+    }
     function initMap() {
         const centre=routePoints()[0]||position;
         if(progress.mode!=='field'||!centre)return;
         if(!window.L){$('#courier-map').innerHTML=`<p class="courier-map-error">${tr('地図を読み込めませんでした。物語はそのまま楽しめます。','地图暂时未加载，仍可继续体验故事。')}</p>`;return;}
         map=L.map('courier-map',{zoomControl:false,scrollWheelZoom:false}).setView([centre.lat,centre.lng],16);
         map.on?.('dragstart',()=>{mapFocus='free';});
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+        map.attributionControl?.setPrefix(false);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
         markers=L.layerGroup().addTo(map);updateMap();
         new ResizeObserver(()=>{map.invalidateSize({pan:false});updateMap();}).observe($('#courier-map'));
     }
@@ -274,18 +369,20 @@
         if(routeLine){map.removeLayer?.(routeLine);routeLine=null;}
         if(!points.length){if(position)map.setView([position.lat,position.lng],16);updatePlayerMarker();return;}
         const bounds=$('#courier-map').getBoundingClientRect();
-        const key=progress.index+':'+progress.phase+':'+progress.route.createdAt+':'+bounds.width+':'+bounds.height;
+        const explore=root.classList.contains('courier-map-explore'),bottom=explore?sheetPeek+34:30;
+        const key=progress.index+':'+progress.phase+':'+progress.route.createdAt+':'+bounds.width+':'+bounds.height+':'+bottom;
         routeLine=L.polyline(points.map(s=>[s.lat,s.lng]),{color:'#819477',weight:2,dashArray:'5 9',opacity:.75}).addTo(map);
         if(mapFocus==='route'&&mapViewKey!==key){
-            if(map.fitBounds)map.fitBounds(points.map(s=>[s.lat,s.lng]),{paddingTopLeft:[30,Math.min(105,Math.round(bounds.height*.38))],paddingBottomRight:[Math.min(125,Math.round(bounds.width*.32)),30],maxZoom:16,animate:false});
+            if(map.fitBounds)map.fitBounds(points.map(s=>[s.lat,s.lng]),{paddingTopLeft:[45,Math.min(105,Math.round(bounds.height*.38))],paddingBottomRight:[Math.min(125,Math.round(bounds.width*.32)),bottom],maxZoom:16,animate:false});
             else map.setView([stepAt(progress.index).lat,stepAt(progress.index).lng],16);
         }
         mapViewKey=key;
         points.forEach((s,i)=>{
+            if(i===0)return;
             const done=progress.cards.some(c=>c.step===i),active=i===progress.index&&!progress.done;
-            const title=i===3?tr('お届け先 · ソラ','终点 · 索拉'):stepAt(i).short;
-            const marker=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'courier-marker',html:`<button class="courier-map-pin ${active?'active':''} ${done?'done':''} ${i===3?'destination':''}" aria-label="${escape(stepAt(i).short)}"><span>${done?'✓':active?'!':i===3?'✉':i}</span><b>${escape(title)}</b></button>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(markers);
-            marker.on('click',()=>{if(active){$('#courier-story-body').focus();$('#courier-story-body').scrollTop=0;}else openJournal();});
+            const title=mapPlaceName(i),left=map.latLngToContainerPoint?.([s.lat,s.lng])?.x>bounds.width*.56;
+            const marker=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'courier-marker',html:`<button class="courier-map-pin ${active?'active':''} ${done?'done':''} ${i===3?'destination':''} ${left?'label-left':''}" aria-label="${escape(title)}"><span>${done?'✓':active?'!':i===3?'✉':i}</span><b>${i===3?`<small>${tr('お届け先','目的地')}</small>`:''}${escape(title)}</b></button>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(markers);
+            marker.on('click',()=>{if(root.classList.contains('courier-map-explore'))setSheetOpen(true);else if(active){$('#courier-story-body').focus();$('#courier-story-body').scrollTop=0;}else openJournal();});
         });
         updatePlayerMarker();requestAnimationFrame(()=>map?.invalidateSize({pan:false}));
     }
@@ -434,6 +531,7 @@
         if(mapLabel)mapLabel.textContent=['located','approximate'].includes(status)?tr(copy[0],copy[1]):tr('現在地は未確認 · 設定','尚未获取当前位置 · 设置');
     }
     async function checkLocationPermission() {
+        if(localTestPosition){updateLocationUI();return;}
         if(!navigator.geolocation||!window.isSecureContext){updateLocationUI();return;}
         try {
             const status=await navigator.permissions.query({name:'geolocation'});
@@ -446,6 +544,7 @@
         }catch {if(geo.permission==='checking'||geo.permission==='denied')geo.permission='unknown';updateLocationUI();}
     }
     function applyLocationPermission(value) {
+        if(localTestPosition)value='granted';
         const previous=geo.permission;
         geo.permission=value;
         if(value==='denied'||value==='prompt'){
@@ -481,6 +580,7 @@
         updatePlayerMarker();updateLocationUI();return true;
     }
     function requestLocation() {
+        if(localTestPosition){receiveLocation({coords:{latitude:localTestPosition.lat,longitude:localTestPosition.lng,accuracy:10}});if(needsNearbyRoute())searchNearby();return;}
         if(geo.pending||!navigator.geolocation||!window.isSecureContext||geo.permission==='denied')return;
         geo.enabled=true;geo.pending=true;geo.status='locating';stopLocationWatch();
         const request=++geo.request;
@@ -584,6 +684,7 @@
         if(meters>150){$('#courier-status').textContent=tr(`待ち合わせ場所まで、あと約${Math.round(meters)}m。近くで撮るか、「その場で体験」を選んでね。`,`距会合点约 ${Math.round(meters)} 米。走到附近再拍，或切换到原地体验。`);return false;}return true;
     }
     function locate() {
+        if(localTestPosition)return;
         if(!geo.enabled||geo.permission!=='granted'||document.hidden||watchId!==undefined||!navigator.geolocation)return;
         const request=geo.request,watchRequest=geo.watchRequest;
         watchId=navigator.geolocation.watchPosition(p=>{
@@ -657,6 +758,7 @@
         const sample=event.target.closest('[data-sample]');if(sample){if(!localTest||progress.mode!=='preview')return;const key=sample.dataset.sample;if(key==='wrong') {SM.audio?.play('mismatch');$('#courier-dialog-title').textContent=tr('まだ見つからないね','这次还没找到');$('#courier-dialog-body').insertAdjacentHTML('beforeend',`<p class="courier-sample-feedback">${tr('委託に合うものを選んでみよう。まだ完了していません。','试着选一件委托中需要的物品吧。任务还没有完成。')}</p>`);return;}if(targets().includes(key))accept(key,{demo:true});return;}
         const action=event.target.closest('[data-action]')?.dataset.action;
         switch(action){
+            case 'toggle-sheet':if(sheetSuppressClick){sheetSuppressClick=false;break;}setSheetOpen(!sheetOpen);break;
             case 'location-request':requestLocation();break;
             case 'location-settings':openLocationSettings();break;
             case 'location-recheck':checkLocationPermission();break;
