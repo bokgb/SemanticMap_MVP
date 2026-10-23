@@ -397,7 +397,9 @@
         for(const key of ['pen',...slotOrder]){
             const card=next.captures[key];if(!card)continue;
             if(typeof card.word!=='string'||!card.word||card.word.length>40||typeof card.kana!=='string'||card.kana.length>60||typeof card.photo!=='string'||card.photo.length>1800000)return false;
-            captures[key]={word:card.word,kana:card.kana,photo:card.photo||host.savedImage(card.word),...(card.sample?{sample:true}:{}),...(card.test?{test:true}:{})};
+            const replaceFlower=key==='cute'&&card.sample&&card.photo.startsWith('data:image/svg+xml');
+            const photo=(replaceFlower?host.samplePhoto?.(key):'')||card.photo||host.savedImage(card.word);
+            captures[key]={word:card.word,kana:card.kana,photo,...(card.sample?{sample:true}:{}),...(card.test?{test:true}:{})};
         }
         if(['pen-thanks','writing','sent'].includes(next.phase)&&!captures.pen)return false;
         if((next.phase==='sent'||next.finished)&&!slotOrder.every(key=>captures[key]))return false;

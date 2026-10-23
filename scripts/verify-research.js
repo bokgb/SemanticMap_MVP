@@ -94,7 +94,7 @@ try{
   assert.equal(new URL(await anchor.getAttribute('href')).searchParams.get('entry.955941535'),code);
   await anchor.evaluate(e=>e.addEventListener('click',event=>event.preventDefault()));await anchor.click();
   assert.equal((await saved()).survey_opened,true);
-  await reload('.journey-ending');assert.equal((await saved()).completed_tasks,4);
+  await reload('.courier-week');await page.locator('[data-week="first"]').click();assert.equal((await saved()).completed_tasks,4);
   await page.locator('.courier-header [data-action="journal"]').click();await page.locator('#courier-dialog-footer [data-action="restart"]').click();await page.locator('[data-action="confirm-restart"]').click();
   assert.equal(await saved(),null);await page.locator('#research-consent').check();await page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=e.scrollHeight);await page.locator('[data-action="begin-play"]').click();
   assert.notEqual('KH-'+(await saved()).id.replaceAll('-','').slice(0,12).toUpperCase(),code);

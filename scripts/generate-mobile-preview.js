@@ -49,6 +49,16 @@ const routes = [
   { path: '/?test=shop-receipt&preview=packed', title: '补给完成 · 邮包与地点邮戳', readySelector: '.journey-item-card', supplyPacked: true },
   { path: '/?test=park', title: '送信途中 · 公园风景', readySelector: '.journey-quest-ticket', courierPark: true },
   { path: '/?test=ending', title: '旅程完成 · 照片单词本', readySelector: '.journey-ending .wordbook' },
+  { path: '/?test=mailbox', title: '七日邮局 · 新来信与每日进度', readySelector: '.week-mail-list' },
+  { path: '/?test=day2', title: '第2天 · 收到朋友的回信', readySelector: '.week-letter' },
+  { path: '/?test=day2&preview=bridge', title: '第2天 · 小桥坏了，寻找能送来的东西', readySelector: '.week-letter', bridgePreview:'seek' },
+  { path: '/?test=day2&preview=pen-bridge', title: '第2天 · 拍来的笔变成窄桥', readySelector: '.week-letter', bridgePreview:'pen' },
+  { path: '/?test=day2&preview=leaf-boat', title: '第2天 · 拍来的叶子变成小船', readySelector: '.week-letter', bridgePreview:'leaf' },
+  { path: '/?test=day6&preview=field-map', title: '第6天 · 当前位置与车站目标', readySelector: '.field-letter', fieldPreview:0, fieldLocate:true },
+  { path: '/?test=day3&preview=position', title: '第3天 · 把照片物品放到指定位置', readySelector: '.field-letter', fieldPreview:2 },
+  { path: '/?test=day7&preview=compose', title: '第7天 · 用照片和日语写一周回信', readySelector: '.field-letter', fieldPreview:7 },
+  { path: '/?test=mailbox&preview=explore', title: '自由探索 · 便利店、公园与车站委托', readySelector: '.week-mail-list', weekExplore:true },
+  { path: '/?test=explore&preview=map', title: '自由探索 · 附近的随机委托地图', readySelector: '.free-board', freeLocate:true },
   { path: '/?test=ending&preview=wordbook', title: '照片单词本 · 全部收集与读音', readySelector: '.journey-ending .wordbook', wordbook: true },
   { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
   { path: '/cleaner.html', title: 'Data Cleaner', readySelector: '.container' }
@@ -247,6 +257,41 @@ async function captureRoute(context, route) {
   }
   await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(route.readySelector).waitFor({ state: 'visible', timeout: 15000 });
+  if(route.weekExplore)await page.locator('[data-week="explore"]').click();
+  if(route.freeLocate){await page.locator('[data-free="locate"]').click();await page.waitForFunction(()=>document.querySelector('.free-map-empty')===null);await page.locator('[data-free="list"]').first().click();await page.locator('[data-free="select"]').first().click();}
+  if(route.bridgePreview){
+    await page.locator('[data-week="start"]').click();
+    if(route.bridgePreview!=='seek'){
+      await page.locator('[data-bridge="samples"]').click();
+      await page.locator(`[data-bridge="sample-${route.bridgePreview}"]`).click();
+      await page.locator('[data-bridge="send"]').click();
+      await page.locator('.bridge-object img').evaluate(img=>img.decode());
+    }
+  }
+  if(route.fieldPreview!==undefined){
+    await page.locator('[data-week="start"]').click();
+    if(route.fieldLocate){await page.locator('[data-field="locate"]').click();await page.locator('.field-place-options').waitFor();}
+    const day=Number(route.path.match(/test=day(\d)/)[1]);const tasks=await page.evaluate(day=>SemanticMap.fieldStories[day].tasks,day);
+    for(let n=0;n<route.fieldPreview;n++){
+      const task=tasks[n];
+      if(task.kind==='map')await page.locator('[data-field="local-scene"]').click();
+      else if(task.kind==='photo'){await page.locator('[data-field="sample"]').click();await page.locator('[data-field="use-sample"]').click();await page.locator('[data-field="next"]').click();}
+      else if(task.kind==='place'){await page.locator('[data-field="zone"][data-zone="'+(task.where==='next'?'right':task.where)+'"]').click();await page.locator('[data-field="check"]').click();await page.locator('[data-field="next"]').click();}
+      else if(task.kind==='talk'){await page.locator('[data-field="talk"][data-choice="'+task.answer+'"]').click();await page.locator('[data-field="check"]').click();await page.locator('[data-field="next"]').click();}
+      else if(task.kind==='phrase'){for(let i=task.tokens.length-1;i>=0;i--)await page.locator('[data-field="token"][data-index="'+i+'"]').click();await page.locator('[data-field="check"]').click();await page.locator('[data-field="next"]').click();}
+    }
+  }
+  if(route.weeklyTask){
+    await page.locator('[data-week="start"]').click();
+    const day=Number(route.path.match(/test=day(\d)/)[1]);
+    const tasks=await page.evaluate(day=>SemanticMap.dailyStories()[day].tasks,day);
+    for(let n=0;n<route.weeklyTask;n++){
+      const task=tasks[n];
+      if(task.kind==='pick')await page.locator(`[data-week="pick-${task.answer}"]`).click();
+      else for(let i=task.tokens.length-1;i>=0;i--)await page.locator(`[data-week="token-${i}"]`).click();
+      await page.locator('[data-week="check"]').click();await page.locator('[data-week="next"]').click();
+    }
+  }
   if(route.restartPreview){
     await page.locator('.courier-header [data-action="journal"]').click();
     await page.locator('#courier-dialog-footer [data-action="restart"]').waitFor();

@@ -41,6 +41,22 @@ const server = http.createServer(async (req, res) => {
             res.status(400).json({ error: { message: '无效的 JSON 请求' } });
             return;
         }
+        // Optional development-only bridge to this project's deployed API.
+        // The browser never receives a provider key; production still uses api/gemini.js.
+        if(!process.env.GEMINI_API_KEY&&process.env.GEMINI_DEV_PROXY){
+            try{
+                const remote=new URL(process.env.GEMINI_DEV_PROXY);
+                if(remote.protocol!=='https:')throw Error('HTTPS required');
+                const headers={'Content-Type':'application/json'};
+                if(typeof req.headers['x-game-session']==='string')headers['X-Game-Session']=req.headers['x-game-session'];
+                const response=await fetch(remote,{method:'POST',headers,body:JSON.stringify(req.body),signal:AbortSignal.timeout(30000)});
+                res.statusCode=response.status;
+                res.setHeader('Content-Type',response.headers.get('content-type')||'application/json');
+                if(response.headers.has('retry-after'))res.setHeader('Retry-After',response.headers.get('retry-after'));
+                res.end(await response.text());
+            }catch{res.status(502).json({error:{message:'本地测试暂时无法连接线上识别服务，请稍后重试或使用示例。'}});}
+            return;
+        }
         await geminiHandler(req, res);
         return;
     }

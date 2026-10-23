@@ -1,0 +1,47 @@
+.courier-free #courier-story-body { padding:0!important; overflow:hidden; }
+.courier-free .week-page { height:100%; max-width:100%; }
+.courier-free .courier-story-header { padding-top:12px; padding-bottom:8px; }
+.free-board { height:100%; display:flex; flex-direction:column; min-height:0; }
+.free-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 22px 13px; }
+.free-heading p { margin:0; font-size:9px; color:#8a9878; letter-spacing:.08em; }
+.free-heading p>span { margin-left:15px; font-variant-numeric:tabular-nums; }
+.free-heading h1 { margin:5px 0 0; font-size:24px; line-height:1.6; }
+.free-heading>button { flex:none; font-size:10px!important; }
+.free-map-wrap { position:relative; flex:1; min-height:130px; overflow:hidden; background:#e9edde; }
+#free-map { height:100%; min-height:130px; z-index:0; }
+.free-map-controls { position:absolute; z-index:500; top:12px; left:14px; right:14px; display:flex; justify-content:space-between; gap:8px; pointer-events:none; }
+#courier-app .free-map-controls>button { pointer-events:auto; min-height:44px; padding:10px 12px; border:1px solid #c8d1b9; border-radius:7px; background:#fffdf3f5; color:#536c44; box-shadow:0 3px 10px #66795712; font-size:10px; white-space:nowrap; }
+.free-mode-label { position:absolute; z-index:500; bottom:22px; left:12px; max-width:80%; background:#fffdf1e8; color:#81916c; padding:5px 7px; font-size:9px; pointer-events:none; }
+.free-map-empty { position:absolute; inset:60px 20px 42px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:15px; pointer-events:none; color:#748960; background:#edf0e2dc; border:1px dashed #c5cfb6; border-radius:8px; }
+.free-map-empty>svg { width:34px!important; height:34px; stroke-width:1; }
+.free-map-empty strong { font:20px/1.7 'Yu Mincho','SimSun',serif; font-weight:500; }
+.free-map-empty p { margin:0; text-align:center; font-size:11px; color:#859475; }
+.free-location-status { min-height:32px; margin:0; padding:9px 22px; font-size:10px; color:#7a8c64; background:#f7f7ed; }
+.free-selection { display:flex; align-items:center; gap:12px; padding:0 0 11px; min-height:64px; }
+.free-selection-icon { display:grid; place-items:center; flex:none; width:39px; height:46px; color:#83956e; border-right:1px solid #dce2d0; padding-right:8px; }
+.free-selection-icon svg { width:25px!important; height:25px; }
+.free-selection>div:nth-child(2) { flex:1; min-width:0; }
+.free-selection small { display:block; font-size:9px; color:#879676; margin-bottom:4px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.free-selection strong { display:block; font-size:15px; color:#536e46; font-weight:500; line-height:1.6; }
+.free-selection p { font-size:10px; color:#8b997b; margin:4px 0 0; line-height:1.5; }
+.free-selection>button { font-size:10px!important; flex:none; }
+.free-footer-links { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:4px; }
+.free-footer-links button { font-size:10px!important; padding:10px 0 0!important; }
+#courier-app .free-footer-links [data-week="advance-day"] { min-height:40px; padding:8px 10px!important; border:1px solid #b9c8a6; border-radius:7px; background:#edf2e1; color:#566f46; font-size:11px!important; white-space:nowrap; }
+.free-map-marker { color:#70885b; }
+.free-map-marker>span { display:grid; place-items:center; width:34px; height:34px; background:#fffdf2; border:1.5px solid #8fa379; border-radius:50%; box-shadow:0 3px 7px #62764d24; font:700 19px/1 Georgia,serif; }
+.free-map-marker b { display:block; margin:6px 0 0 -40px; width:max-content; max-width:138px; background:#fffdf2ed; color:#667e53; padding:4px 7px; border-radius:4px; font:500 10px/1.5 'Yu Gothic','Microsoft YaHei',sans-serif; }
+.free-map-marker.is-selected { z-index:650!important; }.free-map-marker.is-selected>span { background:#718b57; color:#fffdf1; border:3px solid #e1e8d2; width:39px; height:39px; }
+.free-map-marker.is-done>span { background:#e0e6d3; border-color:#a8b795; }.free-map-marker.is-done b { color:#99a28d; }.free-map-marker svg { width:18px!important; height:18px; }
+.free-map-marker.is-selected b { margin:0 0 0 43px; transform:translateY(-34px); border-left:2px solid #829969; }
+.free-mission-list { list-style:none; padding:0; margin:0; }
+.free-mission-list li+li { border-top:1px solid #dfe4d5; }
+.free-mission-list button { display:flex; width:100%; gap:14px; align-items:center; border:0; background:none; padding:18px 0; color:#6f865b; text-align:left; }
+.free-mission-list button>span { flex:1; }.free-mission-list strong { display:block; font-size:15px; font-weight:500; }.free-mission-list small { display:block; margin-top:7px; font-size:11px; color:#879575; }.free-mission-list em { display:block; margin-top:6px; font-size:10px; font-style:normal; color:#9aa38d; }
+.free-task-heading p { font-size:10px; color:#8a9879; }.free-task-heading h1 { font-size:27px; }
+.free-request { display:flex; flex-direction:column; align-items:center; margin:36px auto; padding:28px; width:80%; background:#edf0df; color:#7c9166; border:1px dashed #bdcba9; border-radius:11px; }.free-request svg { width:48px!important; height:48px; stroke-width:1; }.free-request p { font-size:14px; margin:13px 0 0; }
+.free-task-hint { font-size:11px; color:#8c987e; text-align:center; }.free-photo { max-width:280px; width:82%; margin:24px auto; transform:rotate(-2deg); }.free-photo img { height:210px; }
+.free-reward>h1 { font-size:26px; }.free-phrase { padding:18px 0; margin:20px 0; text-align:center; border-top:1px solid #dfe4d4; border-bottom:1px solid #dfe4d4; }.free-phrase small { display:block; font-size:9px; color:#8e9b7c; }.free-phrase strong { display:block; margin-top:12px; font:22px/1.8 'Yu Mincho','SimSun',serif; color:#657f51; }
+.free-map-unavailable { padding:80px 25px; color:#81956a; font-size:12px; }.courier-free .week-warning { margin:0; padding:7px 22px; font-size:9px; }
+#courier-app [data-free]:focus-visible { outline:2px solid #7f9962; outline-offset:3px; }
+@media(max-height:660px){.free-heading{padding:0 18px 9px}.free-heading h1{font-size:20px}.free-selection{min-height:55px;padding-bottom:8px}.free-selection strong{font-size:14px}.free-location-status{font-size:9px;padding:6px 18px}.free-map-controls{top:8px}.free-footer-links button{padding-top:7px!important}}

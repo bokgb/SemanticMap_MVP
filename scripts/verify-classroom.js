@@ -74,7 +74,7 @@ try{
     }
     await page.locator('[data-action="next"]').click();await page.locator('.journey-handoff').waitFor();
     await reload(page,'.journey-item-card');await page.locator('[data-action="next"]').click();
-    await page.locator('#courier-dialog-footer [data-action="deliver-letter"]').click();await reload(page,'.journey-ending');
+    await page.locator('#courier-dialog-footer [data-action="deliver-letter"]').click();await reload(page,'.courier-week');await page.locator('[data-week="first"]').click();
     assert.equal(requests,2);assert.equal(await page.locator('#courier-actions .play-feedback-link').count(),1);
     await page.locator('.courier-header [data-action="journal"]').click();
     assert.equal(await page.locator('#courier-dialog .wordbook-card').count(),7,'All opening and delivery photographs appear in the notebook');
@@ -98,7 +98,7 @@ try{
 
     const quota=await setup(()=>{
         const set=Storage.prototype.setItem;
-        Storage.prototype.setItem=function(k,v){if(k==='kotoba-hunter-progress-v1'&&v.includes('data:image'))throw new DOMException('Full','QuotaExceededError');return set.call(this,k,v);};
+        Storage.prototype.setItem=function(k,v){if(k==='kotoba-hunter-progress-v1'&&Object.values(JSON.parse(v).letter.state.captures).some(card=>card.photo))throw new DOMException('Full','QuotaExceededError');return set.call(this,k,v);};
     });
     await begin(quota.page);await pen(quota.page);await sample(quota.page);await quota.page.locator('.letter-word-reward').waitFor();
     assert.ok((await quota.page.locator('#courier-save-notice').innerText()).includes('ことばは保存済み'));

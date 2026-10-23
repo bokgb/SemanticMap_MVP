@@ -10,7 +10,7 @@
         if(!point(origin)||![3000,10000].includes(radius))throw Error('input');
         const checkAbort=()=>{if(signal?.aborted)throw new DOMException('Search cancelled','AbortError');};
         checkAbort();
-        const {nearestSpots}=await import('./lib/nearby-places.js?v=spots-1');
+        const {nearestSpots}=await import('./lib/nearby-places.js?v=free-map-1');
         checkAbort();
         if(!spotData){
             const response=await fetch('spotsData.json',{signal,cache:'no-cache'});
@@ -36,5 +36,11 @@
         const label=loading?t('確認中…','正在查找…'):action==='nearby-wider'?t('10kmまで広げて探す','扩大到10公里搜索'):state.denied?t('位置情報の設定をひらく','打开定位设置'):state.hasPosition&&!state.coarse?t('もう一度探す','重新搜索'):t('現在地から探す','从当前位置搜索');
         return {body:`<section class="nearby-setup"><div class="nearby-search-mark ${loading?'is-searching':''}">${icon('pin')}</div><p class="journey-eyebrow">${t('きみの街の配達ルート','你所在城市的送信路线')}</p><h2>${title}</h2><p class="nearby-setup-copy" role="status">${line}</p><div class="nearby-stop-list">${kinds.map(k=>`<span>${icon(k==='shop'?'drink':k==='park'?'leaf':'station')}${names[k]}</span>`).join('')}</div><p class="courier-footnote">${t('見つからないときは、その場でも遊べます。','找不到时也可以选择原地体验。')}</p></section>`,footer:`<button class="courier-primary" data-action="${action}" ${loading?'disabled':''}>${icon('pin')}<span>${label}</span>${icon('arrow')}</button><button class="courier-text courier-restart" data-action="preview-mode">${t('その場で体験する','切换为原地体验')}</button>`};
     }
-    SM.nearby={validRoute,search,setupView};
+    async function candidates(origin,radius=3000,signal){
+        if(!spotData)await search(origin,radius,signal);
+        if(signal?.aborted)throw new DOMException('Search cancelled','AbortError');
+        const {nearbyCandidates}=await import('./lib/nearby-places.js?v=free-map-1');
+        return nearbyCandidates(spotData,origin,radius);
+    }
+    SM.nearby={validRoute,search,candidates,setupView};
 })();
