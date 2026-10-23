@@ -57,10 +57,7 @@ const routes = [
   { path: '/?test=day6&preview=field-map', title: '第6天 · 当前位置与车站目标', readySelector: '.field-letter', fieldPreview:0, fieldLocate:true },
   { path: '/?test=day3&preview=position', title: '第3天 · 把照片物品放到指定位置', readySelector: '.field-letter', fieldPreview:2 },
   { path: '/?test=day7&preview=compose', title: '第7天 · 用照片和日语写一周回信', readySelector: '.field-letter', fieldPreview:7 },
-  { path: '/?test=mailbox&preview=explore', title: '自由探索 · 便利店、公园与车站委托', readySelector: '.week-mail-list', weekExplore:true },
-  { path: '/?test=explore&preview=map', title: '自由探索 · 附近的随机委托地图', readySelector: '.free-board', freeLocate:true },
   { path: '/?test=ending&preview=wordbook', title: '照片单词本 · 全部收集与读音', readySelector: '.journey-ending .wordbook', wordbook: true },
-  { path: '/?mode=explore&preview=resident', title: '自由探索 · 地点居民', readySelector: '.journey-brand', resident: true },
   { path: '/cleaner.html', title: 'Data Cleaner', readySelector: '.container' }
 ];
 

@@ -28,9 +28,9 @@
         host=api;debug=local&&['test','preview'].some(k=>new URLSearchParams(location.search).has(k));
         if(debug)namespace=key+':test:'+new URLSearchParams(location.search).get('test');
         state=load();const returning=!!state.completed[1];stampFirst();
-        SM.dayTwo?.init({...api,complete:()=>{state.completed[2]??={date:today()};state.scene='result';refresh();},revisit:()=>{state.day=2;entry(2).started=true;state.scene='task';state.active=true;refresh();}});
+        SM.dayTwo?.init({...api,completionActions,complete:()=>{state.completed[2]??={date:today()};state.scene='result';refresh();},revisit:()=>{state.day=2;entry(2).started=true;state.scene='task';state.active=true;refresh();}});
         SM.dayTwo?.setScope(namespace,debug);
-        SM.fieldCampaign?.init({...api,completeDay:d=>{state.completed[d]??={date:today()};state.scene='result';refresh();},showReview:d=>{state.day=d;state.scene='review';refresh();},showResult:d=>{state.day=d;state.scene='result';refresh();}});
+        SM.fieldCampaign?.init({...api,completionActions,completeDay:d=>{state.completed[d]??={date:today()};state.scene='result';refresh();},showReview:d=>{state.day=d;state.scene='review';refresh();},showResult:d=>{state.day=d;state.scene='result';refresh();}});
         SM.fieldCampaign?.setScope(namespace,debug);
         SM.freeExplore?.init({...api,nextDayButton,record:c=>{state.sideLog.push({date:today(),quest:{shop:1,park:2,station:3}[c.kind],word:c.word});state.sideLog=state.sideLog.slice(-140);save();}});
         SM.freeExplore?.setScope(namespace,debug);
@@ -57,13 +57,13 @@
         const all=stories(),d=nextDay(),ready=available(d)&&!state.completed[d],count=Object.keys(state.completed).length;
         state.day=d;
         const heading=count===7?t('七つの手紙が、つながった。','七封信，连在了一起。'):ready?t('新しい手紙が届いたよ。','新的来信到了。'):t('つぎの手紙を、待つあいだに。','等待下一封信的时候。');
-        const message=count===7?t('これからも、町のことばを集めよう。','以后也继续收集城市里的词语吧。'):ready?pair(all[d].sender)+t('から、きみへ。','写给你的信。'):t('今日はここまで。次のお話は、あした開きます。自由探索は、いつでも遊べます。','今天的主线已经完成。下一段明天开放，自由探索随时都能玩。');
+        const message=count===7?t('これからも、町のことばを集めよう。','以后也继续收集城市里的词语吧。'):ready?pair(all[d].sender)+t('から、きみへ。','写给你的信。'):t('今日の手紙はお届け済み。次のお話にも進めます。','今天的信已送达，也可以继续下一天的故事。');
         const list=all.slice(1).map((s,i)=>{
             const n=i+1,done=!!state.completed[n],open=n===d&&ready;
             return `<li class="${done?'week-delivered':open?'week-new':'week-sealed'}"><button type="button" data-week="${n===1?'first':done?'archive-'+n:open?'read-'+n:'locked'}" ${!done&&!open?'disabled':''}><span class="week-day">${String(n).padStart(2,'0')}</span><span><strong>${escape(pair(s.title))}</strong><small>${escape(done?t('受け取った手紙','已收下的信'):open?t('新しい手紙','新来信'):n===d?t('次の日に届く','次日送达'):t('前の手紙のあとに','上一封完成后'))}</small></span><b aria-hidden="true">${done?'✓':open?'↗':'·'}</b></button></li>`;
         }).join('');
         shell(`<header class="week-mailbox-title"><p>${t('風の郵便局 · 郵便受け','风之邮局 · 邮箱')}</p><h1>${heading}</h1><span class="week-count">${count} / 7 ${t('日','天')}</span></header><div class="week-poco">${host.robot()}<p>${escape(message)}</p></div><ol class="week-mail-list">${list}</ol>`,
-            button(ready?'read-'+d:'explore',ready?t('今日の手紙をひらく','打开今天的信'):t('自由探索へ','自由探索'),true)+(ready?button('explore',t('自由探索へ','自由探索')):count>1?button('archive-'+count,t('受け取った手紙を見る','看看已收下的信')):''),t('郵便受け','邮箱'));
+            ready?button('read-'+d,t('今日の手紙をひらく','打开今天的信'),true):completionActions(Math.max(1,count)),t('郵便受け','邮箱'));
     }
     function choices(task,e){
         if(task.kind==='pick'){
@@ -86,7 +86,7 @@
     function result(){
         const story=stories()[state.day],count=Object.keys(state.completed).length,e=entry(state.day);
         const letter=state.day===7?`<article class="week-final-letter"><p>${t('友だちへ','致朋友')}</p>${(e.answers.at(-1)?.text||'').split('\n').map(line=>`<p>${escape(line)}</p>`).join('')}<small>${t('きみより','来自你')}</small></article>`:'';
-        shell(`<section class="week-result"><div class="week-complete-stamp">${host.icon('check')}<span>DAY ${state.day}</span></div><p>${count===7?t('七日分の手紙がそろいました','集齐了七天的信'):t('今日のお話、できあがり。','今天的主线，完成了。')}</p><h1>${escape(pair(story.title))}</h1>${letter}<h2>${t('今日のことば','今天的词语')}</h2><dl class="week-new-words">${story.words.map(([word,kana,meaning])=>`<div><dt><ruby>${word}<rt>${kana}</rt></ruby></dt><dd>${SM.state.currentLang==='zh'?meaning:''}</dd></div>`).join('')}</dl><p class="week-return-note">${count===7?t('一週間、おつかれさま。自由探索は、これからも続けられるよ。','这一周辛苦啦，以后也能继续自由探索。'):t('次のお話は、あした。今日は、自由探索もできるよ。','下一段主线明天开放。今天还可以自由探索。')}</p></section>`,button('explore',t('自由探索へ','自由探索'),true)+button('mailbox',t('郵便受けに戻る','返回邮箱')),t('今日の手紙、完了','今日来信完成'));
+        shell(`<section class="week-result"><div class="week-complete-stamp">${host.icon('check')}<span>DAY ${state.day}</span></div><p>${count===7?t('七日分の手紙がそろいました','集齐了七天的信'):t('今日のお話、できあがり。','今天的主线，完成了。')}</p><h1>${escape(pair(story.title))}</h1>${letter}<h2>${t('今日のことば','今天的词语')}</h2><dl class="week-new-words">${story.words.map(([word,kana,meaning])=>`<div><dt><ruby>${word}<rt>${kana}</rt></ruby></dt><dd>${SM.state.currentLang==='zh'?meaning:''}</dd></div>`).join('')}</dl><p class="week-return-note">${count===7?t('一週間、ありがとう。','谢谢你一起玩了这一周。'):t('次のお話にも進めます。','也可以继续下一天的故事。')}</p></section>`,completionActions(state.day),t('今日の手紙、完了','今日来信完成'));
     }
     function explore(){
         SM.freeExplore?.setScope(namespace,debug);
@@ -94,6 +94,10 @@
     }
     function render(){
         if(!host||!state)return false;stampFirst();
+        if(state.scene==='explore'){
+            const latest=Math.max(1,...Object.keys(state.completed).map(Number));
+            state.day=Math.max(2,latest);state.scene=latest>1?'result':'mailbox';state.active=latest>1;save();
+        }
         SM.dayTwo?.deactivate();
         SM.fieldCampaign?.dispose();
         SM.freeExplore?.dispose();
@@ -126,6 +130,12 @@
         if(SM.fieldCampaign?.click(event))return true;
         if(SM.dayTwo?.click(event))return true;
         const action=event.target.closest('[data-week]')?.dataset.week;if(!action)return false;
+        if(action==='completed-next'){
+            const from=Number(event.target.closest('[data-week]').dataset.day),day=from+1;
+            if(!mainDone()||!state.completed[from]||day<2||day>7)return true;
+            state.manualUnlock=day;state.day=day;state.active=true;feedback='';
+            state.scene=state.completed[day]?'archive':entry(day).started?'task':'letter';refresh();return true;
+        }
         if(action==='ending-day-two'){
             if(!mainDone()||host.progress().freeRoam)return true;
             stampFirst();state.manualUnlock=2;state.day=2;state.active=true;feedback='';
@@ -137,11 +147,11 @@
         }
         const e=entry(state.day),task=stories()[state.day]?.tasks[e.index];feedback='';
         if(action==='mailbox'){open();return true;}
-        if(action==='explore'){state.active=true;state.scene='explore';refresh();return true;}
+        if(action==='explore')return true;
         if(action==='first'){state.active=false;refresh();return true;}
         if(action.startsWith('read-')){const d=Number(action.split('-')[1]);if(available(d)&&!state.completed[d]){state.day=d;state.active=true;state.scene=entry(d).started?'task':'letter';refresh();}return true;}
         if(action.startsWith('archive-')){const d=Number(action.split('-')[1]);if(d>=2&&d<=7&&state.completed[d]){state.day=d;state.scene='archive';state.active=true;refresh();}return true;}
-        if(action.startsWith('roam-')){state.active=false;save();host.startFree(Number(action.split('-')[1]));return true;}
+        if(action.startsWith('roam-'))return true;
         if(action==='start'){if(available(state.day)&&!state.completed[state.day]){e.started=true;state.scene='task';refresh();}return true;}
         if(state.scene!=='task'||!task||e.accepted&&action!=='next')return true;
         if(action.startsWith('pick-')){const i=Number(action.split('-')[1]);if(task.kind==='pick'&&task.choices[i]!==undefined)e.draft=[i];}
@@ -154,6 +164,9 @@
             else {feedback=pair(task.help);SM.audio?.play('mismatch');}
         }else if(action==='next'&&e.accepted){e.index++;e.draft=[];e.accepted=false;if(e.index===stories()[state.day].tasks.length){state.completed[state.day]={date:today()};state.scene='result';}}
         refresh(action==='next');return true;
+    }
+    function completionActions(day){
+        return host.feedbackLink(true)+(day<7?`<button type="button" class="courier-text courier-restart" data-week="completed-next" data-day="${day}">${t('次の日へ','下一天')}</button>`:'');
     }
     function attachEnding(){
         stampFirst();if(!mainDone()||host.progress().freeRoam)return;

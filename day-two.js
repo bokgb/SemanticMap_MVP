@@ -96,7 +96,7 @@
         active=true;currentScene=scene;
         if(scene==='letter'){shell(letter(),weekButton('start',t('ポコのところへ','去看看波可'),true)+weekButton('mailbox',t('郵便受けに戻る','返回邮箱')),t('友だちからの返事','朋友的回信'));void ensureReply();}
         else if(scene==='task'){const view=task();shell(view.body+(warning?`<p class="week-warning" role="status">${esc(warning)}</p>`:''),view.footer+weekButton('mailbox',t('あとで続きをする','稍后继续')),t('小川のむこうへ','到小溪对岸去'));}
-        else if(state.card){shell(scene==='archive'?letter()+outgoing()+result():result(),secondary('scene',t('小川と手紙を見返す','回顾小溪和回信'))+weekButton('explore',t('自由探索へ','自由探索'),true)+weekButton('mailbox',t('郵便受けに戻る','返回邮箱')),t('小川のむこうへ','到小溪对岸去'));}
+        else if(state.card){shell(scene==='archive'?letter()+outgoing()+result():result(),host.completionActions(2),t('小川のむこうへ','到小溪对岸去'));}
         else return false;
         return true;
     }
