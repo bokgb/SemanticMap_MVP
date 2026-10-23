@@ -126,6 +126,11 @@
         if(SM.fieldCampaign?.click(event))return true;
         if(SM.dayTwo?.click(event))return true;
         const action=event.target.closest('[data-week]')?.dataset.week;if(!action)return false;
+        if(action==='ending-day-two'){
+            if(!mainDone()||host.progress().freeRoam)return true;
+            stampFirst();state.manualUnlock=2;state.day=2;state.active=true;feedback='';
+            state.scene=state.completed[2]?'archive':entry(2).started?'task':'letter';refresh();return true;
+        }
         if(action==='advance-day'){
             const day=advanceTarget();if(!day||!SM.freeExplore?.isMapView())return true;
             state.manualUnlock=day;state.day=day;state.scene=entry(day).started?'task':'letter';refresh();return true;
@@ -152,7 +157,7 @@
     }
     function attachEnding(){
         stampFirst();if(!mainDone()||host.progress().freeRoam)return;
-        host.root().querySelector('#courier-actions').insertAdjacentHTML('beforeend',button('mailbox',t('郵便受け・自由探索','邮箱与自由探索')));
+        host.root().querySelector('#courier-actions').insertAdjacentHTML('beforeend',`<button type="button" class="courier-text courier-restart" data-week="ending-day-two">${t('次の日へ','下一天')}</button>`);
     }
     function sideComplete(card,index){state.sideLog.push({date:today(),quest:index,word:String(card.word).slice(0,40)});state.sideLog=state.sideLog.slice(-140);host.restoreMain();state.active=true;state.scene='explore';refresh();SM.audio?.play('stamp');}
     function preview(day,scene='letter',restart=false){
