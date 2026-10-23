@@ -50,7 +50,7 @@
         const name=place?(SM.state.currentLang==='ja'&&place.nameJa||place.name||generic):generic;
         return {...base,place:name,...(place?{lat:place.lat,lng:place.lng,distance:place.distance}:index===0&&route?route.origin:{}),stamp:index===0?base.short:name,name:base.name||['波可','米娜','莉莉','索拉'][index]};
     }
-    let progress = { index:0, cards:[], done:false, receipt:false, mode:'preview' };
+    let progress = { index:0, cards:[], done:false, receipt:false, mode:SM.playRules.walkingOnly?'field':'preview' };
     let root, map, markers, pendingPhoto = '', busy = false, aborter, position, watchId;
     let lastFocus, stage = '', mounted = false, scanSequence = 0, playerMarker, mismatchSeen = false;
     const localTest=['localhost','127.0.0.1','[::1]'].includes(location.hostname);
@@ -139,7 +139,7 @@
             }
         });
         $('.courier-world').insertAdjacentHTML('afterbegin',`<div class="nearby-map-placeholder" aria-hidden="true">${icon('mail')}<span>風の郵便局</span></div>`);
-        hasSavedGame=restoreProgress();saveReady=hasSavedGame;
+        hasSavedGame=restoreProgress();if(SM.playRules.walkingOnly)progress.mode='field';saveReady=hasSavedGame;
         SM.research?.init({disabled:localTest&&['test','preview'].some(key=>new URLSearchParams(location.search).has(key)),resume:hasSavedGame});
         SM.week?.init({root:()=>root,progress:()=>progress,words:collectedWords,render,icon,robot,startFree:enterFreeExploration,restoreMain:restoreMainJourney,dialog:openDialog,closeDialog,photo:album=>{if(!busy)$(album?'#courier-album':'#courier-file').click();},mapState:()=>({mode:progress.mode,position,route:SM.nearby.validRoute(progress.route)?progress.route:null}),receiveLocation,feedbackLink});
         window.addEventListener('pagehide',saveProgress);
@@ -257,13 +257,13 @@
         $('.courier-map-reset').setAttribute('aria-label',tr('つぎの目的地を表示','对焦下一站'));
         $('#courier-dialog [data-action="close"]').setAttribute('aria-label',tr('閉じる','关闭'));
         if(SM.week?.render()){stopLocationWatch();syncExplorationSheet(false);return;}
-        if(!SM.letterTutorial.isActive())$('.courier-mode-btn').hidden=false;
+        if(!SM.letterTutorial.isActive())$('.courier-mode-btn').hidden=SM.playRules.walkingOnly;
         if(SM.letterTutorial.isActive()) {root.classList.remove('courier-journey','courier-departure','courier-encounter','courier-travel');syncExplorationSheet(false);$('.journey-departure-stage')?.remove();SM.letterTutorial.render();return;}
         root.classList.remove('courier-tutorial','courier-opening','courier-writing','courier-sent','letter-receiving','poco-cheer');
         root.classList.add('courier-journey');root.classList.toggle('courier-departure',progress.phase==='departure');
         root.classList.toggle('courier-travel',progress.phase==='travel'&&!progress.receipt&&!progress.done);
         root.classList.toggle('courier-encounter',progress.phase==='encounter'||progress.done);
-        $('.courier-mode-btn').hidden=progress.phase==='departure';
+        $('.courier-mode-btn').hidden=SM.playRules.walkingOnly||progress.phase==='departure';
         $('.courier-edition').textContent=tr('きみの街 · 手紙の旅','你所在城市 · 送信之旅');
         const s=current();
         $('#courier-chapter').innerHTML = `<span class="courier-progress-number">${progress.done?'✓':String(progress.index).padStart(2,'0')}</span> / 03 <span>${progress.done?tr('配達完了','送信完成'):tr(['最初の手紙','冷たい飲みもの','緑の思い出','手紙を渡す'][progress.index],s.short)}</span>`;
@@ -535,7 +535,7 @@
         }catch {return false;}
     }
     function playIntroduction() {
-        return `<div class="play-introduction"><p>${tr('はじめの体験：5〜10分。続きは全7日間。','首次体验约5～10分钟，后续故事共7天。')}</p>${hasSavedGame?`<p class="play-resume">${tr('保存した続きから再開できます。','可以从已保存的进度继续。')}</p>`:''}</div><fieldset class="play-modes"><legend>${tr('体験方法','体验方式')}</legend><label><input type="radio" name="play-mode" value="preview" ${progress.mode==='preview'?'checked':''}><span><strong>${tr('その場で体験','原地体验')}</strong><small>${tr('教室におすすめ · 移動なし','推荐教室试玩 · 无需移动')}</small></span></label><label><input type="radio" name="play-mode" value="field" ${progress.mode==='field'?'checked':''}><span><strong>${tr('歩いて探索','走路探索')}</strong><small>${tr('現在地の近くを歩く','探索当前位置附近的地点')}</small></span></label></fieldset>`;
+        return `<div class="play-introduction"><p>${tr('はじめの体験：5〜10分。続きは全7日間。','首次体验约5～10分钟，后续故事共7天。')}</p>${hasSavedGame?`<p class="play-resume">${tr('保存した続きから再開できます。','可以从已保存的进度继续。')}</p>`:''}</div>${SM.playRules.walkingOnly?'':`<fieldset class="play-modes"><legend>${tr('体験方法','体验方式')}</legend><label><input type="radio" name="play-mode" value="preview" ${progress.mode==='preview'?'checked':''}><span><strong>${tr('その場で体験','原地体验')}</strong><small>${tr('教室におすすめ · 移動なし','推荐教室试玩 · 无需移动')}</small></span></label><label><input type="radio" name="play-mode" value="field" ${progress.mode==='field'?'checked':''}><span><strong>${tr('歩いて探索','走路探索')}</strong><small>${tr('現在地の近くを歩く','探索当前位置附近的地点')}</small></span></label></fieldset>`}`;
     }
     function feedbackLink(primary=false) {if(!progress.done||progress.index!==3)return '';return `<a class="play-feedback-link${primary?' courier-primary':''}" data-research-survey href="${escape(SM.research?.surveyURL(feedbackURL)||feedbackURL)}" target="_blank" rel="noopener noreferrer">${primary?icon('book'):''}<span>${primary?tr('アンケートに答える','填写调查问卷'):tr('アンケートに答えてくれるとうれしいです！ ↗','愿意帮忙填一下问卷的话，我会很开心！ ↗')}</span>${primary?icon('arrow'):''}</a>`;}
     function photoAlternatives() {return `<div class="photo-backups"><button type="button" class="courier-text" data-action="album">${tr('アルバムから選ぶ','从相册选择')}</button><button type="button" class="courier-text" data-action="sample">${tr('サンプルで進める','使用示例继续')}</button></div>`;}
@@ -546,7 +546,7 @@
         localTestSequence++;localTestPosition=null;geo.request++;geo.pending=false;geo.enabled=false;geo.status='idle';
         clearTimeout(geo.timer);clearTimeout(geo.expiryTimer);position=undefined;clearPlayerMarker();
         try {localStorage.removeItem(saveKey);localStorage.removeItem(beforePlayKey);}catch {}
-        progress={index:0,cards:[],done:false,receipt:false,mode:'preview'};mismatchSeen=false;
+        progress={index:0,cards:[],done:false,receipt:false,mode:SM.playRules.walkingOnly?'field':'preview'};mismatchSeen=false;
         if(debugSession){const url=new URL(location.href);url.searchParams.delete('test');url.searchParams.delete('preview');location.replace(url);return;}
         SM.letterTutorial.reset();stage='';closeDialog();$('#courier-save-notice').hidden=true;showBeforePlay();
     }
@@ -562,7 +562,7 @@
         beforePlayRead=false;
         SM.audio?.resetDialogue();
         root.classList.add('courier-preflight');
-        const body=playIntroduction()+`<ul class="before-play-list"><li><span class="before-play-icon">${icon('camera')}</span><div><h3>${tr('カメラ・写真','相机与照片')}</h3><p>${tr('撮影するときは、カメラの使用を許可してください。保存した写真でも遊べます。','使用相机拍摄时，请允许相机权限；也可以选择已有照片。')}</p></div></li><li><span class="before-play-icon">${icon('sound')}</span><div><h3>${tr('音・ボイス','声音与语音')}</h3><p>${tr('効果音と短い声が流れます。あとから右上で切り替えられます。','有音效和简短语音，之后也能在右上角切换。')}</p><div class="before-play-sound-row"><span>${tr('音を使う','开启声音')} <b data-before-play-sound-state></b></span><button type="button" role="switch" aria-label="${tr('音を使う','开启声音')}" aria-checked="false" data-action="before-play-sound"><span></span></button></div></div></li><li><span class="before-play-icon">${icon('pin')}</span><div><h3>${tr('位置情報','位置信息')}</h3><p>${tr('歩いて探索するときに使います。現在地から近くの場所を選びます。許可なしなら、その場で体験できます。','走路探索时用于选择当前位置附近的地点。不授权也可以原地体验。')}</p>${locationControls()}</div></li></ul>${browserAdvice()}<p class="before-play-note">${tr('選んだ写真は、GoogleのGeminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合・写真・配達先はこのブラウザーにも保存されます。','所选照片会发送给Google Gemini识别，请避免拍入人脸或个人信息。进度、照片和送信路线也会保存在当前浏览器。')}</p>`;
+        const body=playIntroduction()+`<ul class="before-play-list"><li><span class="before-play-icon">${icon('camera')}</span><div><h3>${tr('カメラ・写真','相机与照片')}</h3><p>${tr('撮影するときは、カメラの使用を許可してください。保存した写真でも遊べます。','使用相机拍摄时，请允许相机权限；也可以选择已有照片。')}</p></div></li><li><span class="before-play-icon">${icon('sound')}</span><div><h3>${tr('音・ボイス','声音与语音')}</h3><p>${tr('効果音と短い声が流れます。あとから右上で切り替えられます。','有音效和简短语音，之后也能在右上角切换。')}</p><div class="before-play-sound-row"><span>${tr('音を使う','开启声音')} <b data-before-play-sound-state></b></span><button type="button" role="switch" aria-label="${tr('音を使う','开启声音')}" aria-checked="false" data-action="before-play-sound"><span></span></button></div></div></li><li><span class="before-play-icon">${icon('pin')}</span><div><h3>${tr('位置情報','位置信息')}</h3><p>${tr('近くの場所を探すため、位置情報を許可してね。OICでは、キャンパス内で各場所のタスクを始められます。','请允许定位以寻找附近地点。在 OIC 校园内就能开始各地点的任务。')}</p>${locationControls()}</div></li></ul>${browserAdvice()}<p class="before-play-note">${tr('選んだ写真は、GoogleのGeminiに送って識別します。顔や個人情報が写らない写真を選んでね。進み具合・写真・配達先はこのブラウザーにも保存されます。','所选照片会发送给Google Gemini识别，请避免拍入人脸或个人信息。进度、照片和送信路线也会保存在当前浏览器。')}</p>`;
         const researchNotice=`<section class="before-play-research" aria-labelledby="research-notice-title"><h3 id="research-notice-title">${tr('研究への協力（任意）','协助研究（自愿）')}</h3><p id="research-notice-description">${tr('進み具合・時間・体験方法を記録し、ランダムな番号でアンケートと照合します。写真・位置情報は研究データに保存しません。協力しなくても遊べます。','记录进度、时间和体验方式，用随机编号与问卷对应。照片和位置不会保存到研究数据中。不参与也可以正常游玩。')}</p><label><input type="checkbox" id="research-consent" aria-describedby="research-notice-description"><span>${tr('この記録に同意する','同意记录这些数据')}</span></label></section>`;
         openDialog(tr('はじめる前に','开始之前'),body+researchNotice,`<p class="before-play-scroll-hint" id="before-play-scroll-hint" role="status">${tr('下までスクロールしてください','请滑动到最底部')}</p><button type="button" class="courier-primary" data-action="begin-play" aria-describedby="before-play-scroll-hint" disabled><span>${tr('はじめる','开始游戏')}</span>${icon('arrow')}</button>`,'before-play');
         updateBeforePlaySound();updateLocationUI();
@@ -582,7 +582,7 @@
         if(!beforePlayRead)return;
         // Restored mobile form controls can be checked without dispatching a change event.
         const selected=$('#courier-dialog [name="play-mode"]:checked')?.value;
-        if(selected==='field'||selected==='preview')progress.mode=selected;
+        if(SM.playRules.walkingOnly)progress.mode='field';else if(selected==='field'||selected==='preview')progress.mode=selected;
         SM.research?.start(!!$('#research-consent')?.checked,progress.mode);
         try {localStorage.setItem(beforePlayKey,'seen');} catch { /* Starting the game does not require browser storage. */ }
         $('#courier-dialog').classList.remove('before-play');
@@ -601,7 +601,7 @@
         if(geo.permission==='denied')return 'denied';
         if(geo.pending)return 'locating';
         if(['timeout','unavailable'].includes(geo.status))return geo.status;
-        if(position&&Date.now()-position.at<=120000)return position.accuracy<=150?'located':'approximate';
+        if(position&&Date.now()-position.at<=120000)return position.accuracy<=150||SM.playRules.campusPosition(position)?'located':'approximate';
         return geo.permission;
     }
     function updateLocationUI() {
@@ -617,9 +617,9 @@
             located:['現在地を確認済み','已获取当前位置','現在地の近くから配達先を探せます。','可以查找当前位置附近的送信地点。'],
             approximate:['およその現在地','大致位置','位置がずれることがあります。屋外で、もう一度確認してね。','定位可能有偏差，可以在室外重新获取位置。'],
             timeout:['時間がかかっています','定位超时','現在地を取得できませんでした。電波や位置情報の設定を確認して、もう一度試してね。','暂未获取到位置，请检查信号和定位设置后重试。'],
-            unavailable:['現在地を取得できません','暂时无法定位','位置情報サービスや電波を確認してね。その場でも遊べます。','请检查系统定位和信号，也可以选择原地体验。'],
-            unsupported:['このブラウザーでは使えません','浏览器不支持','SafariかChromeで開き直してね。位置情報なしでも遊べます。','请在Safari或Chrome中打开，也可以不定位继续体验。'],
-            insecure:['安全な接続が必要','需要安全连接','HTTPSのゲームページで開いてね。位置情報なしでも遊べます。','请打开HTTPS游戏链接，不定位也能继续体验。']
+            unavailable:['現在地を取得できません','暂时无法定位','端末の位置情報と通信を確認して、もう一度試してね。','请检查设备定位和网络，再试一次。'],
+            unsupported:['このブラウザーでは使えません','浏览器不支持','SafariかChromeで開き直して、位置情報を許可してね。','请在Safari或Chrome中打开，并允许定位。'],
+            insecure:['安全な接続が必要','需要安全连接','HTTPSのゲームページで開いて、位置情報を許可してね。','请打开HTTPS游戏链接，并允许定位。']
         }[status]||['未確認','尚未检测','',''];
         root.querySelectorAll('[data-location-state]').forEach(e=>{e.textContent=tr(copy[0],copy[1]);e.dataset.state=status;});
         root.querySelectorAll('[data-location-hint]').forEach(e=>e.textContent=tr(copy[2],copy[3]));
@@ -705,7 +705,7 @@
         }catch {fail({code:2});}
     }
     function openLocationSettings() {
-        openDialog(tr('位置情報の設定','定位设置'),`<p class="courier-dialog-intro">${tr('現在地の近くにあるコンビニ・公園・駅を選びます。位置情報なしなら「その場で体験」を選んでね。','选择当前位置附近的便利店、公园和车站。不想定位时可以选择原地体验。')}</p>${locationControls()}${browserAdvice()}`,`<button type="button" class="courier-primary" data-action="close">${tr('ゲームに戻る','返回游戏')}${icon('arrow')}</button>`);
+        openDialog(tr('位置情報の設定','定位设置'),`<p class="courier-dialog-intro">${tr('位置情報を許可して、近くのコンビニ・公園・駅を探そう。OICではキャンパス内でタスクを始められます。','请允许定位，寻找附近的便利店、公园和车站。在 OIC 校园内就能开始任务。')}</p>${locationControls()}${browserAdvice()}`,`<button type="button" class="courier-primary" data-action="close">${tr('ゲームに戻る','返回游戏')}${icon('arrow')}</button>`);
         $('#courier-dialog-body').scrollTop=0;
         updateLocationUI();checkLocationPermission();
     }
@@ -811,6 +811,7 @@
         // Arrival is player-confirmed; indoor GPS can be unreliable.
         if(progress.index===1)return true;
         if(progress.mode==='preview'||progress.index===0)return true;
+        if(SM.playRules.campusArrival(position,current()))return true;
         if(!position || Date.now()-position.at>120000 || position.accuracy>150) {$('#courier-status').textContent=tr('現在地を確認できません。位置情報をオンにするか、「その場で体験」を選んでね。','需要较准确的当前位置。请开启定位，或切换到原地体验。');locate();return false;}
         const meters=distance(position,current());
         if(meters>150){$('#courier-status').textContent=tr(`待ち合わせ場所まで、あと約${Math.round(meters)}m。近くで撮るか、「その場で体験」を選んでね。`,`距会合点约 ${Math.round(meters)} 米。走到附近再拍，或切换到原地体验。`);return false;}return true;
@@ -925,8 +926,8 @@
             case 'next':next();break;
             case 'map':focusCurrentStop();break;
             case 'map-final':guideCurrentStop();break;
-            case 'mode':openDialog(tr('どうやって旅をする？','选择这次旅程的方式'),`<p class="courier-dialog-intro">${tr('ここで物語を楽しむ？それとも、スマホを持って出かける？','坐下来体验故事，或者带着手机探索身边的街道。')}</p><button class="courier-mode-option" data-action="preview-mode"><strong>${tr('その場で体験','原地体验')}</strong><span>${tr('身近なものを撮って遊べます。移動は不要です。','拍摄身边的物品，无需到现场。')}</span></button><button class="courier-mode-option" data-action="field-mode"><strong>${tr('歩いて探索','实地探索')}</strong><span>${tr('現在地の近くにあるコンビニ・公園・駅を探します。','寻找当前位置附近的便利店、公园和车站。')}</span></button>`);break;
-            case 'preview-mode':cancelNearby();progress.mode='preview';stopLocationWatch();$('#courier-status').textContent='';closeDialog();render();break;
+            case 'mode':if(SM.playRules.walkingOnly){openLocationSettings();break;}openDialog(tr('どうやって旅をする？','选择这次旅程的方式'),`<p class="courier-dialog-intro">${tr('ここで物語を楽しむ？それとも、スマホを持って出かける？','坐下来体验故事，或者带着手机探索身边的街道。')}</p><button class="courier-mode-option" data-action="preview-mode"><strong>${tr('その場で体験','原地体验')}</strong><span>${tr('身近なものを撮って遊べます。移動は不要です。','拍摄身边的物品，无需到现场。')}</span></button><button class="courier-mode-option" data-action="field-mode"><strong>${tr('歩いて探索','实地探索')}</strong><span>${tr('現在地の近くにあるコンビニ・公園・駅を探します。','寻找当前位置附近的便利店、公园和车站。')}</span></button>`);break;
+            case 'preview-mode':if(SM.playRules.walkingOnly)break;cancelNearby();progress.mode='preview';stopLocationWatch();$('#courier-status').textContent='';closeDialog();render();break;
             case 'field-mode':cancelNearby();progress.mode='field';closeDialog();render();if(needsNearbyRoute())searchNearby();else locate();break;
             case 'nearby-search':searchNearby();break;
             case 'nearby-wider':searchNearby(10000);break;

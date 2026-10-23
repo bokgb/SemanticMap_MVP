@@ -47,7 +47,8 @@ try{
     await page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=(e.scrollHeight-e.clientHeight)/2);
     assert.ok(await start.isDisabled(),'Scrolling halfway is not enough');
     await page.locator('#courier-dialog-body').evaluate(e=>e.scrollTop=0);
-    assert.ok((await dialog.innerText()).includes('許可なしなら、その場で体験できます'));
+    assert.ok((await dialog.innerText()).includes('位置情報を許可してね'));
+    assert.equal(await page.locator('[name="play-mode"]').count(),0,'Public onboarding only offers walking exploration');
     assert.equal(await page.locator('.tutorial-room').count(),0,'Opening waits for the start button');
     assert.deepEqual(await page.evaluate(()=>permissionProbe),[]);
     assert.equal(await page.evaluate(()=>audioProbe.contexts),0,'No audio context before a gesture');
