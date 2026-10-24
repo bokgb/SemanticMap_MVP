@@ -63,10 +63,10 @@
         map=L.map(element,{zoomControl:true,scrollWheelZoom:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false}).setView(point?[point.lat,point.lng]:[36,136],point?15:5);map.attributionControl?.setPrefix(false);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
         const target=targetPlace();for(const p of nav.stops){const isTarget=p.kind===task().place;L.marker([p.lat,p.lng],{icon:L.divIcon({className:'field-map-marker '+(isTarget?'field-map-marker-target':''),html:`<span>${host.icon(p.kind==='shop'?'drink':p.kind==='park'?'tree':'station')}</span><b>${esc(p.name)}</b>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(map).on?.('click',()=>pickPlace(p.kind));}
-        if(nav.point){playerMarker=L.marker([nav.point.lat,nav.point.lng],{icon:L.divIcon({className:'field-player-marker',html:`<span></span><b>${t(nav.point.accuracy>150?'およその現在地':'いまここ',nav.point.accuracy>150?'大致位置':'当前位置')}</b>`,iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);if(target){routeGuide=L.polyline([[nav.point.lat,nav.point.lng],[target.lat,target.lng]],{color:'#849c6b',weight:2,dashArray:'5 8'}).addTo(map);if(!nav.focus)map.fitBounds?.([[nav.point.lat,nav.point.lng],[target.lat,target.lng]],{padding:[50,60],maxZoom:17,animate:false});}}
+        if(nav.point){playerMarker=L.marker([nav.point.lat,nav.point.lng],{icon:L.divIcon({className:'field-player-marker',html:`<span></span><b>${t(nav.point.fallback?'OIC':nav.point.accuracy>150?'およその現在地':'いまここ',nav.point.fallback?'OIC':nav.point.accuracy>150?'大致位置':'当前位置')}</b>`,iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);if(target){routeGuide=L.polyline([[nav.point.lat,nav.point.lng],[target.lat,target.lng]],{color:'#849c6b',weight:2,dashArray:'5 8'}).addTo(map);if(!nav.focus)map.fitBounds?.([[nav.point.lat,nav.point.lng],[target.lat,target.lng]],{padding:[50,60],maxZoom:17,animate:false});}}
         if(nav.focus&&target)map.setView([target.lat,target.lng],17,{animate:false});
         observer=new ResizeObserver(()=>{if(token===view)map?.invalidateSize({pan:false});});observer.observe(element);
-        if(nav.point&&host.mapState?.().mode==='field'&&navigator.geolocation){
+        if(nav.point&&!nav.point.fallback&&host.mapState?.().mode==='field'&&navigator.geolocation){
             watchId=navigator.geolocation.watchPosition(p=>{
                 if(token!==view||!active||scene!=='task'||task()?.kind!=='map'||document.hidden)return;
                 const point={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,at:Date.now()};if(!validPoint(point))return;
@@ -80,11 +80,16 @@
         nav.status='loading';feedback='';refresh();
         const token=scope,requestedDay=day;nav.controller?.abort();nav.controller=new AbortController();
         try{
-            if(!navigator.geolocation||!isSecureContext)throw Error('unavailable');
-            const p=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:12000,maximumAge:15000}));
+            let p,point;
+            try{
+                const permission=await navigator.permissions?.query({name:'geolocation'});
+                if(!navigator.geolocation||!isSecureContext||permission?.state!=='granted')throw Error('no location');
+                p=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:12000,maximumAge:15000}));
+                point={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,at:Date.now()};
+                if(!validPoint(point)||point.accuracy>500)throw Error('location');
+            }catch{point=SM.playRules.defaultPosition();}
             if(token!==scope||day!==requestedDay)return;
-            const point={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,at:Date.now()};if(!validPoint(point))throw Error('location');
-            nav.point=point;nav.stops=[];host.receiveLocation?.(p);const result=await SM.nearby.search(point,radius,nav.controller.signal);
+            nav.point=point;nav.stops=[];if(!point.fallback)host.receiveLocation?.(p);const result=await SM.nearby.search(point,radius,nav.controller.signal);
             if(token!==scope||day!==requestedDay)return;
             nav.stops=result.route.stops;nav.status=targetPlace()?'ready':'missing';nav.focus=false;
         }catch{if(token!==scope||day!==requestedDay)return;nav.status='error';}

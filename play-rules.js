@@ -17,5 +17,5 @@
         if(station.distance>route.radius)return route;
         return {...route,stops:route.stops.map((stop,i)=>i===2?station:stop)};
     }
-    SM.playRules=Object.freeze({walkingOnly:!debug,campusPosition,campusArrival,firstDayRoute});
+    SM.playRules=Object.freeze({walkingOnly:!debug,campusPosition,campusArrival,firstDayRoute,defaultPosition:()=>({...campus,accuracy:0,at:Date.now(),fallback:true})});
 })();

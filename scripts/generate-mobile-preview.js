@@ -22,7 +22,7 @@ try {
 const routes = [
   { path: '/', title: '首次进入 · 拍照、音效与定位授权', readySelector: '#courier-dialog.before-play[open]', beforePlay:true, locationPermission:'prompt' },
   { path: '/?test=before-play&preview=research', title: '研究记录 · 自愿同意与隐私说明', readySelector: '#research-consent', researchNotice:true, locationPermission:'prompt' },
-  { path: '/?test=before-play', title: '定位被拒绝 · 手机权限设置帮助', readySelector: '[data-location-state][data-state="denied"]', locationPermission:'denied', locationHelp:true },
+  { path: '/?test=before-play', title: '未授权定位 · 自动使用OIC校园中心', readySelector: '[data-location-state][data-state="fallback"]', locationPermission:'denied', locationHelp:true },
   { path: '/?test=welcome', title: '言葉ハンター · 认识波可', readySelector: '.courier-story' },
   { path: '/?test=reply', title: '开场演出 · 拿出信纸准备写信', readySelector: '[data-opening-beat="reply"]' },
   { path: '/?test=missing-pen', title: '找不到笔 · 波可的困惑表情', readySelector: '[data-expression="confused"]' },

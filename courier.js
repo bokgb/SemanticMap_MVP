@@ -139,9 +139,9 @@
             }
         });
         $('.courier-world').insertAdjacentHTML('afterbegin',`<div class="nearby-map-placeholder" aria-hidden="true">${icon('mail')}<span>風の郵便局</span></div>`);
-        hasSavedGame=restoreProgress();if(SM.nearby.validRoute(progress.route))progress.route=SM.playRules.firstDayRoute(progress.route);if(progress.mainJourney&&SM.nearby.validRoute(progress.mainJourney.route))progress.mainJourney.route=SM.playRules.firstDayRoute(progress.mainJourney.route);if(SM.playRules.walkingOnly)progress.mode='field';saveReady=hasSavedGame;
+        hasSavedGame=restoreProgress();if(SM.nearby.validRoute(progress.route))progress.route=SM.playRules.firstDayRoute(progress.route);if(progress.mainJourney&&SM.nearby.validRoute(progress.mainJourney.route))progress.mainJourney.route=SM.playRules.firstDayRoute(progress.mainJourney.route);if(SM.playRules.walkingOnly)progress.mode='field';saveReady=hasSavedGame;if(progress.locationFallback){position=SM.playRules.defaultPosition();geo.status='fallback';}
         SM.research?.init({disabled:localTest&&['test','preview'].some(key=>new URLSearchParams(location.search).has(key)),resume:hasSavedGame});
-        SM.week?.init({root:()=>root,progress:()=>progress,words:collectedWords,render,icon,robot,startFree:enterFreeExploration,restoreMain:restoreMainJourney,dialog:openDialog,closeDialog,photo:album=>{if(!busy)$(album?'#courier-album':'#courier-file').click();},mapState:()=>({mode:progress.mode,position,route:SM.nearby.validRoute(progress.route)?progress.route:null}),receiveLocation,feedbackLink});
+        SM.week?.init({root:()=>root,progress:()=>progress,words:collectedWords,render,icon,robot,startFree:enterFreeExploration,restoreMain:restoreMainJourney,dialog:openDialog,closeDialog,photo:album=>{if(!busy)$(album?'#courier-album':'#courier-file').click();},mapState:()=>({mode:progress.mode,position:position?.fallback?{...position,at:Date.now()}:position,route:SM.nearby.validRoute(progress.route)?progress.route:null}),receiveLocation,feedbackLink});
         window.addEventListener('pagehide',saveProgress);
         window.addEventListener('pageshow',event=>{if(event.persisted){checkLocationPermission();SM.audio?.updateButton();}});
         root.addEventListener('click', handleClick);
@@ -451,6 +451,7 @@
     function cancelNearby(){nearbySearch.sequence++;nearbySearch.controller?.abort();nearbySearch.controller=null;nearbySearch.status='idle';nearbySearch.missing=[];nearbySearch.radius=3000;}
     async function searchNearby(radius=nearbySearch.radius){
         if(!needsNearbyRoute()||nearbySearch.status==='loading')return;
+        if(position?.fallback)position.at=Date.now();
         if(!position||Date.now()-position.at>120000){requestLocation();return;}
         if(position.accuracy>500){nearbySearch.status='idle';render();return;}
         const origin={lat:position.lat,lng:position.lng},sequence=++nearbySearch.sequence;
@@ -595,7 +596,13 @@
     function locationControls() {
         return `<div class="location-access"><div class="location-access-row"><span class="permission-state" data-location-state role="status"></span><button type="button" class="permission-request" data-action="location-request">${tr('位置情報を許可','允许定位')}</button></div><p class="location-access-hint" data-location-hint></p><details class="permission-help" data-location-help><summary>${tr('許可のしかた','如何开启权限')}</summary><p>${tr('ブラウザーの設定と、スマホの位置情報を確認してね。','请检查浏览器权限和手机的定位开关。')}</p><dl><dt>iPhone / Safari</dt><dd>${tr('ページのメニュー →「Webサイトの設定」→「位置情報」を許可。','页面菜单 → 网站设置 → 允许位置信息。')}</dd><dt>Android / Chrome</dt><dd>${tr('アドレスバー左のサイト情報 →「権限」→「位置情報」を許可。','地址栏左侧网站信息 → 权限 → 允许位置信息。')}</dd><dt>${tr('スマホの設定','手机设置')}</dt><dd>${tr('位置情報サービスをオンにして、SafariやChromeにも位置情報を許可。','开启系统定位服务，并允许Safari或Chrome使用定位。')}</dd></dl><p>${tr('変更したら、この画面に戻って確認してください。','更改后请返回此页面，重新检查。')}</p><button type="button" class="courier-text" data-action="location-recheck">${tr('設定を再確認','重新检测权限')}</button></details></div>`;
     }
+    function useDefaultLocation(){
+        stopLocationWatch();geo.request++;clearTimeout(geo.timer);clearTimeout(geo.expiryTimer);geo.pending=false;geo.status='fallback';
+        position=SM.playRules.defaultPosition();progress.locationFallback=true;updatePlayerMarker();updateLocationUI();saveProgress();
+        if(needsNearbyRoute())void searchNearby();
+    }
     function locationState() {
+        if(position?.fallback)return 'fallback';
         if(!window.isSecureContext)return 'insecure';
         if(!navigator.geolocation)return 'unsupported';
         if(geo.permission==='denied')return 'denied';
@@ -608,6 +615,7 @@
         if(!root)return;
         const status=locationState();
         const copy={
+            fallback:['OICを表示中','使用OIC默认位置','位置情報がないため、OICキャンパスを出発地にします。このまま遊べます。','未获取定位，已用OIC校园中心作为出发点，可以直接继续游玩。'],
             checking:['確認中','检测中','位置情報の設定を確認しています。','正在检测定位权限。'],
             prompt:['未許可','尚未授权','「位置情報を許可」を押して、表示された確認で「許可」を選んでね。','点击允许定位，再在浏览器弹窗中选择允许。'],
             granted:['許可済み','已授权','許可されています。「現在地を確認」で、いまいる場所を取得できます。','已经允许定位，点击获取当前位置即可定位。'],
@@ -629,11 +637,11 @@
         });
         if(status==='denied')root.querySelectorAll('[data-location-help]').forEach(e=>e.open=true);
         const mapLabel=$('[data-location-map-status]');
-        if(mapLabel)mapLabel.textContent=['located','approximate'].includes(status)?tr(copy[0],copy[1]):tr('現在地は未確認 · 設定','尚未获取当前位置 · 设置');
+        if(mapLabel)mapLabel.textContent=['located','approximate','fallback'].includes(status)?tr(copy[0],copy[1]):tr('現在地は未確認 · 設定','尚未获取当前位置 · 设置');
     }
     async function checkLocationPermission() {
         if(localTestPosition){updateLocationUI();return;}
-        if(!navigator.geolocation||!window.isSecureContext){updateLocationUI();return;}
+        if(!navigator.geolocation||!window.isSecureContext){useDefaultLocation();return;}
         try {
             const status=await navigator.permissions.query({name:'geolocation'});
             if(geo.permissionStatus!==status){
@@ -642,7 +650,7 @@
                 status.onchange=()=>applyLocationPermission(status.state);
             }
             applyLocationPermission(status.state);
-        }catch {if(geo.permission==='checking'||geo.permission==='denied')geo.permission='unknown';updateLocationUI();}
+        }catch {if(geo.permission==='checking'||geo.permission==='denied')geo.permission='unknown';if(!position)useDefaultLocation();else updateLocationUI();}
     }
     function applyLocationPermission(value) {
         if(localTestPosition)value='granted';
@@ -652,6 +660,7 @@
             stopLocationWatch();clearPlayerMarker();position=undefined;
             if(value==='denied'||previous==='granted'){geo.request++;clearTimeout(geo.timer);geo.pending=false;geo.status='idle';}
         }
+        if(value==='denied'||value==='prompt'){useDefaultLocation();return;}
         updateLocationUI();
     }
     function stopLocationWatch() {
@@ -663,9 +672,9 @@
         if(playerMarker){if(playerMarker.remove)playerMarker.remove();else map?.removeLayer?.(playerMarker);playerMarker=undefined;}
     }
     function updatePlayerMarker() {
-        if(!position||Date.now()-position.at>120000){clearPlayerMarker();return;}
+        if(!position||!position.fallback&&Date.now()-position.at>120000){clearPlayerMarker();return;}
         if(!map)return;
-        const label=position.accuracy<=150?tr('いまここ','当前位置'):tr('およその現在地','大致位置');
+        const label=position.fallback?'OIC':position.accuracy<=150?tr('いまここ','当前位置'):tr('およその現在地','大致位置');
         const markerIcon=L.divIcon({className:'journey-player-marker',html:`<span></span><b>${label}</b>`,iconSize:[18,18],iconAnchor:[9,9]});
         if(!playerMarker)playerMarker=L.marker([position.lat,position.lng],{icon:markerIcon}).addTo(map);
         else {playerMarker.setLatLng?.([position.lat,position.lng]);playerMarker.setIcon?.(markerIcon);}
@@ -674,7 +683,7 @@
     function receiveLocation(p,focus=false) {
         const {latitude:lat,longitude:lng,accuracy}=p.coords||{};
         if(!Number.isFinite(lat)||!Number.isFinite(lng)||!Number.isFinite(accuracy)||Math.abs(lat)>90||Math.abs(lng)>180||accuracy<0)return false;
-        position={lat,lng,accuracy,at:Date.now()};geo.permission='granted';geo.status='located';
+        position={lat,lng,accuracy,at:Date.now()};geo.permission='granted';geo.status='located';if(progress.locationFallback){delete progress.locationFallback;saveProgress();}
         clearTimeout(geo.expiryTimer);
         geo.expiryTimer=setTimeout(()=>{if(position&&Date.now()-position.at>120000){position=undefined;clearPlayerMarker();updateLocationUI();}},120001);
         if(focus)mapFocus='player';
@@ -682,7 +691,8 @@
     }
     function requestLocation() {
         if(localTestPosition){receiveLocation({coords:{latitude:localTestPosition.lat,longitude:localTestPosition.lng,accuracy:10}});if(needsNearbyRoute())searchNearby();return;}
-        if(geo.pending||!navigator.geolocation||!window.isSecureContext||geo.permission==='denied')return;
+        if(geo.pending)return;
+        if(!navigator.geolocation||!window.isSecureContext||geo.permission!=='granted'){useDefaultLocation();return;}
         geo.enabled=true;geo.pending=true;geo.status='locating';stopLocationWatch();
         const request=++geo.request;
         updateLocationUI();if(needsNearbyRoute())render();
@@ -691,13 +701,13 @@
             geo.request++;geo.pending=false;clearTimeout(geo.timer);position=undefined;clearPlayerMarker();
             if(error?.code===1){geo.permission='denied';geo.status='idle';}
             else geo.status=error?.code===3?'timeout':'unavailable';
-            updateLocationUI();if(needsNearbyRoute())render();
+            useDefaultLocation();
         };
         geo.timer=setTimeout(()=>fail({code:3}),16000);
         try {
             navigator.geolocation.getCurrentPosition(p=>{
                 if(request!==geo.request||!geo.pending)return;
-                if(!receiveLocation(p,true)){fail({code:2});return;}
+                if(!receiveLocation(p,true)||p.coords.accuracy>500){useDefaultLocation();return;}
                 geo.pending=false;clearTimeout(geo.timer);updateLocationUI();
                 if(needsNearbyRoute())searchNearby();
                 if(progress.mode==='field'&&!SM.letterTutorial.isActive())locate();
@@ -817,7 +827,7 @@
         if(meters>150){$('#courier-status').textContent=tr(`待ち合わせ場所まで、あと約${Math.round(meters)}m。近くで撮るか、「その場で体験」を選んでね。`,`距会合点约 ${Math.round(meters)} 米。走到附近再拍，或切换到原地体验。`);return false;}return true;
     }
     function locate() {
-        if(localTestPosition)return;
+        if(localTestPosition||position?.fallback)return;
         if(!geo.enabled||geo.permission!=='granted'||document.hidden||watchId!==undefined||!navigator.geolocation)return;
         const request=geo.request,watchRequest=geo.watchRequest;
         watchId=navigator.geolocation.watchPosition(p=>{
@@ -829,7 +839,7 @@
         },error=>{
             if(request!==geo.request||watchRequest!==geo.watchRequest)return;
             if(error?.code===1)applyLocationPermission('denied');
-            else {geo.status=error?.code===3?'timeout':'unavailable';position=undefined;clearPlayerMarker();updateLocationUI();stopLocationWatch();}
+            else useDefaultLocation();
         },{enableHighAccuracy:true,timeout:15000,maximumAge:15000});
     }
     async function handlePhoto(event) {
