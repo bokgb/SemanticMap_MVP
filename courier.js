@@ -139,7 +139,7 @@
             }
         });
         $('.courier-world').insertAdjacentHTML('afterbegin',`<div class="nearby-map-placeholder" aria-hidden="true">${icon('mail')}<span>風の郵便局</span></div>`);
-        hasSavedGame=restoreProgress();if(SM.playRules.walkingOnly)progress.mode='field';saveReady=hasSavedGame;
+        hasSavedGame=restoreProgress();if(SM.nearby.validRoute(progress.route))progress.route=SM.playRules.firstDayRoute(progress.route);if(progress.mainJourney&&SM.nearby.validRoute(progress.mainJourney.route))progress.mainJourney.route=SM.playRules.firstDayRoute(progress.mainJourney.route);if(SM.playRules.walkingOnly)progress.mode='field';saveReady=hasSavedGame;
         SM.research?.init({disabled:localTest&&['test','preview'].some(key=>new URLSearchParams(location.search).has(key)),resume:hasSavedGame});
         SM.week?.init({root:()=>root,progress:()=>progress,words:collectedWords,render,icon,robot,startFree:enterFreeExploration,restoreMain:restoreMainJourney,dialog:openDialog,closeDialog,photo:album=>{if(!busy)$(album?'#courier-album':'#courier-file').click();},mapState:()=>({mode:progress.mode,position,route:SM.nearby.validRoute(progress.route)?progress.route:null}),receiveLocation,feedbackLink});
         window.addEventListener('pagehide',saveProgress);
@@ -233,7 +233,7 @@
             if(result.missing.length)throw new Error('Incomplete nearby route');
             jumpToTest('route',false);
             localTestPosition={lat:point.lat,lng:point.lng};
-            progress.mode='field';progress.route=result.route;testOrigin='nearby';
+            progress.mode='field';progress.route=SM.playRules.firstDayRoute(result.route);testOrigin='nearby';
             receiveLocation({coords:{latitude:point.lat,longitude:point.lng,accuracy:10}});
             if(updateURL){const url=new URL(location.href);url.searchParams.set('test','nearby');history.replaceState(null,'',url);}
             root.querySelectorAll('[data-test-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.testStart==='nearby')));
@@ -460,7 +460,7 @@
             const result=await SM.nearby.search(origin,radius,nearbySearch.controller.signal);
             if(sequence!==nearbySearch.sequence||progress.mode!=='field')return;
             if(result.missing.length){nearbySearch.status='missing';nearbySearch.missing=result.missing;}
-            else {progress.route=result.route;nearbySearch.status='ready';mapFocus='route';mapViewKey='';}
+            else {progress.route=SM.playRules.firstDayRoute(result.route);nearbySearch.status='ready';mapFocus='route';mapViewKey='';}
         }catch {if(sequence===nearbySearch.sequence)nearbySearch.status='error';}
         finally{clearTimeout(timer);if(sequence===nearbySearch.sequence){nearbySearch.controller=null;render();}}
     }
