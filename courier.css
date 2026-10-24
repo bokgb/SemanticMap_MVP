@@ -900,3 +900,5 @@ body.courier-mode > :not(#courier-app):not(script) { display:none !important; }
 @media(prefers-reduced-motion:reduce) { .nearby-search-mark.is-searching { animation:none; } }
 
 .journey-stop-card strong,.journey-counter>span { overflow-wrap:anywhere; }
+
+.opening-invite .opening-target-word { color:#b14c2a; font-weight:700; }

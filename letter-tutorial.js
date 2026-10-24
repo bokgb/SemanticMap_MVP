@@ -136,8 +136,9 @@
                         ?t('あれ、ペンが見つからない……。これじゃ書けないな。','咦，找不到笔了……这样就没法写信了。')
                         :t('そうだ！写真に写ったものは、こっちの世界に本物として届けられるんだ。','对了！你拍的东西能通过照片送到这里，变成真实的东西。');
     }
+    function openingMessageMarkup(){return escape(openingMessage()).replace(/ペン|笔/g,word=>'<strong class="opening-target-word">'+word+'</strong>');}
     function openingSpeech() {
-        return `<div class="opening-invite" role="status"><span class="opening-speaker">${t('ポコ','波可')}</span><p>${escape(openingMessage())}</p></div>`;
+        return `<div class="opening-invite" role="status"><span class="opening-speaker">${t('ポコ','波可')}</span><p>${openingMessageMarkup()}</p></div>`;
     }
     function openingRoom(room) {
         const beat=openingBeat();
@@ -152,7 +153,7 @@
             room.querySelector('.opening-invite').outerHTML=openingSpeech();
         }else{
             room.querySelector('.opening-speaker').textContent=t('ポコ','波可');
-            room.querySelector('.opening-invite p').textContent=openingMessage();
+            room.querySelector('.opening-invite p').innerHTML=openingMessageMarkup();
         }
         room.dataset.mode='opening';room.dataset.beat=beat;
         room.querySelector('.tutorial-room').dataset.openingBeat=beat;
